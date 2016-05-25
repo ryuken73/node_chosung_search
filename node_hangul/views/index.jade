@@ -1,0 +1,25 @@
+extends layout
+block header
+  script(src="/js/index.js")
+  script(src="/js/hangul.min.js")
+
+block content
+  .container
+    section.header
+      h1.title= title 
+      p      
+      .row
+        .one-half.column
+          button.button-primary(id="init") LOAD INIT
+          p
+           .row        
+            .seven.columns
+               label(for="pattern") AUTO COMPLETE WITH JAMO and CHOSUNG serarch
+               input.u-full-width(type="text" id="chosung")                   
+
+        .one-half.column 
+           label(for="history") RESULT
+           ul(id='result')
+        
+    
+
