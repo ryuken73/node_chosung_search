@@ -15,6 +15,7 @@ $(document).ready(function(){
 	
 	// 아래는 FF에서 2bytes(한글)에 대해 keyup event가 발생하지 않아서...
 	// 모든 브라우져에서 계속 감시하는 것으로..
+	/*
 	
 	$('#chosung').focus(function(event){
 		this.intervalID = setInterval(function(){
@@ -48,9 +49,28 @@ $(document).ready(function(){
 		}			
 	}
 	// 여기까지가...
+	*/
 	
 	$( '#chosung' ).autocomplete({
 		source: function(request,response){
+			
+			var data = $('#chosung').val();
+			for ( var i = 0 ; i < data.length ; i++ ) {
+				if(Hangul.isHangul(data[i])){
+					console.log('이건 초성검색이 아닙니다');
+					break;
+				}
+				if(!Hangul.isHangul(data[i])){
+					//초성만 입력되거나 문자가 영문 또는 'ㅗㅒ' 이런글자들이다.
+						if(Hangul.isConsonant(data[i]) && !Hangul.isCho(data[i])){
+						// 그리고 자음이면서, 초성으로 쓰일수 없는 글자라면... disassemble한다.
+								var result = Hangul.disassemble(data).join('');
+								console.log(result);	
+								$('#chosung').val(result);
+						}
+				}
+			}
+			
 			$.ajax({
 				'url':'/getUser/searchJAMOCHO/'+encodeURIComponent(request.term),
 				'type':'GET',
