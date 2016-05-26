@@ -54,7 +54,7 @@ $(document).ready(function(){
 	$( '#chosung' ).autocomplete({
 		source: function(request,response){
 			
-			var data = $('#chosung').val();
+			var data = $('#chosung').val(); 
 			for ( var i = 0 ; i < data.length ; i++ ) {
 				if(Hangul.isHangul(data[i])){
 					console.log('이건 초성검색이 아닙니다');
