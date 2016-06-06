@@ -87,6 +87,31 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 - keyup event를 catch해서 초성이 될 수 없는 input 이 들어오면 나누도록 코딩
 - 하지만 파이어폭스에서 2bytes 문자(한글)에 대해서 keyup이 발생하지 않는 문제 발생
 - 곰곰히 생각해보니 keyup event를 listen할 필요가 없었음 -> autocomplete안에서 이벤트 감지됨
+```js
+// /public/js/index.js 참조
+	$( '#chosung' ).autocomplete({
+		source: function(request,response){
+			
+			// 초성검색인 경우, 종성으로만 허락되는 겹문자를 홑문자로 잘라준다.
+			var data = $('#chosung').val(); 
+			for ( var i = 0 ; i < data.length ; i++ ) {
+				if(Hangul.isHangul(data[i])){
+					console.log('이건 초성검색이 아닙니다');
+					break;
+				}
+				if(!Hangul.isHangul(data[i])){
+					//초성만 입력되거나 문자가 영문 또는 'ㅗㅒ' 이런글자들이다.
+						if(Hangul.isConsonant(data[i]) && !Hangul.isCho(data[i])){
+						// 그리고 자음이면서, 초성으로 쓰일수 없는 글자라면... disassemble한다.
+								var result = Hangul.disassemble(data).join('');
+								console.log(result);	
+								$('#chosung').val(result);
+						}
+				}
+			}
+
+
+```
 
 2) IE에서 한글을 입력하면 서버에서 오류발생 ( express의 param encoding하는 부분 )
 - 자세히 보니 서버로 ajax 전송할 때 http get을 썼는데, euc-kr로 서버에 전달되었기 때문
