@@ -4,6 +4,29 @@
 ##1.클라이언트
 - jquery UI autocomplete widget 사용
 - 키 입력에 따라 "ㅎ","호","홍","홍ㄱ","홍기" 이런 값들이 서버에 ajax로 전달된다.
+```
+// /public/js/index.js 참조
+$( '#chosung' ).autocomplete({
+		source: function(request,response){
+		...
+			$.ajax({
+				'url':'/getUser/searchJAMOCHO/'+encodeURIComponent(request.term),
+				'type':'GET',
+				'success':function(result){
+					response(
+							$.map(result.slice(0,20),function(item){
+								return{
+									label : item.USER_NM +' - '+ item.CO_NM + ' - ' + item.DEPT_NM,
+									value: item.USER_NM
+								};							
+							})
+						);
+					
+				}
+			});
+			...
+		
+```
 
 ##2. 서버
 - 전달받은 한글을 서버가 가진 데이터와 비교 ( 서버의 데이터 생성방법은 아래 참고 )
@@ -13,6 +36,47 @@
 ```
 - 전달받은 한글 또한 초성값, 자모 분리한 값으로 나눠서, 각각 서버 데이터와 비교해서
   일치하는 값을 찾아낸다.
+```js
+// /routes/getUser.js 참조
+router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
+	
+	global.logger.trace('%s',req.params.pattern);
+	var pattern = req.params.pattern
+	// 자모 분리
+	var jamo = extractJAMO(req.params.pattern);
+	// 초성 분리
+	var cho = extractCHO(req.params.pattern);
+
+  // 전달받은 한글자체 비교
+	var userObj = _.filter(global.usermapWithJAMOCHO, function(obj){
+		return obj.USER_NM.includes(req.params.pattern); 
+	});
+	
+	// 자모 분리한값 비교
+	var userObjJAMO = _.filter(global.usermapWithJAMOCHO, function(obj){
+		return obj.USER_NM_JAMO.startsWith(jamo) ;
+	});	
+	
+	var processed = 0;
+	var userObjCHO = [];
+
+  // 초성비교
+	for ( var i = 0 ; i < pattern.length ; i++ ) {
+			if(Hangul.isHangul(pattern[i])){
+				global.logger.trace('이건 초성검색이 아닙니다');
+				break;
+			}else{
+				processed ++;
+			}			
+			
+			if(processed === pattern.length){
+				userObjCHO = _.filter(global.usermapWithJAMOCHO, function(obj){
+					return obj.USER_CHO.startsWith(cho) ;
+				});
+			}
+	}	
+
+```
   
 ##3. 사용한 모듈
 - 자모분리, 초성값 추출 등 한글관련 연산은 hangul-js를 사용 [https://github.com/e-/Hangul.js]
