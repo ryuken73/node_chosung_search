@@ -1,5 +1,5 @@
 # node_chosung_search
-#한글 자동완성 및 초성검색
+#한글 자동완성 및 초성검색 구현
 
 ##1.클라이언트
 - jquery UI autocomplete widget 사용
