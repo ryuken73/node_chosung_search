@@ -1,6 +1,5 @@
 var express = require('express');
 var router = express.Router();
-var ibmdb = require('../database/ibmdb');
 var extractJAMO = require('../util/extractJAMO');
 var extractCHO = require('../util/extractCHO');
 var _ = require('lodash');
@@ -76,7 +75,12 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 			
 			if(processed === pattern.length){
 				userObjCHO = _.filter(global.usermapWithJAMOCHO, function(obj){
-					return obj.USER_CHO.startsWith(cho) ;
+					var chosung = obj.USER_CHO ;
+					if(chosung)	{
+						return obj.USER_CHO.startsWith(cho) ;
+					}else{
+						return false;
+					}
 				});
 			}
 	}	

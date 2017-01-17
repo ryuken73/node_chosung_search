@@ -1,20 +1,27 @@
 var express = require('express');
 var router = express.Router();
-var ibmdb = require('../database/ibmdb');
 var _ = require('lodash');
 var cnvrtJAMO = require('../util/extractJAMO');
 var extractCHO = require('../util/extractCHO');
-
+var fs = require('fs');
+var path = require('path');
+var Q = require('q');
 
 router.get('/JAMO', function(req, res, next) {
 	
 	global.usermapWithJAMO = [];
 	global.usermapWithJAMOCHO = [];
 	
-	ibmdb.attachConnObj(req);
-	req.getConnection
-	.then(ibmdb.executeSQL(req,"select user_nm,dept_nm,co_nm from comm.com_user_tbl where del_flag = 'N' order by 1",[]))
+	var opts = {
+			wordSep  : ' ',
+			lineSep  : '\n',
+			encoding : 'utf-8',
+			fname    : path.join(process.cwd(), '/input/justice.txt')
+	}
+	
+    getData(opts)
 	.then(function(result){
+		global.logger.trace(result);
 		var processed = 0;
 		_.forEach(result,function(person){
 			var jamo = cnvrtJAMO(person.USER_NM);
@@ -26,6 +33,7 @@ router.get('/JAMO', function(req, res, next) {
 			global.usermapWithJAMOCHO.push(person);
 			processed ++;
 			if(processed === result.length){
+
 				res.send({result:'success'});
 			}
 		});
@@ -35,4 +43,28 @@ router.get('/JAMO', function(req, res, next) {
 	});		 
 });
  
+function getData(options){
+	
+	var def = Q.defer()
+	var result = [];
+	
+	fs.readFile(options.fname, options.encoding, function(err,data){
+		if(err){
+			global.logger.error(err);
+		}else {
+			//global.logger.trace(data);
+			var result = _.split(data, options.wordSep).map(function(word){
+				return {'USER_NM': _.trim(word), 'CO_NM':word.length, 'DEPT_NM':encodeURIComponent(word)};
+			});
+			def.resolve(_.sortBy(result, function(user){
+									return user.USER_NM;
+							}) 
+			);
+		}
+	})
+	
+	return def.promise;
+	
+}
+
 module.exports = router;

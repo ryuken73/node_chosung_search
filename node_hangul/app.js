@@ -38,9 +38,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-///
-var Pool = require('ibm_db').Pool;
-global.pool = new Pool();
 global.logger = logTracer;
  
 app.use('/', routes);

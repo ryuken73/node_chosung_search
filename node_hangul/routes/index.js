@@ -1,6 +1,5 @@
 var express = require('express');
 var router = express.Router();
-var ibmdb = require('../database/ibmdb');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
