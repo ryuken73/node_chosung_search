@@ -9,6 +9,7 @@
 ##2. 실행예
 - 접속 : http://localhost:3000
 - 초기데이터 로드
+![Alt Text](https://github.com/{user}/{repo}/raw/master/node_hangul/image/init.jpg)
 - 초성검색
 - 자동완성
 
