@@ -9,9 +9,11 @@
 ##2. 실행예
 - 접속 : http://localhost:3000
 - 초기데이터 로드
-![Alt Text](https://github.com/{user}/{repo}/raw/master/node_hangul/image/init.jpg)
+![Alt Text](https://github.com/ryuken73/node_chosung_search/raw/master/node_hangul/image/init.jpg)
 - 초성검색
+![Alt Text](https://github.com/ryuken73/node_chosung_search/raw/master/node_hangul/image/chosung_search.jpg)
 - 자동완성
+![Alt Text](https://github.com/ryuken73/node_chosung_search/raw/master/node_hangul/image/autocomplete.jpg)
 
 ##3. 클라이언트구현 참고
 - jquery UI autocomplete widget 사용
