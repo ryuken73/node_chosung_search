@@ -1,12 +1,12 @@
-#node_chosung_search
-#한글 자동완성 및 초성검색 구현
+# node_chosung_search
+# 한글 자동완성 및 초성검색 구현
 
-##1. 사용법
+## 1. 사용법
 - git clone https://github.com/ryuken73/node_chosung_search.git
 - npm install
 - npm start 
 
-##2. 실행예
+## 2. 실행예
 - 접속 : http://localhost:3000
 - 초기데이터 로드
 ![Alt Text](https://github.com/ryuken73/node_chosung_search/raw/master/node_hangul/image/init.jpg)
@@ -15,7 +15,7 @@
 - 자동완성
 ![Alt Text](https://github.com/ryuken73/node_chosung_search/raw/master/node_hangul/image/autocomplete.jpg)
 
-##3. 클라이언트구현 참고
+## 3. 클라이언트구현 참고
 - jquery UI autocomplete widget 사용
 - 키 입력에 따라 "ㅎ","호","홍","홍ㄱ","홍기" 이런 값들이 서버에 ajax로 전달된다.
 ```
@@ -42,7 +42,7 @@ $( '#chosung' ).autocomplete({
 		
 ```
 
-##4. 서버구현 참고
+## 4. 서버구현 참고
 - 전달받은 한글을 서버가 가진 데이터와 비교 ( 서버의 데이터 생성방법은 아래 참고 )
 - 서버 데이터 형식 : DB에서 가져온 이름에서 초성값 그리고 자모 분리한 값을 추출함
 ```js
@@ -92,11 +92,11 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 
 ```
   
-##5. 사용한 모듈
+## 5. 사용한 모듈
 - 자모분리, 초성값 추출 등 한글관련 연산은 hangul-js를 사용 [https://github.com/e-/Hangul.js]
 - 클라이언트 자동완성은 jquery UI의 autocomplete widget 사용 [http://api.jqueryui.com/autocomplete]
 
-##6. 몇가지 시행착오
+## 6. 몇가지 시행착오
 1) 브라우져 text input box에 "ㄺ""ㅄ" 이런식으로 자음이 붙어서 입력이 되어 초성검색이 안된다.
 - keyup event를 catch해서 초성이 될 수 없는 input 이 들어오면 나누도록 코딩
 - 하지만 파이어폭스에서 2bytes 문자(한글)에 대해서 keyup이 발생하지 않는 문제 발생
