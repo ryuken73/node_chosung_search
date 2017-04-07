@@ -17,7 +17,7 @@
 ### 클라이언트 javascript
 - /public/js/index.js
   * init 부분 : /init/JAMO 호출
-  * autocomplete 부분 : jquery autocomplete widget으로 key입력(keyup)할때 마다 event발생
+  * autocomplete 부분 : jquery autocomplete widget으로 입력(keyup)할때 마다 event발생해서 /searchJAMOCHO/:pattern으로 post요청
 
 ## 1. 사용법
 - git clone https://github.com/ryuken73/node_chosung_search.git
@@ -37,7 +37,7 @@
 ## 3. 클라이언트구현 참고
 - jquery UI autocomplete widget 사용
 - 키 입력에 따라 "ㅎ","호","홍","홍ㄱ","홍기" 이 값들이 서버에 ajax로 전달된다.
-- 서버에서는 ajax로 전달된 값에 대해, 초성 및 자모분리를 각각 수행하고 일치되는 string 배열을 return해준다.
+- 서버에서는 ajax로 전달된 값에 대해, 초성 및 자모분리를 각각 수행하고 일치되는 string 배열을 return.
 
 ```js
 // /public/js/index.js 참조
@@ -67,8 +67,8 @@ $( '#chosung' ).autocomplete({
 ```js
 [{USER_NM:'홍길동',USER_CHO:'ㅎ,ㄱ,ㄷ',USER_JAMO:'ㅎㅗㅇㄱㅣㄹㄷㅗㅇ'}{..}]
 ```
-- 전달받은 한글 string을 자모분리, 초성분리한다.
-- 분리한 데이터와 최초 init을 통해 만들어진 서버쪽 데이터를 비교 ( 서버의 데이터 생성방법은 아래 참고 )
+- 전달받은 한글string을 자모분리, 초성분리한다.
+- 분리한 데이터와 최초 init을 통해 만들어진 서버데이터를 비교 ( 서버의 데이터 생성방법은 아래 참고 )
 ```js
 // /routes/getUser.js 참조
 router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
@@ -113,6 +113,7 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 ## 5. 사용 모듈
 - 자모분리, 초성값 추출 등 한글관련 연산은 hangul-js를 사용 [https://github.com/e-/Hangul.js]
 - 클라이언트 자동완성은 jquery UI의 autocomplete widget 사용 [http://api.jqueryui.com/autocomplete]
+- json 배열검색 및 결과 union은 lodash function 사용 [https://lodash.com]
 
 ## 6. 몇가지 시행착오
 1) 브라우져 text input box에 "ㄺ""ㅄ" 이런식으로 자음이 붙어서 입력이 되어 초성검색이 안된다.
