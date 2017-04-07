@@ -1,13 +1,32 @@
 # node_chosung_search
 # 한글 자동완성 및 초성검색 구현
 
+## 0. 구현환경 개요
+### 데이터 소스
+- Text file을 읽어서 application 메모리에 json object로 load 
+- sample text file은 input 폴더 아래에 있는 justice.txt => "정의란 무엇인가"의 내용 발췌 (총 4700자)
+- 소스 데이터에 대해 그냥 공백기준으로 split => 실환경에서는 형태소 분석이 추가되면 좋을듯 합니다
+
+### 서버 프로그램
+- node.js express template 사용
+- /routers/init.js : 데이터 소스 loading
+- /routers/getUser.js : /searchJAMOCHO/:pattern 입력 => 초성 및 자동완성 데이터 return
+- /util/extractCHO.js : 한글 string을 받아서 초성 string return ("홍길동" => "ㅎㄱㄷ")
+- /util/extractJAMO.js : 한글 string을 받아서 자모 분리한 string return ("홍길동" =>"ㅎㅗㅇㄱㅣㄹㄷㅗㅇ")
+
+### 클라이언트 javascript
+- /public/js/index.js
+  * init 부분 : /init/JAMO 호출
+  * autocomplete 부분 : jquery autocomplete widget으로 key입력(keyup)할때 마다 event발생
+
 ## 1. 사용법
 - git clone https://github.com/ryuken73/node_chosung_search.git
 - npm install
 - npm start 
 
+
 ## 2. 실행예
-- 접속 : http://localhost:3000
+ 접속 : http://localhost:3000
 - 초기데이터 로드
 ![Alt Text](https://github.com/ryuken73/node_chosung_search/raw/master/node_hangul/image/init.jpg)
 - 초성검색
@@ -17,39 +36,39 @@
 
 ## 3. 클라이언트구현 참고
 - jquery UI autocomplete widget 사용
-- 키 입력에 따라 "ㅎ","호","홍","홍ㄱ","홍기" 이런 값들이 서버에 ajax로 전달된다.
-```
+- 키 입력에 따라 "ㅎ","호","홍","홍ㄱ","홍기" 이 값들이 서버에 ajax로 전달된다.
+- 서버에서는 ajax로 전달된 값에 대해, 초성 및 자모분리를 각각 수행하고 일치되는 string 배열을 return해준다.
+
+```js
 // /public/js/index.js 참조
 $( '#chosung' ).autocomplete({
-		source: function(request,response){
-		...
-			$.ajax({
-				'url':'/getUser/searchJAMOCHO/'+encodeURIComponent(request.term),
-				'type':'GET',
-				'success':function(result){
-					response(
-							$.map(result.slice(0,20),function(item){
-								return{
-									label : item.USER_NM +' - '+ item.CO_NM + ' - ' + item.DEPT_NM,
-									value: item.USER_NM
-								};							
-							})
-						);
-					
-				}
-			});
+  source: function(request,response){
+   ... 중략
+    $.ajax({
+	 'url':'/getUser/searchJAMOCHO/'+encodeURIComponent(request.term),
+		'type':'GET',
+		'success':function(result){
+			response(
+				$.map(result.slice(0,20),function(item){
+	    			return{
+						label : item.USER_NM +' - '+ item.CO_NM + ' - ' + item.DEPT_NM,
+							value: item.USER_NM
+						};							
+					})
+			);			
+		}
+    });
 			...
 		
 ```
 
 ## 4. 서버구현 참고
-- 전달받은 한글을 서버가 가진 데이터와 비교 ( 서버의 데이터 생성방법은 아래 참고 )
-- 서버 데이터 형식 : DB에서 가져온 이름에서 초성값 그리고 자모 분리한 값을 추출함
+- 최초 init 수행 시, Text file로 부터 word를 읽고, 초성값 및 자모분리된 값을 저장한다.
 ```js
-[{USER_NM:'홍길동',USER_CHO:'ㅎ,ㄱ,ㄷ',USER_JAMO:'ㅎㅗㅇㄱㅣㄹㄷㅗㅇ'}{}]
+[{USER_NM:'홍길동',USER_CHO:'ㅎ,ㄱ,ㄷ',USER_JAMO:'ㅎㅗㅇㄱㅣㄹㄷㅗㅇ'}{..}]
 ```
-- 전달받은 한글 또한 초성값, 자모 분리한 값으로 나눠서, 각각 서버 데이터와 비교해서
-  일치하는 값을 찾아낸다.
+- 전달받은 한글 string을 자모분리, 초성분리한다.
+- 분리한 데이터와 최초 init을 통해 만들어진 서버쪽 데이터를 비교 ( 서버의 데이터 생성방법은 아래 참고 )
 ```js
 // /routes/getUser.js 참조
 router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
@@ -89,10 +108,9 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 				});
 			}
 	}	
-
 ```
   
-## 5. 사용한 모듈
+## 5. 사용 모듈
 - 자모분리, 초성값 추출 등 한글관련 연산은 hangul-js를 사용 [https://github.com/e-/Hangul.js]
 - 클라이언트 자동완성은 jquery UI의 autocomplete widget 사용 [http://api.jqueryui.com/autocomplete]
 
