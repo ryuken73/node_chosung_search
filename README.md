@@ -2,6 +2,13 @@
 # 한글 자동완성 및 초성검색 구현
 
 ## 0. 구현환경 개요
+### 동작 
+- 하나의 input box에서 자동완성과 초성검색 모두 처리
+- 서버 환경은 node.js의 express를 사용하고, 특히 hangul-js와 lodash module을 적극 사용
+- 클라이언트 환경은 jquery autocomplete widget을 사용
+- 동작방식은, 데이터 소스를 미리 서버에 로드 => matching이 가능하도록 자모분리한 값과
+  초성값을 저장한 object로 보관 => client에서 요청이 오면 각각 비교해서 matching되면 return
+
 ### 데이터 소스
 - Text file을 읽어서 application 메모리에 json object로 load 
 - sample text file은 input 폴더 아래에 있는 justice.txt => "정의란 무엇인가"의 내용 발췌 (총 4700자)
@@ -14,7 +21,7 @@
 - /util/extractCHO.js : 한글 string을 받아서 초성 string return ("홍길동" => "ㅎㄱㄷ")
 - /util/extractJAMO.js : 한글 string을 받아서 자모 분리한 string return ("홍길동" =>"ㅎㅗㅇㄱㅣㄹㄷㅗㅇ")
 
-### 클라이언트 javascript
+### 클라이언트 프로그램
 - /public/js/index.js
   * init 부분 : /init/JAMO 호출
   * autocomplete 부분 : jquery autocomplete widget으로 입력(keyup)할때 마다 event발생해서 /searchJAMOCHO/:pattern으로 post요청
