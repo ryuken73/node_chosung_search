@@ -74,8 +74,8 @@ $( '#chosung' ).autocomplete({
 ```js
 [{USER_NM:'홍길동',USER_CHO:'ㅎ,ㄱ,ㄷ',USER_JAMO:'ㅎㅗㅇㄱㅣㄹㄷㅗㅇ'}{..}]
 ```
-- 전달받은 한글string을 자모분리, 초성분리한다.
-- 분리한 데이터와 최초 init을 통해 만들어진 서버데이터를 비교 ( 서버의 데이터 생성방법은 아래 참고 )
+- 사용자로부터 전달받은 한글string을 자모분리, 초성분리한다.
+- 분리한 사용자 입력 데이터와 최초 init을 통해 만들어진 서버데이터를 비교 
 ```js
 // /routes/getUser.js 참조
 router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
