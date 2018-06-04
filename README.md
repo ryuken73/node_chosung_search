@@ -2,7 +2,7 @@
 # 한글 자동완성 및 초성검색 구현
 
 ## 0. 구현환경 개요
-### 동작 
+### 동작 개요
 - 하나의 input box에서 자동완성과 초성검색 모두 처리
 - 서버 환경은 node.js의 express를 사용하고, 특히 hangul-js와 lodash module을 적극 사용
 - 클라이언트 환경은 jquery autocomplete widget을 사용
