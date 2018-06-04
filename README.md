@@ -7,7 +7,7 @@
 - 서버 환경은 node.js의 express를 사용하고, 특히 hangul-js와 lodash module을 적극 사용
 - 클라이언트 환경은 jquery autocomplete widget을 사용
 - 동작방식은, 데이터 소스를 미리 서버에 로드 => matching이 가능하도록 자모분리한 값과
-  초성값을 저장한 object로 보관 => client에서 요청이 오면 각각 비교해서 matching되면 return
+  초성값을 저장한 object로 보관 => client에서 요청이 오면 각각 비교해서 matching되는  return
 
 ### 데이터 소스
 - Text file을 읽어서 application 메모리에 json object로 load 
