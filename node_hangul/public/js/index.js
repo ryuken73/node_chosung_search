@@ -5,7 +5,7 @@ $(document).ready(function(){
 	$(".button-primary").click(function(event){
 		event.preventDefault();
 		$.ajax({
-			'url':'/init/JAMO',
+			'url':'/load',
 			'type':'GET',
 			'success':function(result){
 				$('#result').text("Init Success");
@@ -72,14 +72,14 @@ $(document).ready(function(){
 			}
 			
 			$.ajax({
-				'url':'/getUser/searchJAMOCHO/'+encodeURIComponent(request.term),
+				'url':'/search/searchJAMOCHO/'+encodeURIComponent(request.term),
 				'type':'GET',
 				'success':function(result){
 					response(
 							$.map(result.slice(0,20),function(item){
 								return{
-									label : item.USER_NM +' - '+ item.CO_NM + ' - ' + item.DEPT_NM,
-									value: item.USER_NM
+									label : item.word +' : "'+ item.jamo + '" : "' + item.cho + '"',
+									value: item.word
 								};							
 							})
 						);

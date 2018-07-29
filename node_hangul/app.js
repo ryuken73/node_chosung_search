@@ -42,10 +42,8 @@ global.logger = logTracer;
  
 app.use('/', routes);
 app.use('/users', users);
-app.use('/init', require('./routes/init'));
-app.use('/getUser', require('./routes/getUser'));
-
-
+app.use('/load', require('./routes/load'));
+app.use('/search', require('./routes/search'));
 
 
 // catch 404 and forward to error handler

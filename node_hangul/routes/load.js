@@ -7,10 +7,10 @@ var fs = require('fs');
 var path = require('path');
 var Q = require('q');
 
-router.get('/JAMO', function(req, res, next) {
+router.get('/', function(req, res, next) {
 	
-	global.usermapWithJAMO = [];
-	global.usermapWithJAMOCHO = [];
+	global.wordsWithJAMO = [];
+	global.wordsWithJAMOCHO = [];
 	
 	var opts = {
 			wordSep  : ' ',
@@ -23,17 +23,16 @@ router.get('/JAMO', function(req, res, next) {
 	.then(function(result){
 		global.logger.trace(result);
 		var processed = 0;
-		_.forEach(result,function(person){
-			var jamo = cnvrtJAMO(person.USER_NM);
-			var cho = extractCHO(person.USER_NM);
+		_.forEach(result, function(wordObj){
+			var jamo = cnvrtJAMO(wordObj.word);
+			var cho = extractCHO(wordObj.word);
 			
-			person.USER_NM_JAMO = jamo;
-			global.usermapWithJAMO.push(person);
-			person.USER_CHO = cho;
-			global.usermapWithJAMOCHO.push(person);
+			wordObj.jamo = jamo;
+			global.wordsWithJAMO.push(wordObj);
+			wordObj.cho = cho;
+			global.wordsWithJAMOCHO.push(wordObj);
 			processed ++;
 			if(processed === result.length){
-
 				res.send({result:'success'});
 			}
 		});
@@ -54,12 +53,12 @@ function getData(options){
 		}else {
 			//global.logger.trace(data);
 			var result = _.split(data, options.wordSep).map(function(word){
-				return {'USER_NM': _.trim(word), 'CO_NM':word.length, 'DEPT_NM':encodeURIComponent(word)};
+				return {'word': _.trim(word), 'wordEncoded':encodeURIComponent(word)};
 			});
-			def.resolve(_.sortBy(result, function(user){
-									return user.USER_NM;
+			def.resolve(_.sortBy(result, function(word){
+									return word.word;
 							}) 
-			);
+			); 
 		}
 	})
 	
