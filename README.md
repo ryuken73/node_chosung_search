@@ -6,11 +6,11 @@
 - 하나의 input box에서 자동완성과 초성검색 모두 처리
 - 서버 환경은 node.js의 express를 사용하고, 특히 hangul-js와 lodash module을 적극 사용
 - 클라이언트 환경은 jquery autocomplete widget 사용
-- 동작방식은, 데이터 소스를 서버에 로드 
-  => 공백기준으로 단어 split 
-  => 각 단어별로 자모분리한 값(jamo)과 초성(cho)을 저장 {word:'하늘', cho:'ㅎㄴ', jamo: 'ㅎㅏ ㄴ ㅡ ㄹ''}
-  => 위 object들을 global.wordsWithJAMO, global.wordsWithJAMOCHO 배열에 저장
-  => request가 오면, 각 배열에서 matching되는 object들을 return
+- 동작방식은, 데이터 소스를 서버에 로드  
+=> 공백기준으로 단어 split  
+=> 각 단어별로 자모분리한 값(jamo)과 초성(cho)을 저장 {word:'하늘', cho:'ㅎㄴ', jamo: 'ㅎㅏ ㄴ ㅡ ㄹ''}  
+=> 위 object들을 global.wordsWithJAMO, global.wordsWithJAMOCHO 배열에 저장  
+=> request가 오면, 각 배열에서 matching되는 object들을 return
 
 ### 데이터 소스
 - Sample Text File을 읽어서 Application 메모리에 paring해서 저장 
@@ -52,25 +52,24 @@
 ```js
 // /public/js/index.js 참조
 $( '#chosung' ).autocomplete({
-	source: function(request,response){
-        ... 중략		
-		$.ajax({
-			'url':'/search/searchJAMOCHO/'+encodeURIComponent(request.term),
-			'type':'GET',
-			'success':function(result){
-				response(
-						$.map(result.slice(0,20),function(item){
-							return{
-								label : item.word +' : "'+ item.jamo + '" : "' + item.cho + '"',
-								value: item.word
-							};							
-						})
-					);
-				
-			}
-		});
-	},
-	...
+ source: function(request,response){
+ ... 중략		
+  $.ajax({
+	'url':'/search/searchJAMOCHO/'+encodeURIComponent(request.term),
+	'type':'GET',
+	'success':function(result){
+	response(
+	  $.map(result.slice(0,20),function(item){
+	    return{
+		  label : item.word +' : "'+ item.jamo + '" : "' + item.cho + '"',
+		  value: item.word
+		};							
+	  })
+	);				
+   }
+  });
+ },
+  ...
 });	
 	
 ```
@@ -109,23 +108,23 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 
     // 3. 초성비교
 	for ( var i = 0 ; i < pattern.length ; i++ ) {
-			if(Hangul.isHangul(pattern[i])){
-				global.logger.trace('이건 초성검색이 아닙니다');
-				break;
-			}else{
-				processed ++;
-			}			
+	  if(Hangul.isHangul(pattern[i])){
+	    global.logger.trace('이건 초성검색이 아닙니다');
+		break;
+	  } else {
+		processed ++;
+	  }			
 			
-			if(processed === pattern.length){
-				userObjCHO = _.filter(global.wordsWithJAMOCHO, function(obj){
-					var chosung = obj.cho ;
-					if(chosung)	{
-						return obj.cho.startsWith(cho) ;
-					}else{
-						return false;
-					}
-				});
-			}
+	  if(processed === pattern.length){
+	    userObjCHO = _.filter(global.wordsWithJAMOCHO, function(obj){
+		  	    var chosung = obj.cho ;
+			    if(chosung)	{
+				  return obj.cho.startsWith(cho) ;
+			    }else{
+				  return false;
+			   }
+		});
+	  }
 	}	
 	
 	global.logger.trace('userObjCHO:%j',userObjCHO);
@@ -152,26 +151,25 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 ```js
 // /public/js/index.js 참조
 	$( '#chosung' ).autocomplete({
-		source: function(request,response){
+	  source: function(request,response){
 			
-			// 초성검색인 경우, 종성으로만 허락되는 겹문자를 홑문자로 잘라준다.
-			var data = $('#chosung').val(); 
-			for ( var i = 0 ; i < data.length ; i++ ) {
-				if(Hangul.isHangul(data[i])){
-					console.log('이건 초성검색이 아닙니다');
-					break;
-				}
-				if(!Hangul.isHangul(data[i])){
-					//초성만 입력되거나 문자가 영문 또는 'ㅗㅒ' 이런글자들이다.
-						if(Hangul.isConsonant(data[i]) && !Hangul.isCho(data[i])){
-						// 그리고 자음이면서, 초성으로 쓰일수 없는 글자라면... disassemble한다.
-								var result = Hangul.disassemble(data).join('');
-								console.log(result);	
-								$('#chosung').val(result);
-						}
-				}
+	  // 초성검색인 경우, 종성으로만 허락되는 겹문자를 홑문자로 잘라준다.
+	  var data = $('#chosung').val(); 
+	  for ( var i = 0 ; i < data.length ; i++ ) {
+	    if(Hangul.isHangul(data[i])){
+		  console.log('이건 초성검색이 아닙니다');
+		  break;
+		}
+		  if(!Hangul.isHangul(data[i])){
+		    //초성만 입력되거나 문자가 영문 또는 'ㅗㅒ' 이런글자들이다.
+			if(Hangul.isConsonant(data[i]) && !Hangul.isCho(data[i])){
+			  // 그리고 자음이면서, 초성으로 쓰일수 없는 글자라면... disassemble한다.
+			  var result = Hangul.disassemble(data).join('');
+			  console.log(result);	
+			  $('#chosung').val(result);
 			}
-
+		  }
+		}
 
 ```
 
