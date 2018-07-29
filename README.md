@@ -5,26 +5,29 @@
 ### 동작 개요
 - 하나의 input box에서 자동완성과 초성검색 모두 처리
 - 서버 환경은 node.js의 express를 사용하고, 특히 hangul-js와 lodash module을 적극 사용
-- 클라이언트 환경은 jquery autocomplete widget을 사용
-- 동작방식은, 데이터 소스를 미리 서버에 로드 => matching이 가능하도록 자모분리한 값과
-  초성값을 저장한 object로 보관 => client에서 요청이 오면 각각 비교해서 matching되는  return
+- 클라이언트 환경은 jquery autocomplete widget 사용
+- 동작방식은, 데이터 소스를 서버에 로드 
+  => 공백기준으로 단어 split 
+  => 각 단어별로 자모분리한 값(jamo)과 초성(cho)을 저장 {word:'하늘', cho:'ㅎㄴ', jamo: 'ㅎㅏ ㄴ ㅡ ㄹ''}
+  => 위 object들을 global.wordsWithJAMO, global.wordsWithJAMOCHO 배열에 저장
+  => request가 오면, 각 배열에서 matching되는 object들을 return
 
 ### 데이터 소스
-- Text file을 읽어서 application 메모리에 json object로 load 
-- sample text file은 input 폴더 아래에 있는 justice.txt => "정의란 무엇인가"의 내용 발췌 (총 4700자)
-- 소스 데이터에 대해 그냥 공백기준으로 split => 실환경에서는 형태소 분석이 추가되면 좋을듯 합니다
+- Sample Text File을 읽어서 Application 메모리에 paring해서 저장 
+- Sample Text File은 input 폴더 아래에 있는 justice.txt => "정의란 무엇인가"의 내용 발췌 (총 4700자)
+- 소스 데이터에 대해 그냥 공백기준으로 split 
 
 ### 서버 프로그램
 - node.js express template 사용
-- /routers/init.js : 데이터 소스 loading
-- /routers/getUser.js : /searchJAMOCHO/:pattern 입력 => 초성 및 자동완성 데이터 return
+- /routers/load.js : 데이터 소스 loading
+- /routers/search.js : /search/searchJAMOCHO/:pattern 처리 => 초성 및 자동완성 데이터 return
 - /util/extractCHO.js : 한글 string을 받아서 초성 string return ("홍길동" => "ㅎㄱㄷ")
 - /util/extractJAMO.js : 한글 string을 받아서 자모 분리한 string return ("홍길동" =>"ㅎㅗㅇㄱㅣㄹㄷㅗㅇ")
 
 ### 클라이언트 프로그램
 - /public/js/index.js
-  * init 부분 : /init/JAMO 호출
-  * autocomplete 부분 : jquery autocomplete widget으로 입력(keyup)할때 마다 event발생해서 /searchJAMOCHO/:pattern으로 post요청
+  * init 부분 : /load 호출
+  * autocomplete 부분 : jquery autocomplete widget으로 입력(keyup)할때 마다 event발생해서 /search/searchJAMOCHO/:pattern으로 post요청
 
 ## 1. 사용법
 - git clone https://github.com/ryuken73/node_chosung_search.git
@@ -49,58 +52,62 @@
 ```js
 // /public/js/index.js 참조
 $( '#chosung' ).autocomplete({
-  source: function(request,response){
-   ... 중략
-    $.ajax({
-	 'url':'/getUser/searchJAMOCHO/'+encodeURIComponent(request.term),
-		'type':'GET',
-		'success':function(result){
-			response(
-				$.map(result.slice(0,20),function(item){
-	    			return{
-						label : item.USER_NM +' - '+ item.CO_NM + ' - ' + item.DEPT_NM,
-							value: item.USER_NM
-						};							
-					})
-			);			
-		}
-    });
-			...
-		
+	source: function(request,response){
+        ... 중략		
+		$.ajax({
+			'url':'/search/searchJAMOCHO/'+encodeURIComponent(request.term),
+			'type':'GET',
+			'success':function(result){
+				response(
+						$.map(result.slice(0,20),function(item){
+							return{
+								label : item.word +' : "'+ item.jamo + '" : "' + item.cho + '"',
+								value: item.word
+							};							
+						})
+					);
+				
+			}
+		});
+	},
+	...
+});	
+	
 ```
 
 ## 4. 서버구현 참고
-- 최초 init 수행 시, Text file로 부터 word를 읽고, 초성값 및 자모분리된 값을 저장한다.
+- 최초 load 수행 시, Text file로 부터 word를 읽고, 초성값 및 자모분리된 값을 저장한다.
 ```js
-[{USER_NM:'홍길동',USER_CHO:'ㅎ,ㄱ,ㄷ',USER_JAMO:'ㅎㅗㅇㄱㅣㄹㄷㅗㅇ'}{..}]
+[{word:'홍길동',cho:'ㅎ,ㄱ,ㄷ',jamo:'ㅎㅗㅇㄱㅣㄹㄷㅗㅇ'}{..}]
 ```
 - 사용자로부터 전달받은 한글string을 자모분리, 초성분리한다.
 - 분리한 사용자 입력 데이터와 최초 init을 통해 만들어진 서버데이터를 비교 
 ```js
-// /routes/getUser.js 참조
+// /routes/search.js 참조
 router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 	
 	global.logger.trace('%s',req.params.pattern);
 	var pattern = req.params.pattern
-	// 자모 분리
+	// input 자모분리
 	var jamo = extractJAMO(req.params.pattern);
-	// 초성 분리
+	// input 초성분리
 	var cho = extractCHO(req.params.pattern);
+	global.logger.trace('%s',jamo);
 
-  // 전달받은 한글자체 비교
-	var userObj = _.filter(global.usermapWithJAMOCHO, function(obj){
-		return obj.USER_NM.includes(req.params.pattern); 
+    // 1. 한글비교
+	var userObj = _.filter(global.wordsWithJAMOCHO, function(obj){
+		return obj.word.includes(req.params.pattern); 
 	});
 	
-	// 자모 분리한값 비교
-	var userObjJAMO = _.filter(global.usermapWithJAMOCHO, function(obj){
-		return obj.USER_NM_JAMO.startsWith(jamo) ;
-	});	
+	// 2. 자모분리 비교
+	var userObjJAMO = _.filter(global.wordsWithJAMOCHO, function(obj){
+		return obj.jamo.startsWith(jamo) ;
+	});
 	
 	var processed = 0;
 	var userObjCHO = [];
 
-  // 초성비교
+    // 3. 초성비교
 	for ( var i = 0 ; i < pattern.length ; i++ ) {
 			if(Hangul.isHangul(pattern[i])){
 				global.logger.trace('이건 초성검색이 아닙니다');
@@ -110,11 +117,26 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 			}			
 			
 			if(processed === pattern.length){
-				userObjCHO = _.filter(global.usermapWithJAMOCHO, function(obj){
-					return obj.USER_CHO.startsWith(cho) ;
+				userObjCHO = _.filter(global.wordsWithJAMOCHO, function(obj){
+					var chosung = obj.cho ;
+					if(chosung)	{
+						return obj.cho.startsWith(cho) ;
+					}else{
+						return false;
+					}
 				});
 			}
 	}	
+	
+	global.logger.trace('userObjCHO:%j',userObjCHO);
+	
+	// 한글비교 + 자모비교 + 초성비교
+	_.assign(userObj, userObjJAMO);
+	_.assign(userObj, userObjCHO);
+	
+	res.send(userObj);
+	
+}); 
 ```
   
 ## 5. 사용 모듈
