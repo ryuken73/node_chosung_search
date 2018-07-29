@@ -93,7 +93,7 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 	var cho = extractCHO(req.params.pattern);
 	global.logger.trace('%s',jamo);
 
-    // 1. 한글비교
+	// 1. 한글비교
 	var userObj = _.filter(global.wordsWithJAMOCHO, function(obj){
 		return obj.word.includes(req.params.pattern); 
 	});
@@ -105,8 +105,8 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 	
 	var processed = 0;
 	var userObjCHO = [];
-
-    // 3. 초성비교
+	
+	// 3. 초성비교
 	for ( var i = 0 ; i < pattern.length ; i++ ) {
 	  if(Hangul.isHangul(pattern[i])){
 	    global.logger.trace('이건 초성검색이 아닙니다');
@@ -129,7 +129,7 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 	
 	global.logger.trace('userObjCHO:%j',userObjCHO);
 	
-	// 한글비교 + 자모비교 + 초성비교
+	//4. 한글비교 + 자모비교 + 초성비교
 	_.assign(userObj, userObjJAMO);
 	_.assign(userObj, userObjCHO);
 	
