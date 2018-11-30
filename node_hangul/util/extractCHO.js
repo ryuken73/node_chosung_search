@@ -1,5 +1,6 @@
 /**
- * New node file
+ * @param {string} hangulStr string to extract hangul chosung
+ * @return {array} array of hangul chosung of given word
  */
 
 var hangul = require('hangul-js');
