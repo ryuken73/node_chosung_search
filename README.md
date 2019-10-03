@@ -4,18 +4,18 @@
 ## 0. 구현환경 개요
 ### 동작 개요
 - 하나의 input box에서 자동완성과 초성검색 모두 처리
-- 서버 환경은 node.js의 express를 사용하고, 특히 hangul-js와 lodash module을 적극 사용
+- 서버 환경은 node.js의 express를 사용하고, 특히 hangul-js 적극 사용
 - 클라이언트 환경은 jquery autocomplete widget 사용
 - 동작방식은, 데이터 소스를 서버에 로드  
 => 공백기준으로 단어 split  
 => 각 단어별로 자모분리한 값(jamo)과 초성(cho)을 저장 {word:'하늘', cho:'ㅎㄴ', jamo: 'ㅎㅏ ㄴ ㅡ ㄹ''}  
-=> 위 object들을 global.wordsWithJAMO, global.wordsWithJAMOCHO 배열에 저장  
-=> request가 오면, 각 배열에서 matching되는 object들을 return
+=> 위 object들을 global.wordsWithJAMOCHO 배열에 저장  
+=> request가 오면, 위 배열에서 matching되는 object들을 return
 
 ### 데이터 소스
 - Sample Text File을 읽어서 Application 메모리에 paring해서 저장 
-- Sample Text File은 input 폴더 아래에 있는 justice.txt => "정의란 무엇인가"의 내용 발췌 (총 4700자)
-- 소스 데이터에 대해 그냥 공백기준으로 split 
+- Sample Text File "정의란 무엇인가", "어린왕자", "카프카-변신"중 선택해서 로드
+- 소스 데이터에 대해 공백기준으로 split하여 서버 메모리에 load시킴 
 
 ### 서버 프로그램
 - node.js express template 사용
@@ -57,15 +57,18 @@ $( '#chosung' ).autocomplete({
   $.ajax({
 	'url':'/search/searchJAMOCHO/'+encodeURIComponent(request.term),
 	'type':'GET',
-	'success':function(result){
-	response(
-	  $.map(result.slice(0,20),function(item){
-	    return{
-		  label : item.word +' : "'+ item.jamo + '" : "' + item.cho + '"',
-		  value: item.word
-		};							
-	  })
-	);				
+	'success':function(res){
+		const {result,count} = res;
+		const elapsed = timer.end();
+		$('#result').text(`Search Success : ${count} words, ${elapsed} sec`);		
+		response(
+			$.map(result.slice(0,20),function(item){
+				return{
+				label : item.word +' : "'+ item.jamo + '" : "' + item.cho + '"',
+				value: item.word
+			};							
+			})
+		);				
    }
   });
  },
@@ -84,56 +87,46 @@ $( '#chosung' ).autocomplete({
 ```js
 // /routes/search.js 참조
 router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
-	
-	global.logger.trace('%s',req.params.pattern);
-	var pattern = req.params.pattern
-	// input 자모분리
-	var jamo = extractJAMO(req.params.pattern);
-	// input 초성분리
-	var cho = extractCHO(req.params.pattern);
-	global.logger.trace('%s',jamo);
 
-	// 1. 한글비교
-	var userObj = _.filter(global.wordsWithJAMOCHO, function(obj){
-		return obj.word.includes(req.params.pattern); 
-	});
+	global.logger.trace('%s',req.params.pattern);
+	const {pattern} = req.params;
+	const jamo = extractJAMO(pattern);
+	const cho = extractCHO(pattern);
+	global.logger.trace('%s',jamo);
+  	// 1. 한글비교 (한글 like 검색)
+	const wordObj = global.wordsWithJAMOCHO.filter(wordWithJAMOCHO =>
+	 wordWithJAMOCHO.word.includes(pattern)); 	
+	// 2. 자모분리비교 ()
+	const wordObjJAMO = global.wordsWithJAMOCHO.filter(wordWithJAMOCHO => 
+	wordWithJAMOCHO.jamo.startsWith(jamo)); 	
 	
-	// 2. 자모분리 비교
-	var userObjJAMO = _.filter(global.wordsWithJAMOCHO, function(obj){
-		return obj.jamo.startsWith(jamo) ;
-	});
-	
-	var processed = 0;
-	var userObjCHO = [];
-	
+	let wordObjCHO = [];
 	// 3. 초성비교
-	for ( var i = 0 ; i < pattern.length ; i++ ) {
-	  if(Hangul.isHangul(pattern[i])){
-	    global.logger.trace('이건 초성검색이 아닙니다');
-		break;
-	  } else {
-		processed ++;
-	  }			
-			
-	  if(processed === pattern.length){
-	    userObjCHO = _.filter(global.wordsWithJAMOCHO, function(obj){
-		  	    var chosung = obj.cho ;
-			    if(chosung)	{
-				  return obj.cho.startsWith(cho) ;
-			    }else{
-				  return false;
-			   }
-		});
-	  }
-	}	
+	const arrayFromPattern = Array.from(pattern);
+	const checkHangul = arrayFromPattern.map(element => Hangul.isHangul(element));
+
+	if(checkHangul.some(element => element)){
+		global.logger.trace('이건 초성검색이 아닙니다');
+		wordObjCHO = [] 
+	} else {
+		console.log(global.wordsWithJAMOCHO)
+		wordObjCHO = global.wordsWithJAMOCHO.filter(wordWithJAMOCHO => {
+			if(wordWithJAMOCHO.cho){
+				return wordWithJAMOCHO.cho.startsWith(cho);
+			} else {
+				false;
+			}
+		})
+	} 
 	
-	global.logger.trace('userObjCHO:%j',userObjCHO);
-	
+	global.logger.trace('wordObjCHO:%j',wordObjCHO);
 	//4. 한글비교 + 자모비교 + 초성비교
-	_.assign(userObj, userObjJAMO);
-	_.assign(userObj, userObjCHO);
+	Object.assign(wordObj, wordObjJAMO);
+	Object.assign(wordObj, wordObjCHO);
 	
-	res.send(userObj);
+	res.send({result:wordObj, count:wordObj.length});
+	
+}); 
 	
 }); 
 ```
@@ -141,7 +134,7 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 ## 5. 사용 모듈
 - 자모분리, 초성값 추출 등 한글관련 연산은 hangul-js를 사용 [https://github.com/e-/Hangul.js]
 - 클라이언트 자동완성은 jquery UI의 autocomplete widget 사용 [http://api.jqueryui.com/autocomplete]
-- json 배열검색 및 결과 union은 lodash function 사용 [https://lodash.com]
+
 
 ## 6. 몇가지 시행착오
 1) 브라우져 text input box에 "ㄺ""ㅄ" 이런식으로 자음이 붙어서 입력이 되어 초성검색이 안된다.
@@ -180,3 +173,11 @@ router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
 
 3) input box에 "홍길동"이라는 완성된 한글을 입력했는데, "하국동"이라는 초성검색결과도 같이 리턴됨
 - 한글자라도 완성된 한글이 전달되는 경우, 서버 사이드 초성 비교 로직은  bypass하도록 함
+
+## 7. 최신 변경사항
+ 1) [Server]ECMA6 적용
+ 2) [Server]Native Promise로 Q 라이브러리 의존성 제거
+ 3) [Server]Native JS Array Method로 lodash 의존성 제거
+ 4) [Client]loading time, 건수 추가
+ 5) [Client]여러 txt파일 load 추가
+ 6) [Client]검색 속도, 건수, 시간 표시추가
