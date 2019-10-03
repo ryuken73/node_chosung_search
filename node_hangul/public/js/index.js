@@ -40,7 +40,6 @@ $(document).ready(function(){
 				'url':'/search/searchJAMOCHO/'+encodeURIComponent(request.term),
 				'type':'GET',
 				'success':function(res){
-					console.log(res)
 					const {result,count} = res;
 					const elapsed = timer.end();
 					$('#result').text(`Search Success : ${count} words, ${elapsed} sec`);
