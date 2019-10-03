@@ -1,59 +1,24 @@
-
 $(document).ready(function(){     
 
 	// event handler for init button         
 	$(".button-primary").click(function(event){
 		event.preventDefault();
+		timer.start();
+		const bookNum = event.target.value;
 		$.ajax({
-			'url':'/load',
+			'url':`/load/${bookNum}`,
 			'type':'GET',
 			'success':function(result){
-				$('#result').text("Init Success");
+				const elapsed = timer.end();
+				$('#result').text(`Init Success : ${result.count} words, ${elapsed} sec`);
 			}
 		})
 	});
 	
-	// 아래는 FF에서 2bytes(한글)에 대해 keyup event가 발생하지 않아서...
-	// 모든 브라우져에서 계속 감시하는 것으로..
-	/*
-	
-	$('#chosung').focus(function(event){
-		this.intervalID = setInterval(function(){
-			$(this)._watch();
-		},200);
-	});
-	
-	$('#chosung').blur(function(event){
-		if(this.intervalID){
-			clearInterval(this.intervalID);
-		}
-	});
-	
-	$.fn._watch = function(){
-		//console.log($('#chosung').val());
-		var data = $('#chosung').val();
-		for ( var i = 0 ; i < data.length ; i++ ) {
-			if(Hangul.isHangul(data[i])){
-				console.log('이건 초성검색이 아닙니다');
-				break;
-			}
-			if(!Hangul.isHangul(data[i])){
-			//초성만 입력되거나 문자가 영문 또는 'ㅗㅒ' 이런글자들이다.
-				if(Hangul.isConsonant(data[i]) && !Hangul.isCho(data[i])){
-				// 그리고 자음이면서, 초성으로 쓰일수 없는 글자라면... disassemble한다.
-						var result = Hangul.disassemble(data).join('');
-						console.log(result);	
-						$('#chosung').val(result);
-				}
-			}
-		}			
-	}
-	// 여기까지가...
-	*/
-	
+
 	$( '#chosung' ).autocomplete({
 		source: function(request,response){
-			
+			timer.start();
 			var data = $('#chosung').val(); 
 			for ( var i = 0 ; i < data.length ; i++ ) {
 				if(Hangul.isHangul(data[i])){
@@ -74,7 +39,12 @@ $(document).ready(function(){
 			$.ajax({
 				'url':'/search/searchJAMOCHO/'+encodeURIComponent(request.term),
 				'type':'GET',
-				'success':function(result){
+				'success':function(res){
+					console.log(res)
+					const {result,count} = res;
+					const elapsed = timer.end();
+					$('#result').text(`Search Success : ${count} words, ${elapsed} sec`);
+					console.log(result)
 					response(
 							$.map(result.slice(0,20),function(item){
 								return{
@@ -102,4 +72,33 @@ $(document).ready(function(){
 		}		
 	});	
 
-}); 
+	const timer = {
+		startTime : null,
+		endTime : null,
+		runnig : false,
+		start(){
+			if(this.running) {
+				console.error('timer already started');
+				return false;
+			}
+			const time = new Date();
+			this.startTime = time.getTime();
+			this.running = true;
+		},
+		getDuration(){
+			return ((this.endTime - this.startTime ) / 1000).toFixed(5);
+		},
+		end(){
+			if(!this.running) {
+				console.error('start timer first!');
+				return false;
+			}
+			const time = new Date();
+			this.endTime = time.getTime();
+			this.running = false;
+			return this.getDuration();
+		},
+	}
+
+});
+

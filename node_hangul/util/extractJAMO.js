@@ -3,7 +3,7 @@
  * @return {string} jamo string ex) 'ㄱ ㅏ ㄴ ㅏ'
  */
 
-var hangul = require('hangul-js');
+const hangul = require('hangul-js');
 
 module.exports = function(hangulStr){
 	

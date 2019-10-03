@@ -1,69 +1,68 @@
-var express = require('express');
-var router = express.Router();
-var _ = require('lodash');
-var cnvrtJAMO = require('../util/extractJAMO');
-var extractCHO = require('../util/extractCHO');
-var fs = require('fs');
-var path = require('path');
-var Q = require('q');
+const express = require('express');
+const router = express.Router();
+const cnvrtJAMO = require('../util/extractJAMO');
+const extractCHO = require('../util/extractCHO');
+const fs = require('fs');
+const path = require('path');
 
-router.get('/', function(req, res, next) {
+router.get('/:bookNum', async function(req, res, next) {
 	
-	global.wordsWithJAMO = [];
+	//global.wordsWithJAMO = [];
 	global.wordsWithJAMOCHO = [];
+	const {bookNum} = req.params
+	const books = {
+		"1" : "justice.txt",
+		"2" : "어린왕자.txt",
+		"3" : "카프카_변신.txt"
+	}
 	
-	var opts = {
+	const opts = {
 			wordSep  : ' ',
 			lineSep  : '\n',
 			encoding : 'utf-8',
-			fname    : path.join(process.cwd(), '/input/justice.txt')
+			fname    : path.join(process.cwd(), `/input/${books[bookNum]}`)
 	}
 	
-    getData(opts)
-	.then(function(result){
+	try {
+		const result = await getData(opts);
 		global.logger.trace(result);
-		var processed = 0;
-		_.forEach(result, function(wordObj){
-			var jamo = cnvrtJAMO(wordObj.word);
-			var cho = extractCHO(wordObj.word);
-			
-			wordObj.jamo = jamo;
-			global.wordsWithJAMO.push(wordObj);
+		const processed = 0;
+		result.map(wordObj => {
+			const jamo = cnvrtJAMO(wordObj.word);
+			const cho = extractCHO(wordObj.word);
+			wordObj.jamo = jamo
 			wordObj.cho = cho;
+			//global.wordsWithJAMO.push(wordObj);
 			global.wordsWithJAMOCHO.push(wordObj);
-			processed ++;
-			if(processed === result.length){
-				res.send({result:'success'});
-			}
-		});
-	})
-	.then(null,function(err){
+		})
+		res.send({result:'success', count:global.wordsWithJAMOCHO.length});
+	} catch (err) {
 		next(err);
-	});		 
+	}
+
 });
  
 function getData(options){
-	
-	var def = Q.defer()
-	var result = [];
-	
-	fs.readFile(options.fname, options.encoding, function(err,data){
-		if(err){
-			global.logger.error(err);
-		}else {
-			//global.logger.trace(data);
-			var result = _.split(data, options.wordSep).map(function(word){
-				return {'word': _.trim(word), 'wordEncoded':encodeURIComponent(word)};
-			});
-			def.resolve(_.sortBy(result, function(word){
-									return word.word;
-							}) 
-			); 
-		}
-	})
-	
-	return def.promise;
-	
+	const {fname, encoding, wordSep} = options;
+	return new Promise((resolve, reject) => {
+		fs.readFile(fname, encoding, (err,data) => {
+			if(err){
+				global.logger.error(err);
+				reject(err);
+			} else {
+				//global.logger.trace(data);
+				const result = data.split(wordSep).map( word => {
+					return {'word': word.trim(), 'wordEncoded':encodeURIComponent(word)};
+				});
+				const orderedResult = result.sort((a, b) => {
+					if(a.word > b.word) return 1;
+					if(a.word < b.word) return -1;
+					return 0;
+				})
+				resolve(orderedResult)
+			}
+		})
+	})	
 }
 
 module.exports = router;

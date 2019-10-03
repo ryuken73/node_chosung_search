@@ -3,7 +3,7 @@
  * @return {array} array of hangul chosung of given word
  */
 
-var hangul = require('hangul-js');
+const hangul = require('hangul-js');
 
 module.exports = function(hangulStr){
 	var processed = 0;

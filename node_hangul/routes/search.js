@@ -2,56 +2,48 @@ var express = require('express');
 var router = express.Router();
 var extractJAMO = require('../util/extractJAMO');
 var extractCHO = require('../util/extractCHO');
-var _ = require('lodash');
 var Hangul = require('hangul-js');
 
 /* GET home page. */
 
 router.get('/searchJAMOCHO/:pattern', function(req, res, next) {
-	
+
 	global.logger.trace('%s',req.params.pattern);
-	var pattern = req.params.pattern
-	var jamo = extractJAMO(req.params.pattern);
-	var cho = extractCHO(req.params.pattern);
+	const {pattern} = req.params;
+	const jamo = extractJAMO(pattern);
+	const cho = extractCHO(pattern);
 	global.logger.trace('%s',jamo);
-
-	var userObj = _.filter(global.wordsWithJAMOCHO, function(obj){
-		return obj.word.includes(req.params.pattern); 
-	});
+    // 1. 한글비교 (한글 like 검색)
+	const wordObj = global.wordsWithJAMOCHO.filter(wordWithJAMOCHO => wordWithJAMOCHO.word.includes(pattern)); 	
+	// 2. 자모분리비교 ()
+	const wordObjJAMO = global.wordsWithJAMOCHO.filter(wordWithJAMOCHO => wordWithJAMOCHO.jamo.startsWith(jamo)); 	
 	
-	var userObjJAMO = _.filter(global.wordsWithJAMOCHO, function(obj){
-		return obj.jamo.startsWith(jamo) ;
-	});
-	
-	var processed = 0;
-	var userObjCHO = [];
+	let wordObjCHO = [];
 
-	for ( var i = 0 ; i < pattern.length ; i++ ) {
-			if(Hangul.isHangul(pattern[i])){
-				global.logger.trace('이건 초성검색이 아닙니다');
-				break;
-			}else{
-				processed ++;
-			}			
-			
-			if(processed === pattern.length){
-				userObjCHO = _.filter(global.wordsWithJAMOCHO, function(obj){
-					var chosung = obj.cho ;
-					if(chosung)	{
-						return obj.cho.startsWith(cho) ;
-					}else{
-						return false;
-					}
-				});
+	// 3. 초성비교
+	const arrayFromPattern = Array.from(pattern);
+	const checkHangul = arrayFromPattern.map(element => Hangul.isHangul(element));
+
+	if(checkHangul.some(element => element)){
+		global.logger.trace('이건 초성검색이 아닙니다');
+		wordObjCHO = [] 
+	} else {
+		console.log(global.wordsWithJAMOCHO)
+		wordObjCHO = global.wordsWithJAMOCHO.filter(wordWithJAMOCHO => {
+			if(wordWithJAMOCHO.cho){
+				return wordWithJAMOCHO.cho.startsWith(cho);
+			} else {
+				false;
 			}
-	}	
+		})
+	} 
 	
-	global.logger.trace('userObjCHO:%j',userObjCHO);
+	global.logger.trace('wordObjCHO:%j',wordObjCHO);
 	
-	_.assign(userObj, userObjJAMO);
-	_.assign(userObj, userObjCHO);
+	Object.assign(wordObj, wordObjJAMO);
+	Object.assign(wordObj, wordObjCHO);
 	
-	res.send(userObj);
+	res.send({result:wordObj, count:wordObj.length});
 	
 }); 
 
