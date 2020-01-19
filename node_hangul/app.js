@@ -4,6 +4,7 @@ const favicon = require('serve-favicon');
 const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
+const compression = require('compression');
 const routes = require('./routes/index');
 const users = require('./routes/users');
 
@@ -16,6 +17,7 @@ app.set('view engine', 'jade');
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
+app.use(compression());
 
 //// add for logtracer
 const env = app.get('env');
@@ -43,7 +45,9 @@ global.logger = logTracer;
 app.use('/', routes);
 app.use('/users', users);
 app.use('/load', require('./routes/load'));
+app.use('/loadSong', require('./routes/loadSong')); 
 app.use('/search', require('./routes/search'));
+app.use('/searchSong', require('./routes/searchSong'));
 
 
 // catch 404 and forward to error handler
