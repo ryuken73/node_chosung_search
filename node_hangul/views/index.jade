@@ -18,6 +18,8 @@ block content
           p
           button.button-secondary(id="initSong" value="4") LOAD DATA(Private Test)
           p
+          button.button-secondary(id="initSongWithWorkers" value="5") LOAD DATA(using workers)
+          p
            .row        
             .seven.columns
                label(for="pattern") AUTO COMPLETE WITH JAMO and CHOSUNG serarch
@@ -27,6 +29,12 @@ block content
             .seven.columns
                label(for="pattern") song search test
                input.u-full-width(type="text" id="songSearch")                  
+          p
+           .row        
+            .seven.columns
+               label(for="pattern") song search with workers
+               input.u-full-width(type="text" id="songSearchWithWorkers")                  
+
 
         .one-half.column 
            label(for="history") RESULT

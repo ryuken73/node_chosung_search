@@ -4,7 +4,12 @@ const cnvrtJAMO = require('../util/extractJAMO');
 const extractCHO = require('../util/extractCHO');
 const fs = require('fs');
 const path = require('path');
+const master = require('../lib/master');
 
+router.get('/useWorkers', async (req, res, next) => {
+	const totalLoaded = await master.load();
+	res.send({result:'success', count:totalLoaded});
+})
 
 router.get('/', async function(req, res, next) {
 	
@@ -100,39 +105,5 @@ function processData(dataArray, wordSep) {
 		})
 		return songArray;
 } 
-
-
- 
-function getData(options){
-	const {fname, encoding, wordSep} = options;
-	return new Promise((resolve, reject) => {
-		fs.readFile(fname, encoding, (err,data) => {
-			if(err){
-				global.logger.error(err);
-				reject(err);
-			} else {
-				global.logger.trace(data);
-				// const result = data.split(lineSep).map( line => {
-				// 	line.split(wordSep).map(word => {
-				// 		const artistName = word[0];
-				// 		const songName = word[1];
-				// 		return {
-				// 			artistName,
-				// 			songName,
-				// 		}
-
-				// 	})
-				// 	//return {'word': word.trim(), 'wordEncoded':encodeURIComponent(word)};
-				// });
-				// const orderedResult = result.sort((a, b) => {
-				// 	if(a.word > b.word) return 1;
-				// 	if(a.word < b.word) return -1;
-				// 	return 0;
-				// })
-				resolve(result)
-			}
-		})
-	})	
-}
 
 module.exports = router;
