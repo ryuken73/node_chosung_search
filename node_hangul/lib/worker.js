@@ -16,8 +16,10 @@ const createSongObj = (data) => {
             errored.push(wordArray);
             return {artistName:'', songName:''};
         }
-        const artistName = wordArray[0].trim().replace(/^"/gi, '').replace(/"$/gi, '');
-        const songName = wordArray[1].trim().replace(/^"/gi, '').replace(/"$/gi, '');
+        // const artistName = wordArray[0].trim().replace(/^"/gi, '').replace(/"$/gi, '');
+        // const songName = wordArray[1].trim().replace(/^"/gi, '').replace(/"$/gi, '');
+        const artistName = wordArray[0].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '');
+        const songName = wordArray[1].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '');
         return {
             artistName,
             songName
@@ -53,7 +55,7 @@ const msgHandlers = {
         }
     },
     'search' : (messageKey, data) => {
-        const {pattern, jamo} = data;
+        const {pattern, jamo, limit} = data;
         // 1. 한글비교 (한글 like 검색)
         const matchedArtistArray = songArray.filter(song => song.artistName.includes(pattern)); 	
         const matchedSongArray = songArray.filter(song => song.songName.includes(pattern)); 	
@@ -61,7 +63,15 @@ const msgHandlers = {
         const matchedArtistArrayJAMO = songArray.filter(song => song.jamoArtist.startsWith(jamo)); 	
         const matchedSongArrayJAMO = songArray.filter(song => song.jamoSong.startsWith(jamo)); 	
 
-        const result = Object.assign({}, matchedArtistArray, matchedSongArray, matchedArtistArrayJAMO, matchedSongArrayJAMO);
+        const result = [
+            ...matchedArtistArray,
+            ...matchedSongArray,
+            ...matchedArtistArrayJAMO,
+            ...matchedSongArrayJAMO
+        ]
+
+        limit && result.splice(limit);
+
         process.send({
             type: 'reply-search',
             clientId: process.pid,

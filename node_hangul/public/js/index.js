@@ -187,7 +187,7 @@ $(document).ready(function(){
 			}
 			
 			$.ajax({
-				'url':'/searchSong/withWorkers'+encodeURIComponent(request.term),
+				'url':'/searchSong/withWorkers/'+encodeURIComponent(request.term),
 				'type':'GET',
 				'success':function(res){
 					const {result,count} = res;
@@ -198,7 +198,7 @@ $(document).ready(function(){
 							$.map(result.slice(0,20),function(item){
 								return{
 									label : item.artistName + ' : '+ item.songName,
-									value: item.artistName
+									value: item.artistName + ' : '+ item.songName
 								};							
 							})
 						);
@@ -228,7 +228,8 @@ $(document).ready(function(){
 			.each(function () {
 				var me = $(this);
 				var keywords = acData.term.split(' ').join('|');
-				me.text(me.text().replace(new RegExp("(" + keywords + ")", "gi"), '<b>$1</b>'));
+				me.html(me.text().replace(new RegExp("(" + keywords + ")", "gi"), '<b>$1</b>'));
+				// let textWrapper = me.find('.ui-menu-item-wrapper'); let text = textWrapper.text(); let newTextHtml = text.replace(new RegExp("(" + keywords + ")", "gi"), '<b>$1</b>'); textWrapper.html(newTextHtml);
 			 });
 		 }	
 	});	
