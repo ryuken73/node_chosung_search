@@ -37,6 +37,7 @@ router.get('/:pattern', function(req, res, next) {
 	
 }); 
 
+// search by distributed worker
 router.get('/withWorkers/:pattern', async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);

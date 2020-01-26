@@ -4,11 +4,13 @@ const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 
 const NUMBER_OF_WORKER = 5;
-const SRC_FILE = 'd:/project/tmp/song_mst.txt';
+const SRC_FILE = 'c:/temp/song_mst.txt';
 const SEARCH_TIMEOUT = 10000;
 const searchResults = new Map();
 const searchEvent = new eventEmitter();
+const NEED_ORDERING = false;
 let messageKey = 0;
+
 
 // make array which contains worker's pid
 const workerInit= new Array(NUMBER_OF_WORKER);
@@ -39,6 +41,7 @@ function replyIndexHandler(message){
     // console.log('got reply-index');
 }
 
+// handler for processing worker's search results;
 function replySearchHandler(message){
     const {clientId, messageKey, result} = message;
     global.logger.trace(`[${messageKey}][${clientId}] number of replies = ${result.length}`)
@@ -48,11 +51,14 @@ function replySearchHandler(message){
         searchEvent.emit(`fail_${messageKey}`);
         return false;
     }
-    const results = searchResults.get(messageKey);    
-    results.push(result);
+    const results = searchResults.get(messageKey);  
+    // need ordering, give order function  
+    NEED_ORDERING ? orderResult(result, results, orderFunc) : results.push(result);
     if(results.length === NUMBER_OF_WORKER){
         // all search result replied!
-
+        // 1. concat all result into one array
+        // 2. emit sucess_messageKey 
+        // 3. delete message in the temporay Map
         const concatedResult = [].concat(...results);
         global.logger.info(`[${messageKey}] all result replied : ${concatedResult.length}`)
         searchEvent.emit(`success_${messageKey}`, concatedResult);
@@ -66,7 +72,7 @@ function readFileStream({wordSep, lineSep, encoding, highWaterMark, workers}) {
     return new Promise((resolve,reject) => {
         let remainString = '';
         let dataEmitCount = 0;
-        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0});
+        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0,});
         rStream.on('data', (buff) => {
             //console.log('on data')
             dataEmitCount++;
@@ -123,15 +129,20 @@ const load =  async (options = {}) => {
 
 const search = async (pattern, jamo, LIMIT_PER_WORKER=1000) => {
     try {
+        // set uniq search key (messageKey) and initialize empty result array
         messageKey ++;
         searchResults.set(messageKey, []);
     
+        // if any of worker exeed timeout, delete temporary search result.
         const timer = setInterval(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
             searchResults.delete(messageKey);
         }, SEARCH_TIMEOUT);
         
+        // result limit per worker
         const limit = LIMIT_PER_WORKER;
+
+        // send search jot to each workers
         workers.map(async worker => {
             const job = {
                 type : 'search',
@@ -153,6 +164,7 @@ const search = async (pattern, jamo, LIMIT_PER_WORKER=1000) => {
 
 function waitResult(messageKey, timer){
     return new Promise((resolve, reject) => {
+        //searchEvent emitted when all worker's reply received
         searchEvent.once(`success_${messageKey}`, (results) => {
             clearInterval(timer);
             resolve(results);
