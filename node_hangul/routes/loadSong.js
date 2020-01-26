@@ -21,7 +21,7 @@ router.get('/', async function(req, res, next) {
 			wordSep  : '^',
 			lineSep  : '"\r\n',
 			encoding : 'utf8',
-			fname    : 'c:/temp/song_mst.txt',
+			fname    : 'd:/project/tmp/song_mst.txt',
 			highWaterMark : 64 * 1024 * 10
 	}
 	
@@ -74,7 +74,7 @@ function getDataStream(options){
 				...songArray
 			]
 			if(dataEmitCount % 100 === 0) global.logger.info(`emit : ${dataEmitCount}, processed: ${result.length}`)
-			if(result.length > 30000) rStream.destroy();
+			if(result.length > 300000) rStream.destroy();
 		})
 		rStream.on('end', () => {
 			console.log('end');

@@ -39,10 +39,7 @@ $(document).ready(function(){
 				$('#result').text(`Init Success : ${result.count} words, ${elapsed} sec`);
 			}
 		})
-	});
-
-	initSongWithWorkers
-	
+	});	
 
 	$( '#chosung' ).autocomplete({
 		source: function(request,response){
@@ -231,7 +228,8 @@ $(document).ready(function(){
 				me.html(me.text().replace(new RegExp("(" + keywords + ")", "gi"), '<b>$1</b>'));
 				// let textWrapper = me.find('.ui-menu-item-wrapper'); let text = textWrapper.text(); let newTextHtml = text.replace(new RegExp("(" + keywords + ")", "gi"), '<b>$1</b>'); textWrapper.html(newTextHtml);
 			 });
-		 }	
+		},
+		appendTo: '#searchResult'
 	});	
 
 	const timer = {

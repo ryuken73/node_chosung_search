@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 
 const NUMBER_OF_WORKER = 5;
-const SRC_FILE = 'c:/temp/song_mst.txt';
+const SRC_FILE = 'd:/project/tmp/song_mst.txt';
 const SEARCH_TIMEOUT = 10000;
 const searchResults = new Map();
 const searchEvent = new eventEmitter();
