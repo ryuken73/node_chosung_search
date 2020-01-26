@@ -55,22 +55,25 @@ const msgHandlers = {
         }
     },
     'search' : (messageKey, data) => {
-        const {pattern, jamo, limit} = data;
+        // default max result 100,000,000 
+        const {pattern, jamo, limit=100000000} = data;
+        
         // 1. 한글비교 (한글 like 검색)
-        const matchedArtistArray = songArray.filter(song => song.artistName.includes(pattern)); 	
-        const matchedSongArray = songArray.filter(song => song.songName.includes(pattern)); 	
+        const matchedArtistArray = songArray.filter(song => song.artistName.includes(pattern)).splice(limit); 	
+        const matchedSongArray = songArray.filter(song => song.songName.includes(pattern)).splice(limit); 	
         // 2. 자모분리비교 ()
-        const matchedArtistArrayJAMO = songArray.filter(song => song.jamoArtist.startsWith(jamo)); 	
-        const matchedSongArrayJAMO = songArray.filter(song => song.jamoSong.startsWith(jamo)); 	
+        const matchedArtistArrayJAMO = songArray.filter(song => song.jamoArtist.startsWith(jamo)).splice(limit); 	
+        const matchedSongArrayJAMO = songArray.filter(song => song.jamoSong.startsWith(jamo)).splice(limit); 	
 
+        // to order data, set result array of array
         const result = [
-            ...matchedArtistArray,
-            ...matchedSongArray,
-            ...matchedArtistArrayJAMO,
-            ...matchedSongArrayJAMO
+            [...matchedArtistArray],
+            [...matchedSongArray],
+            [...matchedArtistArrayJAMO],
+            [...matchedSongArrayJAMO]
         ]
 
-        limit && result.splice(limit);
+        //limit && result.splice(limit);
 
         process.send({
             type: 'reply-search',
