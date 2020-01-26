@@ -5,7 +5,6 @@ const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const compression = require('compression');
-const cors = require('cors');
 const routes = require('./routes/index');
 const users = require('./routes/users');
 
@@ -19,7 +18,6 @@ app.set('view engine', 'jade');
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(compression());
-app.use(cors());
 
 //// add for logtracer
 const env = app.get('env');
