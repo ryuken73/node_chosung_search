@@ -62,7 +62,7 @@ function getData(options){
 				resolve(orderedResult)
 			}
 		})
-	})	
+	})	 
 }
 
 module.exports = router;
