@@ -8,9 +8,55 @@ const SRC_FILE = 'c:/temp/song_mst.txt';
 const SEARCH_TIMEOUT = 10000;
 const searchResults = new Map();
 const searchEvent = new eventEmitter();
-const NEED_ORDERING = false;
+const NEED_ORDERING = true;
 let messageKey = 0;
 
+const getCombined = (results) => {
+    const firstCombined = results.map(result => {
+        return [].concat(...result)
+    })
+    const secondCombined = firstCombined.map(result => {
+        return [].concat(...result);
+    })
+    return secondCombined;
+}
+
+const orderFunc = (results) => {
+    // need to be written case by case (own ordering logic)
+    // results = [[[obj],[],[],[]], [[],[],[],[]].. ]
+    // obj = {artistName:'', songName:''...}
+    
+    const firstCombined = results.map((result) => {
+        const artistsCombined = result[0].concat(result[1]);
+        const artistsUnique = Array.from(new Set(artistsCombined));                
+        const songs = result[1].concat(result[2]);
+        return {artists, songs};
+    })
+    artistsOrdered = [];
+    songOrdered = [];
+    firstCombined.map(data => {
+        artistsOrdered.push(data.artists);
+        songOrdered.push(data.songs);
+    })
+
+    artistsOrdered.sort((a,b) => {
+        return a > b ? 1 : a > b ? -1 : 0;
+    })
+
+    songOrdered.sort((a,b) => {
+        const songA = a.songName;
+        const songB = b.songName;
+        return songA > songB ? 1 : songA > songB ? -1 : 0;
+    })
+    console.log(artistsOrdered);
+    console.log(songOrdered);
+
+    return [].concat(artistsOrdered, songOrdered);
+}
+
+const getOrdered = (results, orderFunction) => {
+    return orderFunction(results)
+}
 
 // make array which contains worker's pid
 const workerInit= new Array(NUMBER_OF_WORKER);
@@ -45,6 +91,7 @@ function replyIndexHandler(message){
 function replySearchHandler(message){
     const {clientId, messageKey, result} = message;
     global.logger.trace(`[${messageKey}][${clientId}] number of replies = ${result.length}`)
+    console.log(result)
     if(!searchResults.has(messageKey)) {
         // timed out or disappered by unknown action
         console.log(`[${messageKey}] search reply timed out!`)
@@ -52,14 +99,17 @@ function replySearchHandler(message){
         return false;
     }
     const results = searchResults.get(messageKey);  
-    // need ordering, give order function  
-    NEED_ORDERING ? orderResult(result, results, orderFunc) : results.push(result);
+    results.push(result);
     if(results.length === NUMBER_OF_WORKER){
-        // all search result replied!
+        // all search results are replied!
+        // 0. if ordering needed execute order
         // 1. concat all result into one array
         // 2. emit sucess_messageKey 
         // 3. delete message in the temporay Map
-        const concatedResult = [].concat(...results);
+        console.log(results);
+        let ordered = NEED_ORDERING ? getOrdered(results, orderFunc) : getCombined(results);
+        console.log(ordered);
+        const concatedResult = [].concat(...ordered);
         global.logger.info(`[${messageKey}] all result replied : ${concatedResult.length}`)
         searchEvent.emit(`success_${messageKey}`, concatedResult);
         searchResults.delete(messageKey);
@@ -72,7 +122,7 @@ function readFileStream({wordSep, lineSep, encoding, highWaterMark, workers}) {
     return new Promise((resolve,reject) => {
         let remainString = '';
         let dataEmitCount = 0;
-        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0,});
+        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0,end:10000000});
         rStream.on('data', (buff) => {
             //console.log('on data')
             dataEmitCount++;

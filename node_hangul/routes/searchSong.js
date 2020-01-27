@@ -4,7 +4,7 @@ var extractJAMO = require('../util/extractJAMO');
 var extractCHO = require('../util/extractCHO');
 var Hangul = require('hangul-js');
 const master = require('../lib/master');
-const LIMIT_PER_WORKER = 1000;
+const LIMIT_PER_WORKER = 5000;
 
 /* GET home page. */
 

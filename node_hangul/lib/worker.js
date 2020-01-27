@@ -59,17 +59,17 @@ const msgHandlers = {
         const {pattern, jamo, limit=100000000} = data;
         
         // 1. 한글비교 (한글 like 검색)
-        const matchedArtistArray = songArray.filter(song => song.artistName.includes(pattern)).splice(limit); 	
-        const matchedSongArray = songArray.filter(song => song.songName.includes(pattern)).splice(limit); 	
+        const matchedArtistArray = songArray.filter(song => song.artistName.includes(pattern))
+        const matchedSongArray = songArray.filter(song => song.songName.includes(pattern))
         // 2. 자모분리비교 ()
-        const matchedArtistArrayJAMO = songArray.filter(song => song.jamoArtist.startsWith(jamo)).splice(limit); 	
-        const matchedSongArrayJAMO = songArray.filter(song => song.jamoSong.startsWith(jamo)).splice(limit); 	
+        const matchedArtistArrayJAMO = songArray.filter(song => song.jamoArtist.startsWith(jamo))
+        const matchedSongArrayJAMO = songArray.filter(song => song.jamoSong.startsWith(jamo))
 
-        // to order data, set result array of array
+        // to order data, make results as array of array
         const result = [
             [...matchedArtistArray],
-            [...matchedSongArray],
             [...matchedArtistArrayJAMO],
+            [...matchedSongArray],
             [...matchedSongArrayJAMO]
         ]
 
