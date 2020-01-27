@@ -18,8 +18,8 @@ const createSongObj = (data) => {
         }
         // const artistName = wordArray[0].trim().replace(/^"/gi, '').replace(/"$/gi, '');
         // const songName = wordArray[1].trim().replace(/^"/gi, '').replace(/"$/gi, '');
-        const artistName = wordArray[0].replace(/\s+/g, "").trim().replace(/^"/gi, '').replace(/"$/gi, '');
-        const songName = wordArray[1].replace(/\s+/g, "").trim().replace(/^"/gi, '').replace(/"$/gi, '');
+        const artistName = wordArray[0].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/ $/gi, '');
+        const songName = wordArray[1].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/ $/gi, '');;
         return {
             artistName,
             songName
