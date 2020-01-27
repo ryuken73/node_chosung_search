@@ -3,7 +3,7 @@ const fs = require('fs');
 const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 
-const NUMBER_OF_WORKER = 5;
+const NUMBER_OF_WORKER = 3;
 const SRC_FILE = 'd:/project/tmp/song_mst.txt';
 const SEARCH_TIMEOUT = 10000;
 const searchResults = new Map();
