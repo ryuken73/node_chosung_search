@@ -3,14 +3,86 @@ const fs = require('fs');
 const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 
-const NUMBER_OF_WORKER = 5;
-const SRC_FILE = '/home/sbs/node_project/song_mst.txt';
-const SEARCH_TIMEOUT = 10000;
+const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
+const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
+const SRC_FILE = global.SRC_FILE;
 const searchResults = new Map();
 const searchEvent = new eventEmitter();
 const NEED_ORDERING = false;
 let messageKey = 0;
 
+
+const getCombined = (results) => {
+    // const firstCombined = results.map(result => {
+    //     return [].concat(...result)
+    // })
+    // const secondCombined = firstCombined.map(result => {
+    //     return [].concat(...result);
+    // })
+    return results.flat();
+}
+
+const orderFunc = (results, subType) => {
+    // need to be written case by case (own ordering logic)
+    // results looks like
+    // [[{artistName, songName, ...},{..}],[],[]]
+    let sortKey;
+    switch(subType.key){
+        case 'artist' :
+            sortKey = 'artistName';
+            break;
+        case 'artistJAMO' :
+            sortKey = 'artistName';
+            break;  
+        case 'song' :
+            sortKey = 'songName';
+            break;  
+        case 'songJAMO' :
+            sortKey = 'songName';
+            break;
+    }
+
+    const origResult = [...results].flat();
+    const flattened = [...origResult];
+    flattened.sort((a,b) => {
+        return a[sortKey] > b[sortKey] ? 1 : a[sortKey] < b[sortKey] ? -1 : 0;
+    })
+    global.logger.trace(`before sort : %j`, origResult);
+    global.logger.trace(`after sort : %j`, flattened);
+    
+    return flattened
+    
+    // const firstCombined = results.map((result) => {
+    //     const artistsCombined = result[0].concat(result[1]);
+    //     const artistsUnique = Array.from(new Set(artistsCombined));                
+    //     const songs = result[1].concat(result[2]);
+    //     return {artists, songs};
+    // })
+    // artistsOrdered = [];
+    // songOrdered = [];
+    // firstCombined.map(data => {
+    //     artistsOrdered.push(data.artists);
+    //     songOrdered.push(data.songs);
+    // })
+
+    // artistsOrdered.sort((a,b) => {
+    //     return a > b ? 1 : a > b ? -1 : 0;
+    // })
+
+    // songOrdered.sort((a,b) => {
+    //     const songA = a.songName;
+    //     const songB = b.songName;
+    //     return songA > songB ? 1 : songA > songB ? -1 : 0;
+    // })
+    // console.log(artistsOrdered);
+    // console.log(songOrdered);
+
+    // return [].concat(artistsOrdered, songOrdered);
+}
+
+const getOrdered = (results, subType, orderFunction) => {
+    return orderFunction(results, subType);
+}
 
 // make array which contains worker's pid
 const workerInit= new Array(NUMBER_OF_WORKER);
@@ -43,36 +115,41 @@ function replyIndexHandler(message){
 
 // handler for processing worker's search results;
 function replySearchHandler(message){
-    const {clientId, messageKey, result} = message;
-    global.logger.trace(`[${messageKey}][${clientId}] number of replies = ${result.length}`)
-    if(!searchResults.has(messageKey)) {
+    const {clientId, messageKey, subType, result} = message;
+    global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
+    const TIMED_OUT = !searchResults.has(messageKey);
+    if(TIMED_OUT) {
         // timed out or disappered by unknown action
         console.log(`[${messageKey}] search reply timed out!`)
         searchEvent.emit(`fail_${messageKey}`);
         return false;
     }
     const results = searchResults.get(messageKey);  
-    // need ordering, give order function  
-    NEED_ORDERING ? orderResult(result, results, orderFunc) : results.push(result);
-    if(results.length === NUMBER_OF_WORKER){
-        // all search result replied!
+    results.push(result);
+    const ALL_SEARCH_DONE = results.length === NUMBER_OF_WORKER;
+
+    if(ALL_SEARCH_DONE){
+        // all search results are replied!
+        // 0. if ordering needed execute order
         // 1. concat all result into one array
         // 2. emit sucess_messageKey 
         // 3. delete message in the temporay Map
-        const concatedResult = [].concat(...results);
-        global.logger.info(`[${messageKey}] all result replied : ${concatedResult.length}`)
-        searchEvent.emit(`success_${messageKey}`, concatedResult);
+
+        let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
+        // const concatedResult = [].concat(...ordered);
+        global.logger.info(`[${messageKey}] all result replied : ${ordered.length}`)
+        searchEvent.emit(`success_${messageKey}`, ordered);
         searchResults.delete(messageKey);
         return true;
     }
-    console.log(`[${messageKey}]not all search replied. [${results.length}]`);
+    global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
 }
 
 function readFileStream({wordSep, lineSep, encoding, highWaterMark, workers}) {
     return new Promise((resolve,reject) => {
         let remainString = '';
         let dataEmitCount = 0;
-        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0,});
+        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0});
         rStream.on('data', (buff) => {
             //console.log('on data')
             dataEmitCount++;
@@ -127,7 +204,7 @@ const load =  async (options = {}) => {
     return await readFileStream(combinedOpts);
 }
 
-const search = async (pattern, jamo, LIMIT_PER_WORKER=1000) => {
+const search = async (type, pattern, patternJAMO, RESULT_LIMIT_WORKER) => {
     try {
         // set uniq search key (messageKey) and initialize empty result array
         messageKey ++;
@@ -140,16 +217,17 @@ const search = async (pattern, jamo, LIMIT_PER_WORKER=1000) => {
         }, SEARCH_TIMEOUT);
         
         // result limit per worker
-        const limit = LIMIT_PER_WORKER;
+        const limit = RESULT_LIMIT_WORKER;
 
         // send search jot to each workers
         workers.map(async worker => {
             const job = {
                 type : 'search',
+                subType : type,
                 messageKey,
                 data : {
                     pattern,
-                    jamo,
+                    patternJAMO,
                     limit
                 }
             }

@@ -18,8 +18,8 @@ const createSongObj = (data) => {
         }
         // const artistName = wordArray[0].trim().replace(/^"/gi, '').replace(/"$/gi, '');
         // const songName = wordArray[1].trim().replace(/^"/gi, '').replace(/"$/gi, '');
-        const artistName = wordArray[0].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '');
-        const songName = wordArray[1].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '');
+        const artistName = wordArray[0].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/ $/gi, '');
+        const songName = wordArray[1].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/ $/gi, '');;
         return {
             artistName,
             songName
@@ -31,7 +31,7 @@ const createSongObj = (data) => {
 }
 
 const msgHandlers = {
-    'index' : (messageKey, data) => {
+    'index' : (subType = null, messageKey, data) => {
         try {
             const songObject = createSongObj(data);
             songObject.jamoArtist = getJAMO(songObject.artistName);
@@ -54,28 +54,50 @@ const msgHandlers = {
             process.exit();
         }
     },
-    'search' : (messageKey, data) => {
-        const {pattern, jamo, limit} = data;
-        // 1. 한글비교 (한글 like 검색)
-        const matchedArtistArray = songArray.filter(song => song.artistName.includes(pattern)); 	
-        const matchedSongArray = songArray.filter(song => song.songName.includes(pattern)); 	
-        // 2. 자모분리비교 ()
-        const matchedArtistArrayJAMO = songArray.filter(song => song.jamoArtist.startsWith(jamo)); 	
-        const matchedSongArrayJAMO = songArray.filter(song => song.jamoSong.startsWith(jamo)); 	
+    'search' : (subType, messageKey, data) => {
+        // default max result 100,000,000 
+        const {pattern, patternJAMO, limit=100000000} = data;
+        let result;
+        switch(subType.key){
+            case 'artist' :
+                // result = songArray.filter(song => song.artistName.includes(pattern));
+                result = songArray.filter(song => song.jamoArtist.startsWith(patternJAMO));
+                break;
+            case 'artistJAMO' :
+                result = songArray.filter(song => song.jamoArtist.includes(patternJAMO));
+                break;
+            case 'song' :
+                result = songArray.filter(song => song.jamoSong.startsWith(patternJAMO))
+                // result = songArray.filter(song => song.songName.includes(pattern));
+                break;
+            case 'songJAMO' :
+                result = songArray.filter(song => song.jamoSong.includes(patternJAMO))
+                break;
+        }
+        
+        // // 1. 한글비교 (한글 like 검색)
+        // const matchedArtistArray = songArray.filter(song => song.artistName.includes(pattern))
+        // const matchedSongArray = songArray.filter(song => song.songName.includes(pattern))
+        // // 2. 자모분리비교 ()
+        // const matchedArtistArrayJAMO = songArray.filter(song => song.jamoArtist.startsWith(jamo))
+        // const matchedSongArrayJAMO = songArray.filter(song => song.jamoSong.startsWith(jamo))
 
-        const result = [
-            ...matchedArtistArray,
-            ...matchedSongArray,
-            ...matchedArtistArrayJAMO,
-            ...matchedSongArrayJAMO
-        ]
+        // // to order data, make results as array of array
+        // const result = [
+        //     [...matchedArtistArray],
+        //     [...matchedArtistArrayJAMO],
+        //     [...matchedSongArray],
+        //     [...matchedSongArrayJAMO]
+        // ]
 
         limit && result.splice(limit);
+        result.map(obj => obj.weight = subType.weight)
 
         process.send({
             type: 'reply-search',
             clientId: process.pid,
             messageKey,
+            subType,
             success:true,
             result,
         })
@@ -88,8 +110,8 @@ let totalMessage = 0;
 process.on('message', (message) => {
     try {
         totalMessage ++;
-        const {type, messageKey, data} = message;
-        msgHandlers[type](messageKey, data);
+        const {type, subType, messageKey, data} = message;
+        msgHandlers[type](subType, messageKey, data);
     } catch (err) {
         console.error(err);
         process.exit();
