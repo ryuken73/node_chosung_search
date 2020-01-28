@@ -73,6 +73,18 @@ const msgHandlers = {
             case 'songJAMO' :
                 result = songArray.filter(song => song.jamoSong.includes(patternJAMO))
                 break;
+            case 'artistNsong' :
+                result = songArray.filter(song => {
+                    const [artistName, songName] = patternJAMO.split(' ')
+                    return song.jamoArtist.includes(artistName) && song.jamoSong.includes(songName);
+                })
+                break;
+            case 'songNartist' :
+                result = songArray.filter(song => {
+                    const [songName, artistName] = patternJAMO.split(' ')
+                    return song.jamoArtist.includes(artistName) && song.jamoSong.includes(songName);
+                })
+                break;
         }
         
         // // 1. 한글비교 (한글 like 검색)

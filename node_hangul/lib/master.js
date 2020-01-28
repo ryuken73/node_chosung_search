@@ -40,6 +40,12 @@ const orderFunc = (results, subType) => {
         case 'songJAMO' :
             sortKey = 'songName';
             break;
+        case 'artistNsong' :
+            sortKey = 'artistName';
+            break;
+        case 'songNartist' :
+            sortKey = 'songName';
+            break;
     }
 
     const origResult = [...results].flat();
