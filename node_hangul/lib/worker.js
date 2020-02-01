@@ -57,32 +57,37 @@ const msgHandlers = {
     'search' : (subType, messageKey, data) => {
         // default max result 100,000,000 
         const {pattern, patternJAMO, limit=100000000} = data;
+        const upperCased = patternJAMO.toUpperCase();
         let result;
         switch(subType.key){
             case 'artist' :
                 // result = songArray.filter(song => song.artistName.includes(pattern));
-                result = songArray.filter(song => song.jamoArtist.startsWith(patternJAMO));
+                result = songArray.filter(song => song.jamoArtist.toUpperCase().startsWith(upperCased));
                 break;
             case 'artistJAMO' :
-                result = songArray.filter(song => song.jamoArtist.includes(patternJAMO));
+                result = songArray.filter(song => song.jamoArtist.toUpperCase().includes(upperCased));
                 break;
             case 'song' :
-                result = songArray.filter(song => song.jamoSong.startsWith(patternJAMO))
+                result = songArray.filter(song => song.jamoSong.toUpperCase().startsWith(upperCased))
                 // result = songArray.filter(song => song.songName.includes(pattern));
                 break;
             case 'songJAMO' :
-                result = songArray.filter(song => song.jamoSong.includes(patternJAMO))
+                result = songArray.filter(song => song.jamoSong.toUpperCase().includes(upperCased))
                 break;
             case 'artistNsong' :
                 result = songArray.filter(song => {
-                    const [artistName, songName] = patternJAMO.split(' ')
-                    return song.jamoArtist.includes(artistName) && song.jamoSong.includes(songName);
+                    const [artistName, songName] = patternJAMO.split(' ');
+                    const upperCasedArtist = artistName && artistName.toUpperCase();
+                    const upperCasedSong = songName && songName.toUpperCase();
+                    return song.jamoArtist.toUpperCase().includes(upperCasedArtist) && song.jamoSong.toUpperCase().includes(upperCasedSong);
                 })
                 break;
             case 'songNartist' :
                 result = songArray.filter(song => {
                     const [songName, artistName] = patternJAMO.split(' ')
-                    return song.jamoArtist.includes(artistName) && song.jamoSong.includes(songName);
+                    const upperCasedArtist = artistName && artistName.toUpperCase();
+                    const upperCasedSong = songName && songName.toUpperCase();
+                    return song.jamoArtist.toUpperCase().includes(upperCasedArtist) && song.jamoSong.toUpperCase().includes(upperCasedSong);
                 })
                 break;
         }
