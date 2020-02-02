@@ -49,7 +49,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			res.send({result:null, count:null});
 			return false;
 		}
-
+		global.logger.info(`new request : pattern [${pattern}]`);
 		const searchType = [
 			{key: 'artistNsong', weight: 1},
 			{key: 'songNartist', weight: 2},
@@ -70,9 +70,9 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const resolvedResults = await Promise.all(searchResults);
 		const resultsConcat = resolvedResults.flat();
 		global.logger.trace(resultsConcat);
-		resultsConcat.sort(sortMutiFields)
+		resultsConcat.sort(sortMultiFields)
 
-		function sortMutiFields(a, b){
+		function sortMultiFields(a, b){
 			if(a.weight > b.weight) return 1;
 			if(a.weight < b.weight) return -1;
 			if(a.artistName > b.artistName) return 1;
@@ -82,24 +82,19 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			return 0;
 		}
 
-		// const resultsStringified = resultsConcat.map(JSON.stringify);
-		// const resultsUniqueString = Array.from(new Set(resultsStringified));
-		// const resultsUnique = resultsUniqueString.map(JSON.parse);
-		// global.logger.trace(resultsUnique)
-		// resultsUnique.sort((a,b) => {
-		// 	return a.artistName > b.artistName ? 1 : a.artistName < b.artistName ? -1 : secondCompare(a,b);
-		// })
-
-		// function secondCompare(a, b) {
-		// 	return a.songName > b.songName ? 1 : a.songName < b.songName ? -1 : 0;
-		// }
-
 		global.logger.trace(resultsConcat);
+		const countPerWeight = {};
+		resultsConcat.map(result => {
+			const {weight} = result;
+			countPerWeight[weight] ? countPerWeight[weight]++ : countPerWeight[weight] = 1;
+		})
+		global.logger.info(`result count per weight : [%s] : %j`, pattern, countPerWeight);
 		resultsConcat.map(result => delete result.weight);
 		const resultsStringified = resultsConcat.map(JSON.stringify);
 		const resultsUniqueString = Array.from(new Set(resultsStringified));
 		const resultsUnique = resultsUniqueString.map(JSON.parse);
 		global.logger.trace(resultsUnique)
+		global.logger.info(`unique result count : [%s] : %d`, pattern, resultsUnique.length);
 	
 		res.send({result:resultsUnique, count:resultsUnique.length});
 		
