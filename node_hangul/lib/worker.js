@@ -49,8 +49,14 @@ const getKeyword = (searchMode, str) => {
     if(searchMode.complex && str.includes(WORDSEPARATOR)) sep = WORDSEPARATOR;
     const [first, second] = getSplited(str, sep);
     const firstUpperCased = first && first.toUpperCase().trimStart().trimEnd();
-    const secondUpperCased = second && second.toUpperCase().trimStart().trimEnd();
+    const secondUpperCased = second && second.toUpperCase().trimStart().trimEnd();    
     return [firstUpperCased, secondUpperCased]
+}
+
+const mkRegExpr = (str) => {
+
+    if(typeof(str) === 'string') return new RegExp(str.trimStart().trimEnd().split(' ').join('.+'));
+    return null;
 }
 
 const msgHandlers = {
@@ -84,14 +90,22 @@ const msgHandlers = {
         const upperCased = patternJAMO.toUpperCase().trimEnd();
         // determine search mode
         const searchMode = getMode(upperCased);
-        console.log(searchMode)
-        // const artists = upperCased.split(' ');
-        // const regPattern = `/${artists.join('.+')}/`;
-        const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased);
+        // console.log(searchMode)
 
+        let firstRegExpr,secondRegExpr;
 
+        if(searchMode.complex){
+            // const artists = upperCased.split(' ');
+            // const regPattern = `/${artists.join('.+')}/`;
+            const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased);
+            firstRegExpr = mkRegExpr(firstUpperCased);
+            secondRegExpr = mkRegExpr(secondUpperCased);
+            // console.log(firstRegExpr, secondRegExpr);
+        }
+        
         //console.log(firstUpperCased, secondUpperCased);
         !(searchMode.complex) && upperCased.endsWith('^') && upperCased.replace(/\^$/,'');
+        const keywordExpr = mkRegExpr(upperCased);
         
         let result;
         switch(subType.key){
@@ -101,8 +115,9 @@ const msgHandlers = {
                     break;
                 }
                 result = songArray.filter(song => {
-                    if(!secondUpperCased) return false;
-                    return song.jamoArtist.toUpperCase().includes(firstUpperCased) && song.jamoSong.toUpperCase().includes(secondUpperCased);
+                    if(!secondRegExpr) return false;
+                    // return song.jamoArtist.toUpperCase().includes(firstUpperCased) && song.jamoSong.toUpperCase().includes(secondUpperCased);
+                    return song.jamoArtist.toUpperCase().search(firstRegExpr) != -1 && song.jamoSong.toUpperCase().search(secondRegExpr) != -1;
                 });
                 break;
             case 'songNartist' :
@@ -111,8 +126,9 @@ const msgHandlers = {
                     break;
                 }
                 result = songArray.filter(song => {
-                    if(!secondUpperCased) return false;
-                    return song.jamoArtist.toUpperCase().includes(secondUpperCased) && song.jamoSong.toUpperCase().includes(firstUpperCased);
+                    if(!secondRegExpr) return false;
+                    // return song.jamoArtist.toUpperCase().includes(secondUpperCased) && song.jamoSong.toUpperCase().includes(firstUpperCased);
+                    return song.jamoArtist.toUpperCase().search(secondRegExpr) != -1 && song.jamoSong.toUpperCase().search(firstRegExpr) != -1;
                 })
                 break;
             case 'artist' :
@@ -120,17 +136,16 @@ const msgHandlers = {
                 result = songArray.filter(song => song.jamoArtist.toUpperCase().startsWith(upperCased));
                 break;
             case 'artistJAMO' :
-                result = songArray.filter(song => song.jamoArtist.toUpperCase().includes(upperCased));
-                // result = songArray.filter(song => {
-                //     return song.jamoArtist.toUpperCase().search(regPattern) !== -1;
-                // });
+                // result = songArray.filter(song => song.jamoArtist.toUpperCase().includes(upperCased));
+                result = songArray.filter(song => song.jamoArtist.toUpperCase().search(keywordExpr) != -1);
                 break;
             case 'song' :
                 result = songArray.filter(song => song.jamoSong.toUpperCase().startsWith(upperCased))
                 // result = songArray.filter(song => song.songName.includes(pattern));
                 break;
             case 'songJAMO' :
-                result = songArray.filter(song => song.jamoSong.toUpperCase().includes(upperCased))
+                // result = songArray.filter(song => song.jamoSong.toUpperCase().includes(upperCased))
+                result = songArray.filter(song => song.jamoSong.toUpperCase().search(keywordExpr) != -1);
                 break;
 
         }
