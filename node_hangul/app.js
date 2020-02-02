@@ -37,7 +37,7 @@ if(env === 'development'){
 			{
 				format : "{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})",	
 				dateformat: 'yyyy-mm-dd HH:MM:ss',
-				level:'trace'
+				level:'info'
 			}
 		);
 }

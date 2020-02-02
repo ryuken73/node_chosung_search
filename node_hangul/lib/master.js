@@ -143,7 +143,7 @@ function replySearchHandler(message){
 
         let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
         // const concatedResult = [].concat(...ordered);
-        global.logger.info(`[${messageKey}] all result replied : ${ordered.length}`)
+        global.logger.info(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
         searchEvent.emit(`success_${messageKey}`, ordered);
         searchResults.delete(messageKey);
         return true;

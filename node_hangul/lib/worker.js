@@ -18,8 +18,8 @@ const createSongObj = (data) => {
         }
         // const artistName = wordArray[0].trim().replace(/^"/gi, '').replace(/"$/gi, '');
         // const songName = wordArray[1].trim().replace(/^"/gi, '').replace(/"$/gi, '');
-        const artistName = wordArray[0].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/ $/gi, '');
-        const songName = wordArray[1].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/ $/gi, '');;
+        const artistName = wordArray[0].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');
+        const songName = wordArray[1].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');;
         return {
             artistName,
             songName
@@ -58,22 +58,10 @@ const msgHandlers = {
         // default max result 100,000,000 
         const {pattern, patternJAMO, limit=100000000} = data;
         const upperCased = patternJAMO.toUpperCase();
+        const artists = upperCased.split(' ');
+        const regPattern = `/${artists.join('.+')}/`;
         let result;
         switch(subType.key){
-            case 'artist' :
-                // result = songArray.filter(song => song.artistName.includes(pattern));
-                result = songArray.filter(song => song.jamoArtist.toUpperCase().startsWith(upperCased));
-                break;
-            case 'artistJAMO' :
-                result = songArray.filter(song => song.jamoArtist.toUpperCase().includes(upperCased));
-                break;
-            case 'song' :
-                result = songArray.filter(song => song.jamoSong.toUpperCase().startsWith(upperCased))
-                // result = songArray.filter(song => song.songName.includes(pattern));
-                break;
-            case 'songJAMO' :
-                result = songArray.filter(song => song.jamoSong.toUpperCase().includes(upperCased))
-                break;
             case 'artistNsong' :
                 result = songArray.filter(song => {
                     const [artistName, songName] = patternJAMO.split(' ');
@@ -90,6 +78,24 @@ const msgHandlers = {
                     return song.jamoArtist.toUpperCase().includes(upperCasedArtist) && song.jamoSong.toUpperCase().includes(upperCasedSong);
                 })
                 break;
+            case 'artist' :
+                // result = songArray.filter(song => song.artistName.includes(pattern));
+                result = songArray.filter(song => song.jamoArtist.toUpperCase().startsWith(upperCased));
+                break;
+            case 'artistJAMO' :
+                result = songArray.filter(song => song.jamoArtist.toUpperCase().includes(upperCased));
+                // result = songArray.filter(song => {
+                //     return song.jamoArtist.toUpperCase().search(regPattern) !== -1;
+                // });
+                break;
+            case 'song' :
+                result = songArray.filter(song => song.jamoSong.toUpperCase().startsWith(upperCased))
+                // result = songArray.filter(song => song.songName.includes(pattern));
+                break;
+            case 'songJAMO' :
+                result = songArray.filter(song => song.jamoSong.toUpperCase().includes(upperCased))
+                break;
+
         }
         
         // // 1. 한글비교 (한글 like 검색)
