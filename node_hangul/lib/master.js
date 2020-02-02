@@ -151,11 +151,11 @@ function replySearchHandler(message){
     global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
 }
 
-function readFileStream({wordSep, lineSep, encoding, highWaterMark, workers}) {
+function readFileStream({wordSep, lineSep, encoding, highWaterMark, end, workers}) {
     return new Promise((resolve,reject) => {
         let remainString = '';
         let dataEmitCount = 0;
-        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0});
+        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0, end});
         rStream.on('data', (buff) => {
             //console.log('on data')
             dataEmitCount++;
@@ -202,11 +202,12 @@ const opts = {
     lineSep  : '"\r\n',
     encoding : 'utf8',
     highWaterMark : 64 * 1024 * 10,
+    end : global.INDEXING_BYTES,
     workers,
 }
 
 const load =  async (options = {}) => {
-    const combinedOpts = Object.assign({},opts,options);
+    const combinedOpts = Object.assign({}, opts, options);
     return await readFileStream(combinedOpts);
 }
 

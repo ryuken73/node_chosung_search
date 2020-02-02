@@ -3,6 +3,7 @@ const fs = require('fs');
 
 const songArray = [];
 const errored = [];
+const WORDSEPARATOR = '^';
 
 const getJAMO = (hangulStr) => {
     return hangul.disassemble(hangulStr).join('');	
@@ -28,6 +29,28 @@ const createSongObj = (data) => {
         console.error(err);
         process.exit();
     }
+}
+
+const getSplited = (str, sep) => {
+    return str.split(sep).filter(element => element !== "");
+}
+
+const getMode = (str) => {
+    const mode = {};
+    mode.complex = getSplited(str, WORDSEPARATOR).length == 2 ? true : false;
+    mode.complex = (!str.includes(WORDSEPARATOR) && getSplited(str, ' ').length == 2) ? true : mode.complex;
+    // mode.or = getSplited(str, ' ').length > 2 ? true : false;    
+    return mode;
+}
+
+const getKeyword = (searchMode, str) => {
+    let sep = ' ';
+    if(!searchMode.complex) return [];
+    if(searchMode.complex && str.includes(WORDSEPARATOR)) sep = WORDSEPARATOR;
+    const [first, second] = getSplited(str, sep);
+    const firstUpperCased = first && first.toUpperCase().trimStart().trimEnd();
+    const secondUpperCased = second && second.toUpperCase().trimStart().trimEnd();
+    return [firstUpperCased, secondUpperCased]
 }
 
 const msgHandlers = {
@@ -57,25 +80,39 @@ const msgHandlers = {
     'search' : (subType, messageKey, data) => {
         // default max result 100,000,000 
         const {pattern, patternJAMO, limit=100000000} = data;
-        const upperCased = patternJAMO.toUpperCase();
-        const artists = upperCased.split(' ');
-        const regPattern = `/${artists.join('.+')}/`;
+        // make case insensitive and remove ending space
+        const upperCased = patternJAMO.toUpperCase().trimEnd();
+        // determine search mode
+        const searchMode = getMode(upperCased);
+        console.log(searchMode)
+        // const artists = upperCased.split(' ');
+        // const regPattern = `/${artists.join('.+')}/`;
+        const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased);
+
+
+        //console.log(firstUpperCased, secondUpperCased);
+        !(searchMode.complex) && upperCased.endsWith('^') && upperCased.replace(/\^$/,'');
+        
         let result;
         switch(subType.key){
             case 'artistNsong' :
+                if(!searchMode.complex) {
+                    result = [];
+                    break;
+                }
                 result = songArray.filter(song => {
-                    const [artistName, songName] = patternJAMO.split(' ');
-                    const upperCasedArtist = artistName && artistName.toUpperCase();
-                    const upperCasedSong = songName && songName.toUpperCase();
-                    return song.jamoArtist.toUpperCase().includes(upperCasedArtist) && song.jamoSong.toUpperCase().includes(upperCasedSong);
-                })
+                    if(!secondUpperCased) return false;
+                    return song.jamoArtist.toUpperCase().includes(firstUpperCased) && song.jamoSong.toUpperCase().includes(secondUpperCased);
+                });
                 break;
             case 'songNartist' :
+                if(!searchMode.complex) {
+                    result = [];
+                    break;
+                }
                 result = songArray.filter(song => {
-                    const [songName, artistName] = patternJAMO.split(' ')
-                    const upperCasedArtist = artistName && artistName.toUpperCase();
-                    const upperCasedSong = songName && songName.toUpperCase();
-                    return song.jamoArtist.toUpperCase().includes(upperCasedArtist) && song.jamoSong.toUpperCase().includes(upperCasedSong);
+                    if(!secondUpperCased) return false;
+                    return song.jamoArtist.toUpperCase().includes(secondUpperCased) && song.jamoSong.toUpperCase().includes(firstUpperCased);
                 })
                 break;
             case 'artist' :
