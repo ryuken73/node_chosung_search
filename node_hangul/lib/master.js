@@ -41,6 +41,12 @@ const orderFunc = (results, subType) => {
         case 'songJAMO' :
             sortKey = 'songName';
             break;
+        case 'artistNsong' :
+            sortKey = 'artistName';
+            break;
+        case 'songNartist' :
+            sortKey = 'songName';
+            break;
     }
 
     const origResult = [...results].flat();
@@ -138,7 +144,7 @@ function replySearchHandler(message){
 
         let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
         // const concatedResult = [].concat(...ordered);
-        global.logger.info(`[${messageKey}] all result replied : ${ordered.length}`)
+        global.logger.info(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
         searchEvent.emit(`success_${messageKey}`, ordered);
         searchResults.delete(messageKey);
         return true;
@@ -146,11 +152,11 @@ function replySearchHandler(message){
     global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
 }
 
-function readFileStream({wordSep, lineSep, encoding, highWaterMark, workers}) {
+function readFileStream({wordSep, lineSep, encoding, highWaterMark, end, workers}) {
     return new Promise((resolve,reject) => {
         let remainString = '';
         let dataEmitCount = 0;
-        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0});
+        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0, end});
         rStream.on('data', (buff) => {
             //console.log('on data')
             dataEmitCount++;
@@ -197,11 +203,12 @@ const opts = {
     lineSep  : '"\r\n',
     encoding : 'utf8',
     highWaterMark : 64 * 1024 * 10,
+    end : global.INDEXING_BYTES,
     workers,
 }
 
 const load =  async (options = {}) => {
-    const combinedOpts = Object.assign({},opts,options);
+    const combinedOpts = Object.assign({}, opts, options);
     return await readFileStream(combinedOpts);
 }
 
