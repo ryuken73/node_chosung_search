@@ -19,6 +19,7 @@ const getCombined = (results) => {
     // const secondCombined = firstCombined.map(result => {
     //     return [].concat(...result);
     // })
+    global.logger.info(results);
     return results.flat();
 }
 
