@@ -43,12 +43,15 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
 		const {pattern} = req.params;
+		const {userId} = req.query;
+		const ip = req.connection.remoteAddress;
 		const continuePattern = ['%20', '%20%20', '%20%20%20'];
 		if(continuePattern.includes(encodeURIComponent(pattern))){
 			global.logger.trace('countinue...');
 			res.send({result:null, count:null});
 			return false;
 		}
+
 		global.logger.info(`new request : pattern [${pattern}]`);
 		const searchType = [
 			{key: 'artistNsong', weight: 1},
@@ -88,13 +91,13 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			const {weight} = result;
 			countPerWeight[weight] ? countPerWeight[weight]++ : countPerWeight[weight] = 1;
 		})
-		global.logger.info(`result count per weight : [%s] : %j`, pattern, countPerWeight);
+		global.logger.info(`[${ip}][${userId}] result count per weight : [%s] : %j`, pattern, countPerWeight);
 		resultsConcat.map(result => delete result.weight);
 		const resultsStringified = resultsConcat.map(JSON.stringify);
 		const resultsUniqueString = Array.from(new Set(resultsStringified));
 		const resultsUnique = resultsUniqueString.map(JSON.parse);
 		global.logger.trace(resultsUnique)
-		global.logger.info(`unique result count : [%s] : %d`, pattern, resultsUnique.length);
+		global.logger.info(`[${ip}][${userId}] unique result count : [%s] : %d`, pattern, resultsUnique.length);
 	
 		res.send({result:resultsUnique, count:resultsUnique.length});
 		
