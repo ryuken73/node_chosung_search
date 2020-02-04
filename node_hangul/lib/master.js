@@ -6,9 +6,9 @@ class eventEmitter extends EventEmitter {}
 const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const SRC_FILE = global.SRC_FILE;
-const searchResults = new Map();
 const searchEvent = new eventEmitter();
 const NEED_ORDERING = false;
+let searchResults = new Map();
 let messageKey = 0;
 
 
@@ -19,6 +19,7 @@ const getCombined = (results) => {
     // const secondCombined = firstCombined.map(result => {
     //     return [].concat(...result);
     // })
+    global.logger.info(results);
     return results.flat();
 }
 
@@ -38,6 +39,12 @@ const orderFunc = (results, subType) => {
             sortKey = 'songName';
             break;  
         case 'songJAMO' :
+            sortKey = 'songName';
+            break;
+        case 'artistNsong' :
+            sortKey = 'artistName';
+            break;
+        case 'songNartist' :
             sortKey = 'songName';
             break;
     }
@@ -84,29 +91,75 @@ const getOrdered = (results, subType, orderFunction) => {
     return orderFunction(results, subType);
 }
 
+// worker functions
+
 // make array which contains worker's pid
 const workerInit= new Array(NUMBER_OF_WORKER);
 workerInit.fill(9999);
 
-const workers = workerInit.map( worker => {
+let workers = workerInit.map( worker => {
     console.log('start subprocess!')
     return child_process.fork('./lib/worker.js');
 })
 
-workers.map(worker => {   
+const clearSearchResult = () => {
+    return new Map();
+}
+
+const restartWorkder = (childModule) => {
+    return child_process.fork(childModule);
+}
+
+const reflectNewChild = (oldWorker, newWorker, workers) => {
+    console.log(`replace workder : old[${oldWorker.pid}] new[${newWorker.pid}]`)
+    addListeners(newWorker)
+    return [
+        ...workers.filter(worker => worker.pid !== oldWorker.pid),
+        newWorker
+    ]
+}
+
+const addListeners = (worker) => {
     worker.on('message', (message) => {
-        const {type, clientId, messageKey, success} = message;
-        type === 'notify-start' && console.log(`client ${clientId} started!`);
+        const {type, clientId} = message;
+        type === 'notify-start' && console.log(`worker ${clientId} started!`);
         type === 'reply-index' && replyIndexHandler(message);
         type === 'reply-search' && replySearchHandler(message);
     })
     worker.on('exit', (code,signal) => {
         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
+        searchEvent.emit('worker_exit');
+        searchResults = clearSearchResult();
+        const oldWorker = worker;
+        const newWorker = restartWorkder('./lib/worker.js');
+        workers = reflectNewChild(oldWorker, newWorker, workers);
     })
     worker.on('error', (err) => {
         console.log(`*********** worker error : [${worker}]`, err);
     })
-})
+}
+
+
+
+workers.map(worker => addListeners(worker));
+
+// workers.map(worker => {   
+//     worker.on('message', (message) => {
+//         const {type, clientId, messageKey, success} = message;
+//         type === 'notify-start' && console.log(`client ${clientId} started!`);
+//         type === 'reply-index' && replyIndexHandler(message);
+//         type === 'reply-search' && replySearchHandler(message);
+//     })
+//     worker.on('exit', (code,signal) => {
+//         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
+//     })
+//     worker.on('error', (err) => {
+//         console.log(`*********** worker error : [${worker}]`, err);
+//         const pidOld = worker;
+//         const pidNew = restartWorkder('./lib/worker.js');
+//         reflectNewChild(pidOld, pidNew)
+//     })
+// })
 
 function replyIndexHandler(message){
     const {clientId, messageKey, success} = message;
@@ -117,6 +170,9 @@ function replyIndexHandler(message){
 function replySearchHandler(message){
     const {clientId, messageKey, subType, result} = message;
     global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
+    // if searchResults Map doesn't have given messageKey, it was timed out!
+    // refer to timer in search  function.
+    console.log(searchResults);
     const TIMED_OUT = !searchResults.has(messageKey);
     if(TIMED_OUT) {
         // timed out or disappered by unknown action
@@ -129,6 +185,7 @@ function replySearchHandler(message){
     const ALL_SEARCH_DONE = results.length === NUMBER_OF_WORKER;
 
     if(ALL_SEARCH_DONE){
+
         // all search results are replied!
         // 0. if ordering needed execute order
         // 1. concat all result into one array
@@ -137,7 +194,7 @@ function replySearchHandler(message){
 
         let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
         // const concatedResult = [].concat(...ordered);
-        global.logger.info(`[${messageKey}] all result replied : ${ordered.length}`)
+        global.logger.info(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
         searchEvent.emit(`success_${messageKey}`, ordered);
         searchResults.delete(messageKey);
         return true;
@@ -145,11 +202,11 @@ function replySearchHandler(message){
     global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
 }
 
-function readFileStream({wordSep, lineSep, encoding, highWaterMark, workers}) {
+function readFileStream({wordSep, lineSep, encoding, highWaterMark, end, workers}) {
     return new Promise((resolve,reject) => {
         let remainString = '';
         let dataEmitCount = 0;
-        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0});
+        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0, end});
         rStream.on('data', (buff) => {
             //console.log('on data')
             dataEmitCount++;
@@ -190,17 +247,17 @@ function readFileStream({wordSep, lineSep, encoding, highWaterMark, workers}) {
 }
 
 // main
-
 const opts = {
     wordSep  : '^',
     lineSep  : '"\r\n',
     encoding : 'utf8',
     highWaterMark : 64 * 1024 * 10,
+    end : global.INDEXING_BYTES,
     workers,
 }
 
 const load =  async (options = {}) => {
-    const combinedOpts = Object.assign({},opts,options);
+    const combinedOpts = Object.assign({}, opts, options);
     return await readFileStream(combinedOpts);
 }
 
@@ -211,7 +268,7 @@ const search = async (type, pattern, patternJAMO, RESULT_LIMIT_WORKER) => {
         searchResults.set(messageKey, []);
     
         // if any of worker exeed timeout, delete temporary search result.
-        const timer = setInterval(() => {
+        const timer = setTimeout(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
             searchResults.delete(messageKey);
         }, SEARCH_TIMEOUT);
@@ -244,13 +301,18 @@ function waitResult(messageKey, timer){
     return new Promise((resolve, reject) => {
         //searchEvent emitted when all worker's reply received
         searchEvent.once(`success_${messageKey}`, (results) => {
-            clearInterval(timer);
+            global.logger.trace(`emitted success_${messageKey}`);
+            clearTimeout(timer);
             resolve(results);
         });
         searchEvent.once(`fail_${messageKey}`,  () => {
-            clearInterval(timer);
+            clearTimeout(timer);
             reject('search failed');
         });
+        searchEvent.once('worker_exit', () => {
+            clearTimeout(timer);
+            reject('worker down');
+        })
     })
 }
 

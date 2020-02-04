@@ -15,6 +15,7 @@ global.SEARCH_TIMEOUT = config.SEARCH_TIMEOUT || 10000;
 global.NUMBER_OF_WORKER = config.NUMBER_OF_WORKER || 5;
 global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
 global.PORT = config.PORT || 3000;
+global.INDEXING_BYTES = config.INDEXING_BYTES || Infinity;
 
 const app = express();
 
