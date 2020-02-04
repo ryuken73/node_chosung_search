@@ -135,7 +135,7 @@ const addListeners = (worker) => {
         workers = reflectNewChild(oldWorker, newWorker, workers);
     })
     worker.on('error', (err) => {
-        console.log(`*********** worker error : [${worker,oud}]`, err);
+        console.log(`*********** worker error : [${worker}]`, err);
     })
 }
 
