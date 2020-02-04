@@ -136,6 +136,7 @@ function replySearchHandler(message){
     const ALL_SEARCH_DONE = results.length === NUMBER_OF_WORKER;
 
     if(ALL_SEARCH_DONE){
+
         // all search results are replied!
         // 0. if ordering needed execute order
         // 1. concat all result into one array
@@ -197,7 +198,6 @@ function readFileStream({wordSep, lineSep, encoding, highWaterMark, end, workers
 }
 
 // main
-
 const opts = {
     wordSep  : '^',
     lineSep  : '"\r\n',
