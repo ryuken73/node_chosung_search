@@ -6,9 +6,9 @@ class eventEmitter extends EventEmitter {}
 const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const SRC_FILE = global.SRC_FILE;
-const searchResults = new Map();
 const searchEvent = new eventEmitter();
 const NEED_ORDERING = false;
+let searchResults = new Map();
 let messageKey = 0;
 
 
@@ -91,29 +91,75 @@ const getOrdered = (results, subType, orderFunction) => {
     return orderFunction(results, subType);
 }
 
+// worker functions
+
 // make array which contains worker's pid
 const workerInit= new Array(NUMBER_OF_WORKER);
 workerInit.fill(9999);
 
-const workers = workerInit.map( worker => {
+let workers = workerInit.map( worker => {
     console.log('start subprocess!')
     return child_process.fork('./lib/worker.js');
 })
 
-workers.map(worker => {   
+const clearSearchResult = () => {
+    return new Map();
+}
+
+const restartWorkder = (childModule) => {
+    return child_process.fork(childModule);
+}
+
+const reflectNewChild = (oldWorker, newWorker, workers) => {
+    console.log(`replace workder : old[${oldWorker.pid}] new[${newWorker.pid}]`)
+    addListeners(newWorker)
+    return [
+        ...workers.filter(worker => worker.pid !== oldWorker.pid),
+        newWorker
+    ]
+}
+
+const addListeners = (worker) => {
     worker.on('message', (message) => {
-        const {type, clientId, messageKey, success} = message;
-        type === 'notify-start' && console.log(`client ${clientId} started!`);
+        const {type, clientId} = message;
+        type === 'notify-start' && console.log(`worker ${clientId} started!`);
         type === 'reply-index' && replyIndexHandler(message);
         type === 'reply-search' && replySearchHandler(message);
     })
     worker.on('exit', (code,signal) => {
         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
+        searchEvent.emit('worker_exit');
+        searchResults = clearSearchResult();
+        const oldWorker = worker;
+        const newWorker = restartWorkder('./lib/worker.js');
+        workers = reflectNewChild(oldWorker, newWorker, workers);
     })
     worker.on('error', (err) => {
-        console.log(`*********** worker error : [${worker}]`, err);
+        console.log(`*********** worker error : [${worker,oud}]`, err);
     })
-})
+}
+
+
+
+workers.map(worker => addListeners(worker));
+
+// workers.map(worker => {   
+//     worker.on('message', (message) => {
+//         const {type, clientId, messageKey, success} = message;
+//         type === 'notify-start' && console.log(`client ${clientId} started!`);
+//         type === 'reply-index' && replyIndexHandler(message);
+//         type === 'reply-search' && replySearchHandler(message);
+//     })
+//     worker.on('exit', (code,signal) => {
+//         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
+//     })
+//     worker.on('error', (err) => {
+//         console.log(`*********** worker error : [${worker}]`, err);
+//         const pidOld = worker;
+//         const pidNew = restartWorkder('./lib/worker.js');
+//         reflectNewChild(pidOld, pidNew)
+//     })
+// })
 
 function replyIndexHandler(message){
     const {clientId, messageKey, success} = message;
@@ -124,6 +170,9 @@ function replyIndexHandler(message){
 function replySearchHandler(message){
     const {clientId, messageKey, subType, result} = message;
     global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
+    // if searchResults Map doesn't have given messageKey, it was timed out!
+    // refer to timer in search  function.
+    console.log(searchResults);
     const TIMED_OUT = !searchResults.has(messageKey);
     if(TIMED_OUT) {
         // timed out or disappered by unknown action
@@ -219,7 +268,7 @@ const search = async (type, pattern, patternJAMO, RESULT_LIMIT_WORKER) => {
         searchResults.set(messageKey, []);
     
         // if any of worker exeed timeout, delete temporary search result.
-        const timer = setInterval(() => {
+        const timer = setTimeout(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
             searchResults.delete(messageKey);
         }, SEARCH_TIMEOUT);
@@ -252,13 +301,18 @@ function waitResult(messageKey, timer){
     return new Promise((resolve, reject) => {
         //searchEvent emitted when all worker's reply received
         searchEvent.once(`success_${messageKey}`, (results) => {
-            clearInterval(timer);
+            global.logger.trace(`emitted success_${messageKey}`);
+            clearTimeout(timer);
             resolve(results);
         });
         searchEvent.once(`fail_${messageKey}`,  () => {
-            clearInterval(timer);
+            clearTimeout(timer);
             reject('search failed');
         });
+        searchEvent.once('worker_exit', () => {
+            clearTimeout(timer);
+            reject('worker down');
+        })
     })
 }
 
