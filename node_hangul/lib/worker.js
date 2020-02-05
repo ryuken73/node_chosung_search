@@ -99,13 +99,11 @@ const msgHandlers = {
             // const regPattern = `/${artists.join('.+')}/`;
             const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased);
             firstRegExpr = mkRegExpr(firstUpperCased);
-            secondRegExpr = mkRegExpr(secondUpperCased);
-            // console.log(firstRegExpr, secondRegExpr);
-        }
+            secondRegExpr = mkRegExpr(secondUpperCased);     
+        }  
         
-        //console.log(firstUpperCased, secondUpperCased);
-        !(searchMode.complex) && upperCased.endsWith('^') && upperCased.replace(/\^$/,'');
-        const keywordExpr = mkRegExpr(upperCased);
+        const hatRemovedUpperCased = upperCased.endsWith('^') ? upperCased.replace(/\^$/,'') : upperCased;
+        const keywordExpr = mkRegExpr(hatRemovedUpperCased);
         
         let result;
         switch(subType.key){
@@ -133,14 +131,14 @@ const msgHandlers = {
                 break;
             case 'artist' :
                 // result = songArray.filter(song => song.artistName.includes(pattern));
-                result = songArray.filter(song => song.jamoArtist.toUpperCase().startsWith(upperCased));
+                result = songArray.filter(song => song.jamoArtist.toUpperCase().startsWith(hatRemovedUpperCased));
                 break;
             case 'artistJAMO' :
                 // result = songArray.filter(song => song.jamoArtist.toUpperCase().includes(upperCased));
                 result = songArray.filter(song => song.jamoArtist.toUpperCase().search(keywordExpr) != -1);
                 break;
             case 'song' :
-                result = songArray.filter(song => song.jamoSong.toUpperCase().startsWith(upperCased))
+                result = songArray.filter(song => song.jamoSong.toUpperCase().startsWith(hatRemovedUpperCased))
                 // result = songArray.filter(song => song.songName.includes(pattern));
                 break;
             case 'songJAMO' :
