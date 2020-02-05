@@ -45,12 +45,19 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const {pattern} = req.params;
 		const {userId} = req.query;
 		const ip = req.connection.remoteAddress;
-		const continuePattern = ['%20', '%20%20', '%20%20%20'];
-		if(continuePattern.includes(encodeURIComponent(pattern))){
+
+		if(pattern.replace(/\s+/, '').length === 0){
 			global.logger.trace('countinue...');
 			res.send({result:null, count:null});
 			return false;
 		}
+
+		// const continuePattern = ['%20', '%20%20', '%20%20%20'];
+		// if(continuePattern.includes(encodeURIComponent(pattern))){
+		// 	global.logger.trace('countinue...');
+		// 	res.send({result:null, count:null});
+		// 	return false;
+		// }
 
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern}]`);
 		const searchType = [
