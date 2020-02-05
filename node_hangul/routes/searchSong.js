@@ -52,13 +52,6 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			return false;
 		}
 
-		// const continuePattern = ['%20', '%20%20', '%20%20%20'];
-		// if(continuePattern.includes(encodeURIComponent(pattern))){
-		// 	global.logger.trace('countinue...');
-		// 	res.send({result:null, count:null});
-		// 	return false;
-		// }
-
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern}]`);
 		const searchType = [
 			{key: 'artistNsong', weight: 1},
@@ -77,6 +70,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		})
 		// const searchResults = await master.search(pattern, jamo, LIMIT_PER_WORKER);
 
+		// resolvedResults = [[{},{}...],[],[]]
 		const resolvedResults = await Promise.all(searchResults);
 		const resultsConcat = resolvedResults.flat();
 		global.logger.trace(resultsConcat);
@@ -89,19 +83,27 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			if(a.artistName < b.artistName) return -1;
 			if(a.songName > b.songName) return 1;
 			if(a.songName < b.songName) return -1;
+			if(a.year > b.year) return 1;
+			if(a.year < b.year) return -1;
 			return 0;
 		}
 
 		global.logger.trace(resultsConcat);
+		// get result count per weight
 		const countPerWeight = {};
 		resultsConcat.map(result => {
 			const {weight} = result;
 			countPerWeight[weight] ? countPerWeight[weight]++ : countPerWeight[weight] = 1;
 		})
 		global.logger.info(`[${ip}][${userId}] result count per weight : [%s] : %j`, pattern, countPerWeight);
+		// remove weight
 		resultsConcat.map(result => delete result.weight);
+		// sort and remove duplicate objects
+	    // make all element(object) of array string
 		const resultsStringified = resultsConcat.map(JSON.stringify);
+		// by using Set, get array with unique element 
 		const resultsUniqueString = Array.from(new Set(resultsStringified));
+		// revert string to object
 		const resultsUnique = resultsUniqueString.map(JSON.parse);
 		global.logger.trace(resultsUnique)
 		global.logger.info(`[${ip}][${userId}] unique result count : [%s] : %d`, pattern, resultsUnique.length);
