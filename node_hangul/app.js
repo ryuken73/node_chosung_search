@@ -16,6 +16,7 @@ global.NUMBER_OF_WORKER = config.NUMBER_OF_WORKER || 5;
 global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
 global.PORT = config.PORT || 3000;
 global.INDEXING_BYTES = config.INDEXING_BYTES || Infinity;
+global.LOG_LEVEL = config.LOG_LEVEL || 'info';
 
 const app = express();
 
@@ -37,9 +38,9 @@ if(env === 'development'){
 	
 	var logTracer = require('tracer').console(
 			{
-				format : "{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})",	
+				format: "{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})",	
 				dateformat: 'yyyy-mm-dd HH:MM:ss',
-				level:'trace'
+				level: global.LOG_LEVEL
 			}
 		);
 }
