@@ -1,6 +1,0 @@
-{
-    "SRC_FILE" : "/home/sbs/node_project/song_mst.txt",
-    "SEARCH_TIMEOUT" : 10000,
-    "NUMBER_OF_WORKER" : 5,
-    "RESULT_LIMIT_WORKER" : 5000
-}
