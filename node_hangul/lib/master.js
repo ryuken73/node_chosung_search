@@ -5,10 +5,13 @@ class eventEmitter extends EventEmitter {}
 
 const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
+const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
 const SRC_FILE = global.SRC_FILE;
 const searchEvent = new eventEmitter();
+const clearEvent = new eventEmitter();
 const NEED_ORDERING = false;
 let searchResults = new Map();
+let clearResults = new Map();
 let messageKey = 0;
 
 
@@ -125,6 +128,7 @@ const addListeners = (worker) => {
         type === 'notify-start' && console.log(`worker ${clientId} started!`);
         type === 'reply-index' && replyIndexHandler(message);
         type === 'reply-search' && replySearchHandler(message);
+        type === 'reqly-clear' && reqplyClearHandler(message);
     })
     worker.on('exit', (code,signal) => {
         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
@@ -202,7 +206,26 @@ function replySearchHandler(message){
     global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
 }
 
-function readFileStream({wordSep, lineSep, encoding, highWaterMark, end, workers}) {
+function reqplyClearHandler(message) {
+    const {clientId, messageKey, success} = message;
+    global.logger.info(`[${messageKey}][${clientId}] clear result[${success}]`);
+    const results = clearResults.get(messageKey);  
+    const TIMED_OUT = !clearResults.has(messageKey);
+    if(TIMED_OUT) {
+        // timed out or disappered by unknown action
+        console.log(`[${messageKey}] clear reply timed out!`)
+        clearEvent.emit(`fail_${messageKey}`);
+        return false;
+    }
+    results.push(success);
+    const ALL_CLEAR_DONE = results.length === NUMBER_OF_WORKER;
+    if(ALL_CLEAR_DONE){
+        clearEvent.emit(`success_${messageKey}`);
+        clearResults.delete(messageKey)
+    }
+}
+
+function readFileStreamAndSendJob({wordSep, lineSep, encoding, highWaterMark, end, workers}) {
     return new Promise((resolve,reject) => {
         let remainString = '';
         let dataEmitCount = 0;
@@ -258,10 +281,35 @@ const opts = {
 
 const load =  async (options = {}) => {
     const combinedOpts = Object.assign({}, opts, options);
-    return await readFileStream(combinedOpts);
+    return await readFileStreamAndSendJob(combinedOpts);
 }
 
-const clear = 
+const clear = async () => {
+    try {
+        // set uniq key (messageKey) and initialize empty result array
+        messageKey ++;
+        clearResults.set(messageKey, []);
+
+        const timer = setTimeout(() => {
+            global.logger.error(`[${messageKey}] timed out! delete form Map`);
+            clearResults.delete(messageKey);
+        }, CLEAR_TIMEOUT);
+
+        workers.map(worker => {
+            const job = {
+                type: 'clear',
+                messageKey,
+                subType: null,
+                data: null
+            }
+            worker.send(job);
+        })
+        return await waitResult(messageKey, timer, clearEvent);
+    } catch (err) {
+        global.logger.error(err);
+    }
+
+}
 
 const search = async (type, pattern, patternJAMO, RESULT_LIMIT_WORKER) => {
     try {
@@ -292,33 +340,31 @@ const search = async (type, pattern, patternJAMO, RESULT_LIMIT_WORKER) => {
             }
             worker.send(job);                 
         })    
-        return await waitResult(messageKey, timer); 
+        return await waitResult(messageKey, timer, searchEvent); 
     } catch(err) {
         global.logger.error(err);
     }
-
 }
 
-function waitResult(messageKey, timer){
+function waitResult(messageKey, timer, event){
     return new Promise((resolve, reject) => {
         //searchEvent emitted when all worker's reply received
-        searchEvent.once(`success_${messageKey}`, (results) => {
+        event.once(`success_${messageKey}`, (results) => {
             global.logger.trace(`emitted success_${messageKey}`);
             clearTimeout(timer);
             resolve(results);
         });
-        searchEvent.once(`fail_${messageKey}`,  () => {
+        event.once(`fail_${messageKey}`,  () => {
             clearTimeout(timer);
             reject('search failed');
         });
-        searchEvent.once('worker_exit', () => {
+        event.once('worker_exit', () => {
             clearTimeout(timer);
             reject('worker down');
         })
     })
 }
 
-// readFileStream(opts)
 module.exports = {
     load,
     search,

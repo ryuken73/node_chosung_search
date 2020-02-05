@@ -65,6 +65,15 @@ const mkRegExpr = (str) => {
 }
 
 const msgHandlers = {
+    'clear' : (subType = null, messageKey, data = null) => {
+        songArray = [];
+        process.send({
+            type: 'reply-clear',
+            clientId: process.pid,
+            messageKey, 
+            success: true, 
+        })
+    },
     'index' : (subType = null, messageKey, data) => {
         try {
             const songObject = createSongObj(data);
