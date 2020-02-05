@@ -52,7 +52,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			return false;
 		}
 
-		global.logger.info(`new request : pattern [${pattern}]`);
+		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern}]`);
 		const searchType = [
 			{key: 'artistNsong', weight: 1},
 			{key: 'songNartist', weight: 2},

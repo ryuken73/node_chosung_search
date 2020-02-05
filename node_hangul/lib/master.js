@@ -19,7 +19,7 @@ const getCombined = (results) => {
     // const secondCombined = firstCombined.map(result => {
     //     return [].concat(...result);
     // })
-    global.logger.info(results);
+    // global.logger.info(results);
     return results.flat();
 }
 
@@ -172,7 +172,7 @@ function replySearchHandler(message){
     global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
     // if searchResults Map doesn't have given messageKey, it was timed out!
     // refer to timer in search  function.
-    console.log(searchResults);
+    // console.log(searchResults);
     const TIMED_OUT = !searchResults.has(messageKey);
     if(TIMED_OUT) {
         // timed out or disappered by unknown action
@@ -194,7 +194,7 @@ function replySearchHandler(message){
 
         let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
         // const concatedResult = [].concat(...ordered);
-        global.logger.info(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
+        global.logger.trace(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
         searchEvent.emit(`success_${messageKey}`, ordered);
         searchResults.delete(messageKey);
         return true;
@@ -261,6 +261,8 @@ const load =  async (options = {}) => {
     return await readFileStream(combinedOpts);
 }
 
+const clear = 
+
 const search = async (type, pattern, patternJAMO, RESULT_LIMIT_WORKER) => {
     try {
         // set uniq search key (messageKey) and initialize empty result array
@@ -320,4 +322,5 @@ function waitResult(messageKey, timer){
 module.exports = {
     load,
     search,
+    clear,
 }

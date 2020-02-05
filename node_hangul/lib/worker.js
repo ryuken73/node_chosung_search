@@ -13,17 +13,22 @@ const createSongObj = (data) => {
     try {
         const {wordSep, line} = data;
         const wordArray = line.split(wordSep);
-        if(wordArray.length !== 2){
+        if(wordArray.length !== 4){
             errored.push(wordArray);
-            return {artistName:'', songName:''};
+            return {artistName:'', songName:'', year:'', label:''};
         }
         // const artistName = wordArray[0].trim().replace(/^"/gi, '').replace(/"$/gi, '');
         // const songName = wordArray[1].trim().replace(/^"/gi, '').replace(/"$/gi, '');
         const artistName = wordArray[0].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');
         const songName = wordArray[1].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');;
+        const year = wordArray[2].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');;
+        const label = wordArray[3].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');;
+
         return {
             artistName,
-            songName
+            songName,
+            year,
+            label
         } 
     } catch (err) {
         console.error(err);
