@@ -4,25 +4,29 @@ const fs = require('fs');
 const songArray = [];
 const errored = [];
 const WORDSEPARATOR = '^';
+const MIN_KEY_LENGTH = 2
 
 const getJAMO = (hangulStr) => {
     return hangul.disassemble(hangulStr).join('');	
+}
+
+const clearWord = (word) => {
+    return word.replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');
 }
 
 const createSongObj = (data) => {
     try {
         const {wordSep, line} = data;
         const wordArray = line.split(wordSep);
-        if(wordArray.length !== 4){
+        if(wordArray.length < MIN_KEY_LENGTH){
+            console.error(`wordArray is to short[MIN_KEY_LENGTH = 2] but current Data :`, wordArray);
             errored.push(wordArray);
-            return {artistName:'', songName:'', year:'', label:''};
+            return {artistName:'', songName:''};
         }
-        // const artistName = wordArray[0].trim().replace(/^"/gi, '').replace(/"$/gi, '');
-        // const songName = wordArray[1].trim().replace(/^"/gi, '').replace(/"$/gi, '');
-        const artistName = wordArray[0].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');
-        const songName = wordArray[1].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');;
-        const year = wordArray[2].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');;
-        const label = wordArray[3].replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');;
+        const artistName = clearWord(wordArray[0]);
+        const songName = clearWord(wordArray[1]);
+        const year = wordArray[2] ? clearWord(wordArray[2]) : ''  ;     
+        const label = wordArray[3] ? clearWord(wordArray[3]) : '';
 
         return {
             artistName,
@@ -87,7 +91,7 @@ const msgHandlers = {
                 success: true, 
 
             });
-            if(songArray.length % 10000 === 0){
+            if(songArray.length % 100000 === 0){
                 console.log(`pid[${process.pid}] processed[${songArray.length}]`);
                 //console.log(process.pid, errored.length)
             }
