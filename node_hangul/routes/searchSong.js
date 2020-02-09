@@ -1,50 +1,23 @@
 var express = require('express');
 var router = express.Router();
 var extractJAMO = require('../util/extractJAMO');
-var extractCHO = require('../util/extractCHO');
-var Hangul = require('hangul-js');
 const master = require('../lib/master');
 const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
-
-
-/* GET home page. */
-
-router.get('/:pattern', function(req, res, next) {
-
-	global.logger.trace('%s',req.params.pattern);
-	const {pattern} = req.params;
-	const jamo = extractJAMO(pattern);
-	const cho = extractCHO(pattern);
-	global.logger.trace('%s',jamo);
-	global.logger.trace(global.wordsWithJAMOCHO)
-    // 1. 한글비교 (한글 like 검색)
-	const artistObjs = global.wordsWithJAMOCHO.filter(song => song.artistName.includes(pattern)); 	
-	const songObj = global.wordsWithJAMOCHO.filter(song => song.songName.includes(pattern)); 	
-	// 2. 자모분리비교 ()
-	const artistJAMO = global.wordsWithJAMOCHO.filter(song => song.jamoArtist.startsWith(jamo)); 	
-	const songJAMO = global.wordsWithJAMOCHO.filter(song => song.jamoSong.startsWith(jamo)); 	
-	
-	let wordObjCHO = [];
-	
-	global.logger.trace('wordObjCHO:%j',wordObjCHO);
-	
-	Object.assign(artistObjs, artistJAMO);
-	Object.assign(artistObjs, songJAMO);
-	Object.assign(artistObjs, songObj);
-	
-	// Object.assign(wordObj, artistJAMO);
-	
-	res.send({result:artistObjs, count:artistObjs.length});
-	
-}); 
 
 // search by distributed worker
 router.get('/withWorkers/:pattern', async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
+		const {app} = req;
 		const {pattern} = req.params;
 		const {userId} = req.query;
 		const ip = req.connection.remoteAddress;
+		const workers = app.get('workers');	
+
+		// const lastKey = req.app.get('messageKey');
+		// const messageKey = lastKey + 1;
+		// req.app.set(messageKey);
+
 
 		if(pattern.replace(/\s+/, '').length === 0){
 			global.logger.trace('countinue...');
@@ -53,7 +26,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		}
 
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern}]`);
-		const searchType = [
+		const searchGroup = [
 			{key: 'artistNsong', weight: 1},
 			{key: 'songNartist', weight: 2},
 			{key: 'artist', weight: 3},
@@ -65,8 +38,8 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const patternJAMO = extractJAMO(pattern);	
 		global.logger.trace('%s',patternJAMO);
 
-		const searchResults = searchType.map(async type => {
-			return await master.search(type, pattern, patternJAMO, RESULT_LIMIT_WORKER);
+		const searchResults = searchGroup.map(async group => {
+			return await master.search(workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER});
 		})
 		// const searchResults = await master.search(pattern, jamo, LIMIT_PER_WORKER);
 

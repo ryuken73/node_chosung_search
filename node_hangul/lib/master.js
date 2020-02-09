@@ -6,23 +6,17 @@ class eventEmitter extends EventEmitter {}
 const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
-const SRC_FILE = global.SRC_FILE;
+//const SRC_FILE = global.SRC_FILE;
 const searchEvent = new eventEmitter();
 const clearEvent = new eventEmitter();
 const NEED_ORDERING = false;
 let searchResults = new Map();
 let clearResults = new Map();
-let messageKey = 0;
+// let messageKey = 0;
 
+console.log(SEARCH_TIMEOUT)
 
 const getCombined = (results) => {
-    // const firstCombined = results.map(result => {
-    //     return [].concat(...result)
-    // })
-    // const secondCombined = firstCombined.map(result => {
-    //     return [].concat(...result);
-    // })
-    // global.logger.info(results);
     return results.flat();
 }
 
@@ -61,49 +55,11 @@ const orderFunc = (results, subType) => {
     global.logger.trace(`after sort : %j`, flattened);
     
     return flattened
-    
-    // const firstCombined = results.map((result) => {
-    //     const artistsCombined = result[0].concat(result[1]);
-    //     const artistsUnique = Array.from(new Set(artistsCombined));                
-    //     const songs = result[1].concat(result[2]);
-    //     return {artists, songs};
-    // })
-    // artistsOrdered = [];
-    // songOrdered = [];
-    // firstCombined.map(data => {
-    //     artistsOrdered.push(data.artists);
-    //     songOrdered.push(data.songs);
-    // })
-
-    // artistsOrdered.sort((a,b) => {
-    //     return a > b ? 1 : a > b ? -1 : 0;
-    // })
-
-    // songOrdered.sort((a,b) => {
-    //     const songA = a.songName;
-    //     const songB = b.songName;
-    //     return songA > songB ? 1 : songA > songB ? -1 : 0;
-    // })
-    // console.log(artistsOrdered);
-    // console.log(songOrdered);
-
-    // return [].concat(artistsOrdered, songOrdered);
 }
 
 const getOrdered = (results, subType, orderFunction) => {
     return orderFunction(results, subType);
 }
-
-// worker functions
-
-// make array which contains worker's pid
-const workerInit= new Array(NUMBER_OF_WORKER);
-workerInit.fill(9999);
-
-let workers = workerInit.map( worker => {
-    console.log('start subprocess!')
-    return child_process.fork('./lib/worker.js');
-})
 
 const clearSearchResult = () => {
     return new Map();
@@ -113,16 +69,16 @@ const restartWorkder = (childModule) => {
     return child_process.fork(childModule);
 }
 
-const reflectNewChild = (oldWorker, newWorker, workers) => {
-    console.log(`replace workder : old[${oldWorker.pid}] new[${newWorker.pid}]`)
-    addListeners(newWorker)
-    return [
-        ...workers.filter(worker => worker.pid !== oldWorker.pid),
-        newWorker
-    ]
-}
+// const reflectNewChild = (oldWorker, newWorker, workers) => {
+//     console.log(`replace workder : old[${oldWorker.pid}] new[${newWorker.pid}]`)
+//     addListeners(newWorker)
+//     return [
+//         ...workers.filter(worker => worker.pid !== oldWorker.pid),
+//         newWorker
+//     ]
+// }
 
-const addListeners = (worker) => {
+const addListeners = (workers, worker, handleWokerExit) => {
     worker.on('message', (message) => {
         const {type, clientId} = message;
         type === 'notify-start' && console.log(`worker ${clientId} started!`);
@@ -136,39 +92,32 @@ const addListeners = (worker) => {
         searchResults = clearSearchResult();
         const oldWorker = worker;
         const newWorker = restartWorkder('./lib/worker.js');
-        workers = reflectNewChild(oldWorker, newWorker, workers);
+        addListeners(workers, newWorker, handleWokerExit);
+        handleWokerExit(oldWorker, newWorker);
+        //workers = reflectNewChild(oldWorker, newWorker, workers);
     })
     worker.on('error', (err) => {
         console.log(`*********** worker error : [${worker}]`, err);
     })
 }
 
+// worker functions
 
+// make array which contains worker's pid
+// const workerInit= new Array(NUMBER_OF_WORKER);
+// workerInit.fill(9999);
 
-workers.map(worker => addListeners(worker));
-
-// workers.map(worker => {   
-//     worker.on('message', (message) => {
-//         const {type, clientId, messageKey, success} = message;
-//         type === 'notify-start' && console.log(`client ${clientId} started!`);
-//         type === 'reply-index' && replyIndexHandler(message);
-//         type === 'reply-search' && replySearchHandler(message);
-//     })
-//     worker.on('exit', (code,signal) => {
-//         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
-//     })
-//     worker.on('error', (err) => {
-//         console.log(`*********** worker error : [${worker}]`, err);
-//         const pidOld = worker;
-//         const pidNew = restartWorkder('./lib/worker.js');
-//         reflectNewChild(pidOld, pidNew)
-//     })
+// let workers = workerInit.map( worker => {
+//     console.log('start subprocess!')
+//     return child_process.fork('./lib/worker.js');
 // })
 
-function replyIndexHandler(message){
-    const {clientId, messageKey, success} = message;
-    // console.log('got reply-index');
-}
+// workers.map(worker => addListeners(worker));
+
+// function replyIndexHandler(message){
+//     const {clientId, messageKey, success} = message;
+//     // console.log('got reply-index');
+// }
 
 // handler for processing worker's search results;
 function replySearchHandler(message){
@@ -225,11 +174,12 @@ function reqplyClearHandler(message) {
     }
 }
 
-function readFileStreamAndSendJob({wordSep, lineSep, encoding, highWaterMark, end, workers}) {
+function readFileStreamAndSendJob(workers, {srcFile, wordSep, lineSep, encoding, highWaterMark, end}) {
     return new Promise((resolve,reject) => {
         let remainString = '';
         let dataEmitCount = 0;
-        const rStream = fs.createReadStream(SRC_FILE, {encoding : encoding, start:0, end});
+        const rStream = fs.createReadStream(srcFile, {encoding : encoding, start:0, end});
+        let messageKey = 0;
         rStream.on('data', (buff) => {
             //console.log('on data')
             dataEmitCount++;
@@ -240,6 +190,7 @@ function readFileStreamAndSendJob({wordSep, lineSep, encoding, highWaterMark, en
             } else {
                 remainString = '';
             } 
+            //global.logger.trace(dataArray)
             dataArray.map(line => {
                 // send line to child worker to index
                 messageKey++ 
@@ -270,18 +221,23 @@ function readFileStreamAndSendJob({wordSep, lineSep, encoding, highWaterMark, en
 }
 
 // main
-const opts = {
-    wordSep  : '^',
-    lineSep  : '"\r\n',
-    encoding : 'utf8',
-    highWaterMark : 64 * 1024 * 10,
-    end : global.INDEXING_BYTES,
-    workers,
-}
 
-const load =  async (options = {}) => {
-    const combinedOpts = Object.assign({}, opts, options);
-    return await readFileStreamAndSendJob(combinedOpts);
+
+const load =  async (workers, options = {}) => {
+    global.logger.trace(options);
+    const opts = {
+        wordSep  : '^',
+        lineSep  : '\r\n',
+        encoding : 'utf8',
+        highWaterMark : 64 * 1024 * 10,
+        end : global.INDEXING_BYTES,
+    }
+    const combinedOpts = {
+        ...options, 
+        ...opts
+    };
+    global.logger.trace(combinedOpts);
+    return await readFileStreamAndSendJob(workers, combinedOpts);
 }
 
 const clear = async () => {
@@ -311,10 +267,17 @@ const clear = async () => {
 
 }
 
-const search = async (type, pattern, patternJAMO, RESULT_LIMIT_WORKER) => {
+const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER}) => {
     try {
         // set uniq search key (messageKey) and initialize empty result array
-        messageKey ++;
+        // messageKey ++;
+        // const lastKey = app.get('messageKey');
+		// const messageKey = lastKey + 1;
+        // app.set(messageKey);
+        global.logger.info(`SEARCH_TIMEOUT: ${SEARCH_TIMEOUT}`);
+        global.messageKey++;
+        const messageKey = global.messageKey;
+        
         searchResults.set(messageKey, []);
     
         // if any of worker exeed timeout, delete temporary search result.
@@ -330,7 +293,7 @@ const search = async (type, pattern, patternJAMO, RESULT_LIMIT_WORKER) => {
         workers.map(async worker => {
             const job = {
                 type : 'search',
-                subType : type,
+                subType : group,
                 messageKey,
                 data : {
                     pattern,
@@ -365,7 +328,26 @@ function waitResult(messageKey, timer, event){
     })
 }
 
+function replyIndexHandler(message){
+    // global.logger.trace(message);
+    // console.log('got reply-index');
+}
+
+const init = (max_workers, handleWokerExit) => {
+    const workerInit= new Array(max_workers);
+    workerInit.fill(0);
+
+    const workers = workerInit.map( worker => {
+        console.log('start subprocess!')
+        return child_process.fork('./lib/worker.js');
+    })
+    
+    workers.map(worker => addListeners(workers, worker, handleWokerExit));
+    return workers;   
+}
+
 module.exports = {
+    init,
     load,
     search,
     clear,

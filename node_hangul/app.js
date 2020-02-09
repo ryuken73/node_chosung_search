@@ -17,6 +17,9 @@ global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
 global.PORT = config.PORT || 3000;
 global.INDEXING_BYTES = config.INDEXING_BYTES || Infinity;
 global.LOG_LEVEL = config.LOG_LEVEL || 'info';
+global.messageKey = 0;
+
+const master = require('./lib/master');
 
 const app = express();
 
@@ -52,6 +55,23 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 global.logger = logTracer;
+
+// initialize search workers
+
+const handleWorkerExit = (app) => {
+  return (oldWorker, newWorker) => {
+    console.log(`replace workder : old[${oldWorker.pid}] new[${newWorker.pid}]`);
+    const workers = app.get('workers');
+    const newWorkers = [
+      ...workers.filter(worker => worker.pid !== oldWorker.pid),
+      newWorker
+    ]
+    app.set('workers', newWorkers);
+
+  }
+}
+
+app.set('workers', master.init(global.NUMBER_OF_WORKER, handleWorkerExit(app)));
  
 app.use('/', routes);
 app.use('/users', users);

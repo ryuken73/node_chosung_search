@@ -23,10 +23,8 @@ const createSongObj = (data) => {
             errored.push(wordArray);
             return {artistName:'', songName:''};
         }
-        const artistName = clearWord(wordArray[0]);
-        const songName = clearWord(wordArray[1]);
-        const year = wordArray[2] ? clearWord(wordArray[2]) : ''  ;     
-        const label = wordArray[3] ? clearWord(wordArray[3]) : '';
+
+        const [artistName, songName, year, label] = wordArray.map(word => clearWord(word));
 
         return {
             artistName,
@@ -44,18 +42,17 @@ const getSplited = (str, sep) => {
     return str.split(sep).filter(element => element !== "");
 }
 
-const getMode = (str) => {
+const getMode = (str, complexSep) => {
     const mode = {};
-    mode.complex = getSplited(str, WORDSEPARATOR).length == 2 ? true : false;
-    mode.complex = (!str.includes(WORDSEPARATOR) && getSplited(str, ' ').length == 2) ? true : mode.complex;
-    // mode.or = getSplited(str, ' ').length > 2 ? true : false;    
+    mode.complex = getSplited(str, complexSep).length == 2 ? true : false;
+    mode.complex = (!str.includes(complexSep) && getSplited(str, ' ').length == 2) ? true : mode.complex;
     return mode;
 }
 
-const getKeyword = (searchMode, str) => {
+const getKeyword = (searchMode, str, complexSep) => {
     let sep = ' ';
     if(!searchMode.complex) return [];
-    if(searchMode.complex && str.includes(WORDSEPARATOR)) sep = WORDSEPARATOR;
+    if(searchMode.complex && str.includes(WORDSEPARATOR)) sep = complexSep;
     const [first, second] = getSplited(str, sep);
     const firstUpperCased = first && first.toUpperCase().trimStart().trimEnd();
     const secondUpperCased = second && second.toUpperCase().trimStart().trimEnd();    
@@ -104,10 +101,8 @@ const msgHandlers = {
     'search' : (subType, messageKey, data) => {
         // default max result 100,000,000 
         const {pattern, patternJAMO, limit=100000000} = data;
-        // make case insensitive and remove ending space
         const upperCased = patternJAMO.toUpperCase().trimEnd();
-        // determine search mode
-        const searchMode = getMode(upperCased);
+        const searchMode = getMode(upperCased, WORDSEPARATOR);
         // console.log(searchMode)
 
         let firstRegExpr,secondRegExpr;
@@ -115,7 +110,7 @@ const msgHandlers = {
         if(searchMode.complex){
             // const artists = upperCased.split(' ');
             // const regPattern = `/${artists.join('.+')}/`;
-            const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased);
+            const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased, WORDSEPARATOR);
             firstRegExpr = mkRegExpr(firstUpperCased);
             secondRegExpr = mkRegExpr(secondUpperCased);     
         }  
