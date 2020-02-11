@@ -12,6 +12,7 @@ const config = require('./config.json');
 
 global.SRC_FILE = config.SRC_FILE || 'c:/temp/song_mst.txt';
 global.SEARCH_TIMEOUT = config.SEARCH_TIMEOUT || 10000;
+global.CLEAR_TIMEOUT = config.CLEAR_TIMEOUT || 5000;
 global.NUMBER_OF_WORKER = config.NUMBER_OF_WORKER || 5;
 global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
 global.PORT = config.PORT || 3000;

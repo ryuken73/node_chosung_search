@@ -68,7 +68,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			const {weight} = result;
 			countPerWeight[weight] ? countPerWeight[weight]++ : countPerWeight[weight] = 1;
 		})
-		global.logger.info(`[${ip}][${userId}] result count per weight : [%s] : %j`, pattern, countPerWeight);
+		global.logger.info(`[${ip}][${userId}] result per weight : [%s] : %j`, pattern, countPerWeight);
 		// remove weight
 		resultsConcat.map(result => delete result.weight);
 		// sort and remove duplicate objects
@@ -79,7 +79,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		// revert string to object
 		const resultsUnique = resultsUniqueString.map(JSON.parse);
 		global.logger.trace(resultsUnique)
-		global.logger.info(`[${ip}][${userId}] unique result count : [%s] : %d`, pattern, resultsUnique.length);
+		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, pattern, resultsUnique.length);
 	
 		res.send({result:resultsUnique, count:resultsUnique.length});
 		

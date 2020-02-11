@@ -83,13 +83,14 @@ const msgHandlers = {
             songArray.push(songObject);
             process.send({
                 type: 'reply-index',
+                subType: 'not-distributed',
                 clientId: process.pid,
                 messageKey, 
-                success: true, 
+                result: 'success', 
 
             });
             if(songArray.length % 100000 === 0){
-                console.log(`pid[${process.pid}] processed[${songArray.length}]`);
+                //console.log(`pid[${process.pid}] processed[${songArray.length}]`);
                 //console.log(process.pid, errored.length)
             }
 
@@ -205,12 +206,17 @@ process.on('message', (message) => {
 })
 
 
-// main
+// main 
 
 // notify worker process started to master server
+
 process.send({
     type: 'notify-start',
     clientId: process.pid,
+    subType: 'start-worker-process',
+    messageKey: process.argv[2],
+    result: process.pid
+
 })
 
 process.on('uncaughtException', (err, origin) => {

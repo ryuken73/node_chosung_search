@@ -7,13 +7,13 @@ class eventEmitter extends EventEmitter {}
 const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
-//const SRC_FILE = global.SRC_FILE;
+const PROGRESS_UNIT = 100000;
+
 const searchEvent = new eventEmitter();
 const clearEvent = new eventEmitter();
 const NEED_ORDERING = false;
-let searchResults = new Map();
+global.workerMessages = new Map();
 let clearResults = new Map();
-// let messageKey = 0;
 
 console.log(SEARCH_TIMEOUT)
 
@@ -62,7 +62,7 @@ const getOrdered = (results, subType, orderFunction) => {
     return orderFunction(results, subType);
 }
 
-const clearSearchResult = () => {
+const clearWorkerMessages = () => {
     return new Map();
 }
 
@@ -70,18 +70,86 @@ const restartWorkder = (childModule) => {
     return child_process.fork(childModule);
 }
 
+const checkJobStatus = (message) => {
+    const {clientId, messageKey, subType, result} = message;
+    const keyLocal = subType.key ? subType.key : subType;
+    const resultLocal = result.map ? result.length : result;
+    global.logger.debug(`[${messageKey}][${clientId}][${keyLocal}]worker done[result:${resultLocal}]. check Job Status`);
+    const TIMED_OUT = !global.workerMessages.has(messageKey);
+    if(TIMED_OUT) return 'TIME_OUT';
+
+    const resultsBefore = global.workerMessages.get(messageKey);  
+    const results = [...resultsBefore, result];
+    global.workerMessages.set(messageKey, results);
+    const ALL_DONE = results.length === NUMBER_OF_WORKER;
+
+    if(ALL_DONE) return 'DONE';
+    if(subType === 'not-distributed') {
+        messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
+        return 'DONE';
+    }
+} 
+
+const handler = {
+    'notify-start' : {
+        'TIME_OUT' : function(){},
+        'ALL_DONE' : function(message){
+            const {messageKey, subType} = message;
+            global.workerMessages.delete(messageKey);
+            global.logger.info('all worker started!');
+        }    
+    },
+    'reply-index' : {
+        'TIME_OUT' : function(){},
+        'ALL_DONE' : function(message){
+            const {messageKey, subType} = message;
+            global.workerMessages.delete(messageKey);
+            global.logger.debug('indexing done!');
+        }    
+    },
+    'reply-search' : {
+        'TIME_OUT' : function(message){
+            const {messageKey} = message;
+            searchEvent.emit(`fail_${messageKey}`);
+        },
+        'ALL_DONE' : function(message){
+            const {messageKey, subType} = message;
+            const results = global.workerMessages.get(messageKey);
+            let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
+            global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
+            searchEvent.emit(`success_${messageKey}`, ordered);
+            global.workerMessages.delete(messageKey);
+        }    
+    },
+    'reply-clear' : {
+        'TIME_OUT' : function(){},
+        'ALL_DONE' : function(message){}     
+    },    
+}
+
 const addListeners = (workers, worker, handleWokerExit) => {
     worker.on('message', (message) => {
-        const {type, clientId} = message;
-        type === 'notify-start' && console.log(`worker ${clientId} started!`);
-        type === 'reply-index' && replyIndexHandler(message);
-        type === 'reply-search' && replySearchHandler(message);
-        type === 'reqly-clear' && reqplyClearHandler(message);
+        const {type, clientId, subType, messageKey, result} = message;
+        message.messageKey = parseInt(messageKey);
+        const keyLocal = subType.key ? subType.key : subType;
+        const resultLocal = result.map ? result.length : result;
+        const jobStatus = checkJobStatus(message);
+        if(jobStatus === 'TIME_OUT'){
+            global.logger.error(`[${messageKey}][${keyLocal}][${clientId}]TIMED-OUT`);
+            handler[type]['TIME_OUT'](message);
+            return false
+        }
+        if(jobStatus === 'DONE'){
+            global.logger.debug(`[${messageKey}][${keyLocal}][${resultLocal}]ALL-DONE`);
+            handler[type]['ALL_DONE'](message);
+        }
+
+         type === 'reqly-clear' && reqplyClearHandler(message);
     })
     worker.on('exit', (code,signal) => {
         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
         searchEvent.emit('worker_exit');
-        searchResults = clearSearchResult();
+        global.workerMessages = clearWorkerMessages();
         const oldWorker = worker;
         const newWorker = restartWorkder('./lib/worker.js');
         addListeners(workers, newWorker, handleWokerExit);
@@ -93,40 +161,40 @@ const addListeners = (workers, worker, handleWokerExit) => {
 }
 
 // handler for processing worker's search results;
-function replySearchHandler(message){
-    const {clientId, messageKey, subType, result} = message;
-    global.logger.debug(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
-    // if searchResults Map doesn't have given messageKey, it was timed out!
-    // refer to timer in search  function.
-    // console.log(searchResults);
-    const TIMED_OUT = !searchResults.has(messageKey);
-    if(TIMED_OUT) {
-        // timed out or disappered by unknown action
-        console.log(`[${messageKey}] search reply timed out!`)
-        searchEvent.emit(`fail_${messageKey}`);
-        return false;
-    }
-    const results = searchResults.get(messageKey);  
-    results.push(result);
-    const ALL_SEARCH_DONE = results.length === NUMBER_OF_WORKER;
+// function replySearchHandler(message){
+//     const {clientId, messageKey, subType, result} = message;
+//     global.logger.debug(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
+//     // if workerMessages Map doesn't have given messageKey, it was timed out!
+//     // refer to timer in search  function.
+//     // console.log(workerMessages);
+//     const TIMED_OUT = !global.workerMessages.has(messageKey);
+//     if(TIMED_OUT) {
+//         // timed out or disappered by unknown action
+//         console.log(`[${messageKey}] search reply timed out!`)
+//         searchEvent.emit(`fail_${messageKey}`);
+//         return false;
+//     }
+//     const results = global.workerMessages.get(messageKey);  
+//     results.push(result);
+//     const ALL_SEARCH_DONE = results.length === NUMBER_OF_WORKER;
 
-    if(ALL_SEARCH_DONE){
+//     if(ALL_SEARCH_DONE){
 
-        // all search results are replied!
-        // 0. if ordering needed execute order
-        // 1. concat all result into one array
-        // 2. emit sucess_messageKey 
-        // 3. delete message in the temporay Map
+//         // all search results are replied!
+//         // 0. if ordering needed execute order
+//         // 1. concat all result into one array
+//         // 2. emit sucess_messageKey 
+//         // 3. delete message in the temporay Map
 
-        let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
-        // const concatedResult = [].concat(...ordered);
-        global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
-        searchEvent.emit(`success_${messageKey}`, ordered);
-        searchResults.delete(messageKey);
-        return true;
-    }
-    global.logger.debug(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
-}
+//         let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
+//         // const concatedResult = [].concat(...ordered);
+//         global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
+//         searchEvent.emit(`success_${messageKey}`, ordered);
+//         global.workerMessages.delete(messageKey);
+//         return true;
+//     }
+//     global.logger.debug(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
+// }
 
 function reqplyClearHandler(message) {
     const {clientId, messageKey, success} = message;
@@ -153,6 +221,7 @@ function reqplyClearHandler(message) {
 const keyStore = {
     init() {this.messageKey = 0},
     getKey() {return this.messageKey},
+    getNextKey() {return ++this.messageKey},
     increaseKey() {this.messageKey ++}
 }
 
@@ -161,8 +230,8 @@ const sendLine = (workers, keyStore, lineMaker) => {
      const combinedLine = `${lineMaker.startOfLine}${line}`
     //  console.log(combinedLine)
      if(lineMaker.hasProperColumns(combinedLine)){
-         keyStore.increaseKey();
-         const messageKey = keyStore.getKey();
+         const messageKey = keyStore.getNextKey();
+         global.workerMessages.set(messageKey,[]);
          const workerIndex = messageKey % workers.length;
          const job = {
              type : 'index',
@@ -185,10 +254,8 @@ const sendLine = (workers, keyStore, lineMaker) => {
 
 const load =  async (workers, options = {}) => {
 
-    keyStore.init();
     //await clear(workers);
     return new Promise((resolve, reject) => {
-        global.logger.debug(options);
         const opts = {
             wordSep  : '^',
             lineSep  : '\r\n',
@@ -215,6 +282,7 @@ const load =  async (workers, options = {}) => {
             }
         }
 
+        global.logger.info('start indexing...');
         rl.on('line', sendLine(workers, keyStore, lineMaker));
         
         rl.on('end', () => { 
@@ -233,7 +301,8 @@ const load =  async (workers, options = {}) => {
 const clear = async (workers) => {
     try {
         // set uniq key (messageKey) and initialize empty result array
-        keyStore.increaseKey();
+        global.logger.info(`clear search array : [${global.workerMessages.length}]`);
+        keyStore.init();
         const messageKey = keyStore.getKey();
         clearResults.set(messageKey, []);
 
@@ -265,16 +334,14 @@ const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER
         // const lastKey = app.get('messageKey');
 		// const messageKey = lastKey + 1;
         // app.set(messageKey);
-        global.logger.info(`SEARCH_TIMEOUT: ${SEARCH_TIMEOUT}`);
-        global.messageKey++;
-        const messageKey = global.messageKey;
-        
-        searchResults.set(messageKey, []);
+        // global.messageKey++;
+        const messageKey = keyStore.getNextKey();        
+        global.workerMessages.set(messageKey, []);
     
         // if any of worker exeed timeout, delete temporary search result.
         const timer = setTimeout(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
-            searchResults.delete(messageKey);
+            global.workerMessages.delete(messageKey);
         }, SEARCH_TIMEOUT);
         
         // result limit per worker
@@ -325,12 +392,15 @@ function replyIndexHandler(message){
 }
 
 const init = (max_workers, handleWokerExit) => {
+    keyStore.init();
+    const messageKey = keyStore.getNextKey();
+    global.workerMessages.set(messageKey, []);
     const workerInit= new Array(max_workers);
     workerInit.fill(0);
 
     const workers = workerInit.map( worker => {
-        console.log('start subprocess!')
-        return child_process.fork('./lib/worker.js');
+        global.logger.info('start subprocess!')
+        return child_process.fork('./lib/worker.js', [messageKey]);
     })
     
     workers.map(worker => addListeners(workers, worker, handleWokerExit));
