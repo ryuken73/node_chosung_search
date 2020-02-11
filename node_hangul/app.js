@@ -15,7 +15,8 @@ global.SEARCH_TIMEOUT = config.SEARCH_TIMEOUT || 10000;
 global.NUMBER_OF_WORKER = config.NUMBER_OF_WORKER || 5;
 global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
 global.PORT = config.PORT || 3000;
-global.INDEXING_BYTES = config.INDEXING_BYTES || Infinity;
+global.INDEXING_BYTES = (config.INDEXING_BYTES === undefined || config.INDEXING_BYTES === 0) ? Infinity 
+                        : config.INDEXING_BYTES;
 global.LOG_LEVEL = config.LOG_LEVEL || 'info';
 global.messageKey = 0;
 

@@ -1,5 +1,6 @@
 const child_process = require('child_process');
 const fs = require('fs');
+const readline = require('readline');
 const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 
@@ -51,8 +52,8 @@ const orderFunc = (results, subType) => {
     flattened.sort((a,b) => {
         return a[sortKey] > b[sortKey] ? 1 : a[sortKey] < b[sortKey] ? -1 : 0;
     })
-    global.logger.trace(`before sort : %j`, origResult);
-    global.logger.trace(`after sort : %j`, flattened);
+    global.logger.debug(`before sort : %j`, origResult);
+    global.logger.debug(`after sort : %j`, flattened);
     
     return flattened
 }
@@ -68,15 +69,6 @@ const clearSearchResult = () => {
 const restartWorkder = (childModule) => {
     return child_process.fork(childModule);
 }
-
-// const reflectNewChild = (oldWorker, newWorker, workers) => {
-//     console.log(`replace workder : old[${oldWorker.pid}] new[${newWorker.pid}]`)
-//     addListeners(newWorker)
-//     return [
-//         ...workers.filter(worker => worker.pid !== oldWorker.pid),
-//         newWorker
-//     ]
-// }
 
 const addListeners = (workers, worker, handleWokerExit) => {
     worker.on('message', (message) => {
@@ -94,35 +86,16 @@ const addListeners = (workers, worker, handleWokerExit) => {
         const newWorker = restartWorkder('./lib/worker.js');
         addListeners(workers, newWorker, handleWokerExit);
         handleWokerExit(oldWorker, newWorker);
-        //workers = reflectNewChild(oldWorker, newWorker, workers);
     })
     worker.on('error', (err) => {
         console.log(`*********** worker error : [${worker}]`, err);
     })
 }
 
-// worker functions
-
-// make array which contains worker's pid
-// const workerInit= new Array(NUMBER_OF_WORKER);
-// workerInit.fill(9999);
-
-// let workers = workerInit.map( worker => {
-//     console.log('start subprocess!')
-//     return child_process.fork('./lib/worker.js');
-// })
-
-// workers.map(worker => addListeners(worker));
-
-// function replyIndexHandler(message){
-//     const {clientId, messageKey, success} = message;
-//     // console.log('got reply-index');
-// }
-
 // handler for processing worker's search results;
 function replySearchHandler(message){
     const {clientId, messageKey, subType, result} = message;
-    global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
+    global.logger.debug(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
     // if searchResults Map doesn't have given messageKey, it was timed out!
     // refer to timer in search  function.
     // console.log(searchResults);
@@ -147,12 +120,12 @@ function replySearchHandler(message){
 
         let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
         // const concatedResult = [].concat(...ordered);
-        global.logger.trace(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
+        global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
         searchEvent.emit(`success_${messageKey}`, ordered);
         searchResults.delete(messageKey);
         return true;
     }
-    global.logger.trace(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
+    global.logger.debug(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
 }
 
 function reqplyClearHandler(message) {
@@ -174,76 +147,94 @@ function reqplyClearHandler(message) {
     }
 }
 
-function readFileStreamAndSendJob(workers, {srcFile, wordSep, lineSep, encoding, highWaterMark, end}) {
-    return new Promise((resolve,reject) => {
-        let remainString = '';
-        let dataEmitCount = 0;
-        const rStream = fs.createReadStream(srcFile, {encoding : encoding, start:0, end});
-        let messageKey = 0;
-        rStream.on('data', (buff) => {
-            //console.log('on data')
-            dataEmitCount++;
-            const data = remainString + buff.toString();
-            const dataArray = data.split(lineSep);
-            if(!data.endsWith(lineSep)){
-                remainString = dataArray.pop();
-            } else {
-                remainString = '';
-            } 
-            //global.logger.trace(dataArray)
-            dataArray.map(line => {
-                // send line to child worker to index
-                messageKey++ 
-                const workerIndex = messageKey % workers.length;
-                const job = {
-                    type : 'index',
-                    messageKey,
-                    data : {
-                        wordSep,
-                        line
-                    }
-                }
-                workers[workerIndex].send(job)
-            })
-        })
-    
-        rStream.on('end', () => {
-            console.log('end');
-            const totalProcessed = messageKey;
-            resolve(totalProcessed);
-        });
-        rStream.on('close', () => {
-            console.log('read stream closed!');
-        })
-    })
-
-
-}
 
 // main
 
-
-const load =  async (workers, options = {}) => {
-    global.logger.trace(options);
-    const opts = {
-        wordSep  : '^',
-        lineSep  : '\r\n',
-        encoding : 'utf8',
-        highWaterMark : 64 * 1024 * 10,
-        end : global.INDEXING_BYTES,
-    }
-    const combinedOpts = {
-        ...options, 
-        ...opts
-    };
-    global.logger.trace(combinedOpts);
-    return await readFileStreamAndSendJob(workers, combinedOpts);
+const keyStore = {
+    init() {this.messageKey = 0},
+    getKey() {return this.messageKey},
+    increaseKey() {this.messageKey ++}
 }
 
-const clear = async () => {
+const sendLine = (workers, keyStore, lineMaker) => {
+    return line => {
+     const combinedLine = `${lineMaker.startOfLine}${line}`
+    //  console.log(combinedLine)
+     if(lineMaker.hasProperColumns(combinedLine)){
+         keyStore.increaseKey();
+         const messageKey = keyStore.getKey();
+         const workerIndex = messageKey % workers.length;
+         const job = {
+             type : 'index',
+             messageKey,
+             data : {
+                 wordSep: lineMaker.wordSep,
+                 line: combinedLine
+             }
+         }
+         workers[workerIndex].send(job);
+         lineMaker.startOfLine = '';
+     } else {
+         // to prepend line to next line
+         global.logger.trace('not proper number of columns : ', lineMaker.hasProperColumns(combinedLine));
+         global.logger.trace(line)
+         lineMaker.startOfLine = line.replace(lineMaker.lineSep, '');
+     }
+ }
+} 
+
+const load =  async (workers, options = {}) => {
+
+    keyStore.init();
+    //await clear(workers);
+    return new Promise((resolve, reject) => {
+        global.logger.debug(options);
+        const opts = {
+            wordSep  : '^',
+            lineSep  : '\r\n',
+            encoding : 'utf8',
+            highWaterMark : 64 * 1024 * 10,
+            end : global.INDEXING_BYTES,
+        }
+        const combinedOpts = {
+            ...options, 
+            ...opts
+        };
+        global.logger.debug(combinedOpts);
+        const {srcFile, encoding, end, wordSep, lineSep} = combinedOpts;
+        const rStream = fs.createReadStream(srcFile, {encoding, start:0, end});
+        const rl = readline.createInterface({input:rStream});
+        const lineMaker = {
+            wordSep,
+            lineSep,
+            startOfLine : '',
+            CORRECT_NUMBER_OF_COLUMNS: 2,
+            hasProperColumns(line) {
+                global.logger.trace(this.CORRECT_NUMBER_OF_COLUMNS, this.wordSep, line.split(this.wordSep).length);
+                return line.split(this.wordSep).length === this.CORRECT_NUMBER_OF_COLUMNS;
+            }
+        }
+
+        rl.on('line', sendLine(workers, keyStore, lineMaker));
+        
+        rl.on('end', () => { 
+            console.log('end: ',keyStore.getKey());
+    
+        });
+        rStream.on('close', () => {
+            console.log('read stream closed!');
+            const totalProcessed = keyStore.getKey();
+            resolve(totalProcessed);
+        })
+    })
+
+}
+
+const clear = async (workers) => {
     try {
         // set uniq key (messageKey) and initialize empty result array
-        messageKey ++;
+        keyStore.increaseKey();
+        const messageKey = keyStore.getKey();
         clearResults.set(messageKey, []);
 
         const timer = setTimeout(() => {
@@ -313,7 +304,7 @@ function waitResult(messageKey, timer, event){
     return new Promise((resolve, reject) => {
         //searchEvent emitted when all worker's reply received
         event.once(`success_${messageKey}`, (results) => {
-            global.logger.trace(`emitted success_${messageKey}`);
+            global.logger.debug(`emitted success_${messageKey}`);
             clearTimeout(timer);
             resolve(results);
         });
@@ -329,7 +320,7 @@ function waitResult(messageKey, timer, event){
 }
 
 function replyIndexHandler(message){
-    // global.logger.trace(message);
+    // global.logger.debug(message);
     // console.log('got reply-index');
 }
 

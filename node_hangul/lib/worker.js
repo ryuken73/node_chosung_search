@@ -1,7 +1,7 @@
 const hangul = require('hangul-js');
 const fs = require('fs');
 
-const songArray = [];
+let songArray = [];
 const errored = [];
 const WORDSEPARATOR = '^';
 const MIN_KEY_LENGTH = 2
