@@ -184,7 +184,7 @@ $(document).ready(function(){
 			}
 			
 			$.ajax({
-				'url':'/searchSong/withWorkers/'+encodeURIComponent(request.term),
+				'url':'/searchSong/withWorkers/'+encodeURIComponent(request.term) + '?supportThreeWords=true',
 				'type':'GET',
 				'success':function(res){
 					const {result,count} = res;

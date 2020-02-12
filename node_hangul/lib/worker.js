@@ -16,12 +16,12 @@ const clearWord = (word) => {
 
 const createSongObj = (data) => {
     try {
-        const {wordSep, line} = data;
+        const {wordSep, line, supportThreeWords} = data;
         const wordArray = line.split(wordSep);
         if(wordArray.length < MIN_KEY_LENGTH){
             console.error(`wordArray is to short[MIN_KEY_LENGTH = 2] but current Data :`, wordArray);
             errored.push(wordArray);
-            return {artistName:'', songName:''};
+            return {artistName:'', songName:'',artistNsong, songNartist};
         }
 
         const [artistName, songName, year, label] = wordArray.map(word => clearWord(word));
@@ -29,6 +29,8 @@ const createSongObj = (data) => {
         return {
             artistName,
             songName,
+            artistNsong : supportThreeWords ? `${artistName} ${songName}` : '',
+            songNartist : supportThreeWords ? `${songName} ${artistName}` : '',
             year,
             label
         } 
@@ -80,6 +82,9 @@ const msgHandlers = {
             const songObject = createSongObj(data);
             songObject.jamoArtist = getJAMO(songObject.artistName);
             songObject.jamoSong = getJAMO(songObject.songName);
+            songObject.jamoArtistNSong = getJAMO(songObject.artistNsong);
+            songObject.jamoSongNArtist = getJAMO(songObject.songNartist);
+
             songArray.push(songObject);
             process.send({
                 type: 'reply-index',
@@ -101,7 +106,8 @@ const msgHandlers = {
     },
     'search' : (subType, messageKey, data) => {
         // default max result 100,000,000 
-        const {pattern, patternJAMO, limit=100000000} = data;
+        const {pattern, patternJAMO, limit=100000000, supportThreeWords} = data;
+        const notSupportThreeWords = !supportThreeWords;
         const upperCased = patternJAMO.toUpperCase().trimEnd();
         const searchMode = getMode(upperCased, WORDSEPARATOR);
         // console.log(searchMode)
@@ -159,6 +165,16 @@ const msgHandlers = {
                 // result = songArray.filter(song => song.jamoSong.toUpperCase().includes(upperCased))
                 result = songArray.filter(song => song.jamoSong.toUpperCase().search(keywordExpr) != -1);
                 break;
+            case 'artistNsongWithoutHat' :
+                // result = notSupportThreeWords ? [] : songArray.filter(song => song.jamoArtistNSong.toUpperCase().search(keywordExpr) != -1);
+                result = notSupportThreeWords ? [] : songArray.filter(song => song.jamoArtistNSong.toUpperCase().search(keywordExpr) != -1);
+                break;
+            case 'songNartistWithoutHat' :
+                result = notSupportThreeWords ? [] : songArray.filter(song => song.jamoSongNArtist.toUpperCase().search(keywordExpr) != -1);
+                break;
+            default :
+                result = []
+                break;
 
         }
         
@@ -177,6 +193,7 @@ const msgHandlers = {
         //     [...matchedSongArrayJAMO]
         // ]
 
+        // console.log(subType.key, result, keywordExpr, notSupportThreeWords)
         limit && result.splice(limit);
         result.map(obj => obj.weight = subType.weight)
 

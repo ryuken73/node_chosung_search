@@ -113,6 +113,11 @@ const handler = {
             searchEvent.emit(`fail_${messageKey}`);
         },
         'ALL_DONE' : function(message){
+            // all search results are replied!
+            // 0. if ordering needed, execute ordering
+            // 1. concat all result into one array
+            // 2. emit sucess_messageKey 
+            // 3. delete message in the temporay Map
             const {messageKey, subType} = message;
             const results = global.workerMessages.get(messageKey);
             let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
@@ -134,6 +139,7 @@ const addListeners = (workers, worker, handleWokerExit) => {
         const keyLocal = subType.key ? subType.key : subType;
         const resultLocal = result.map ? result.length : result;
         const jobStatus = checkJobStatus(message);
+
         if(jobStatus === 'TIME_OUT'){
             global.logger.error(`[${messageKey}][${keyLocal}][${clientId}]TIMED-OUT`);
             handler[type]['TIME_OUT'](message);
@@ -159,42 +165,6 @@ const addListeners = (workers, worker, handleWokerExit) => {
         console.log(`*********** worker error : [${worker}]`, err);
     })
 }
-
-// handler for processing worker's search results;
-// function replySearchHandler(message){
-//     const {clientId, messageKey, subType, result} = message;
-//     global.logger.debug(`[${messageKey}][${clientId}][${subType.key}] number of replies = ${result.length}`)
-//     // if workerMessages Map doesn't have given messageKey, it was timed out!
-//     // refer to timer in search  function.
-//     // console.log(workerMessages);
-//     const TIMED_OUT = !global.workerMessages.has(messageKey);
-//     if(TIMED_OUT) {
-//         // timed out or disappered by unknown action
-//         console.log(`[${messageKey}] search reply timed out!`)
-//         searchEvent.emit(`fail_${messageKey}`);
-//         return false;
-//     }
-//     const results = global.workerMessages.get(messageKey);  
-//     results.push(result);
-//     const ALL_SEARCH_DONE = results.length === NUMBER_OF_WORKER;
-
-//     if(ALL_SEARCH_DONE){
-
-//         // all search results are replied!
-//         // 0. if ordering needed execute order
-//         // 1. concat all result into one array
-//         // 2. emit sucess_messageKey 
-//         // 3. delete message in the temporay Map
-
-//         let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
-//         // const concatedResult = [].concat(...ordered);
-//         global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
-//         searchEvent.emit(`success_${messageKey}`, ordered);
-//         global.workerMessages.delete(messageKey);
-//         return true;
-//     }
-//     global.logger.debug(`[${messageKey}][${clientId}][${subType.key}] not all search replied. [${results.length}]`);
-// }
 
 function reqplyClearHandler(message) {
     const {clientId, messageKey, success} = message;
@@ -233,13 +203,15 @@ const sendLine = (workers, keyStore, lineMaker) => {
          const messageKey = keyStore.getNextKey();
          global.workerMessages.set(messageKey,[]);
          const workerIndex = messageKey % workers.length;
+         const supportThreeWords = true;
          const job = {
              type : 'index',
              messageKey,
              data : {
                  wordSep: lineMaker.wordSep,
-                 line: combinedLine
-             }
+                 line: combinedLine,
+                 supportThreeWords,
+             },
          }
          workers[workerIndex].send(job);
          lineMaker.startOfLine = '';
@@ -327,7 +299,7 @@ const clear = async (workers) => {
 
 }
 
-const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER}) => {
+const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords}) => {
     try {
         // set uniq search key (messageKey) and initialize empty result array
         // messageKey ++;
@@ -356,7 +328,8 @@ const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER
                 data : {
                     pattern,
                     patternJAMO,
-                    limit
+                    limit,
+                    supportThreeWords
                 }
             }
             worker.send(job);                 

@@ -10,7 +10,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		global.logger.trace('%s',req.params.pattern);
 		const {app} = req;
 		const {pattern} = req.params;
-		const {userId} = req.query;
+		const {userId, supportThreeWords} = req.query;
 		const ip = req.connection.remoteAddress;
 		const workers = app.get('workers');	
 
@@ -25,21 +25,28 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			return false;
 		}
 
-		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern}]`);
-		const searchGroup = [
+		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern} ${supportThreeWords}]`);
+		const threeWordsSearchGroup = [
+			{key: 'artistNsongWithoutHat', weight: 1},
+			{key: 'songNartistWithoutHat', weight: 2},
+		]
+
+		const normalSearchGroup = [
 			{key: 'artistNsong', weight: 1},
 			{key: 'songNartist', weight: 2},
 			{key: 'artist', weight: 3},
 			{key: 'artistJAMO', weight: 4},
 			{key: 'song', weight: 5},
-			{key: 'songJAMO', weight: 6}
+			{key: 'songJAMO', weight: 6},
 		]
+
+		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;
 
 		const patternJAMO = extractJAMO(pattern);	
 		global.logger.trace('%s',patternJAMO);
 
 		const searchResults = searchGroup.map(async group => {
-			return await master.search(workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER});
+			return await master.search(workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords});
 		})
 		// const searchResults = await master.search(pattern, jamo, LIMIT_PER_WORKER);
 
