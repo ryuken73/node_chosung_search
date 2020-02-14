@@ -4,6 +4,8 @@ const readline = require('readline');
 const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 
+const getMemInfo = require('./getMemInfo');
+
 const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
@@ -71,7 +73,7 @@ const restartWorkder = (childModule) => {
 }
 
 const checkJobStatus = (message) => {
-    const {clientId, messageKey, subType, result} = message;
+    const {clientId, messageKey, subType={}, result} = message;
     const keyLocal = subType.key ? subType.key : subType;
     const resultLocal = result.map ? result.length : result;
     global.logger.debug(`[${messageKey}][${clientId}][${keyLocal}]worker done[result:${resultLocal}]. check Job Status`);
@@ -110,6 +112,8 @@ const handler = {
     'reply-search' : {
         'TIME_OUT' : function(message){
             const {messageKey} = message;
+            let currentSearching = masterMonitorStore.getMonitor()['searching'];
+            masterMonitorStore.setMonitor('searching', currentSearching-1);
             searchEvent.emit(`fail_${messageKey}`);
         },
         'ALL_DONE' : function(message){
@@ -121,7 +125,8 @@ const handler = {
             const {messageKey, subType} = message;
             const results = global.workerMessages.get(messageKey);
             let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
-            global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`)
+            global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`);
+            
             searchEvent.emit(`success_${messageKey}`, ordered);
             global.workerMessages.delete(messageKey);
         }    
@@ -134,7 +139,8 @@ const handler = {
 
 const addListeners = (workers, worker, handleWokerExit) => {
     worker.on('message', (message) => {
-        const {type, clientId, subType, messageKey, result} = message;
+        if(message.type === 'responseMonitor') return;
+        const {type, clientId, subType = {}, messageKey, result} = message;
         message.messageKey = parseInt(messageKey);
         const keyLocal = subType.key ? subType.key : subType;
         const resultLocal = result.map ? result.length : result;
@@ -160,6 +166,7 @@ const addListeners = (workers, worker, handleWokerExit) => {
         const newWorker = restartWorkder('./lib/worker.js');
         addListeners(workers, newWorker, handleWokerExit);
         handleWokerExit(oldWorker, newWorker);
+        masterMonitorStore.setMonitor('searching', 0);
     })
     worker.on('error', (err) => {
         console.log(`*********** worker error : [${worker}]`, err);
@@ -187,13 +194,6 @@ function reqplyClearHandler(message) {
 
 
 // main
-
-const keyStore = {
-    init() {this.messageKey = 0},
-    getKey() {return this.messageKey},
-    getNextKey() {return ++this.messageKey},
-    increaseKey() {this.messageKey ++}
-}
 
 const sendLine = (workers, keyStore, lineMaker) => {
     return line => {
@@ -224,7 +224,7 @@ const sendLine = (workers, keyStore, lineMaker) => {
  }
 } 
 
-const load =  async (workers, options = {}) => {
+const load =  async (workers, io, options = {}) => {
 
     //await clear(workers);
     return new Promise((resolve, reject) => {
@@ -264,6 +264,9 @@ const load =  async (workers, options = {}) => {
         rStream.on('close', () => {
             console.log('read stream closed!');
             const totalProcessed = keyStore.getKey();
+            masterMonitorStore.setMonitor('mem', getMemInfo());
+            masterMonitorStore.setMonitor('lastIndexedCount', totalProcessed);
+            masterMonitorStore.setMonitor('lastIndexedDate', (new Date()).toLocaleString());
             resolve(totalProcessed);
         })
     })
@@ -309,6 +312,10 @@ const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER
         // global.messageKey++;
         const messageKey = keyStore.getNextKey();        
         global.workerMessages.set(messageKey, []);
+
+        // let currentSearching = masterMonitorStore.getMonitor()['searching'];
+        // masterMonitorStore.setMonitor('searching', currentSearching+1);
+        // masterMonitorStore.broadcast();
     
         // if any of worker exeed timeout, delete temporary search result.
         const timer = setTimeout(() => {
@@ -364,8 +371,81 @@ function replyIndexHandler(message){
     // console.log('got reply-index');
 }
 
-const init = (max_workers, handleWokerExit) => {
+const keyStore = {
+    init() {this.messageKey = 0},
+    getKey() {return this.messageKey},
+    getNextKey() {return ++this.messageKey},
+    increaseKey() {this.messageKey ++}
+}
+ 
+const masterMonitorStore = {
+    init(io) {
+        this.monitor = {    
+            lastIndexedDate : '',
+            lastIndexedCount : 0,
+            pid : process.pid,
+            mem : getMemInfo(),
+            searching : 0
+        }; 
+        this.io = io;
+        this.io.emit('masterMonitor', this.monitor);
+    },
+    getMonitor() {return {...this.monitor}},
+    setMonitor(key, value) {
+        // console.log(key, value)
+        this.monitor[key] = value;
+        //this.io.emit('master-monitor', this.monitor);
+    },
+    broadcast() {this.io.emit('masterMonitor', this.monitor);}
+}
+
+const workerMonitorStore = {
+    init(io, workers) {
+        this.io = io;
+        // initialMonitors : input for new Map(), like [[pid, {pid:, mem:, words, working:}][]]
+        const initialMonitors = workers.map(worker => [worker.pid, {
+            pid: worker.pid,
+            mem : '0MB',
+            words : 0,
+            searching : 0
+        }]);
+        this.monitor = new Map(initialMonitors);
+        this.io.emit('workerMonitor', this.monitor.values());
+    },
+    getMonitor(pid){
+        const result = pid ? this.monitor.get(pid) : [...this.monitor.values()];
+        return result
+    },
+    setMonitor(pid, key, value){
+        const workerMonitor = this.monitor.get(pid);
+        const newMonitor = {...workerMonitor, [key]:value};
+        this.monitor.set(pid, newMonitor);
+        //this.io.emit('worker-monitor', this.getMonitor());
+    },
+    broadcast(){this.io.emit('workerMonitor', this.monitor.values());}
+}
+
+const logMonitorStore = {
+    init(io) {
+      this.monitor = {    
+        log : []
+      }; 
+      this.io = io;
+      this.io.emit('logMonitor', this.monitor);
+    },
+    getMonitor() {return {...this.monitor}},
+    setMonitor(key, value) {
+        // console.log(key, value)
+        this.monitor[key] = value;
+        //this.io.emit('master-monitor', this.monitor);
+    },
+    broadcast() {this.io.emit('logMonitor', this.monitor.log);}
+  }
+
+const init = (max_workers, io, handleWokerExit) => {
     keyStore.init();
+
+    // global.logger.info(masterMonitorStore.getMonitor())
     const messageKey = keyStore.getNextKey();
     global.workerMessages.set(messageKey, []);
     const workerInit= new Array(max_workers);
@@ -376,13 +456,48 @@ const init = (max_workers, handleWokerExit) => {
         return child_process.fork('./lib/worker.js', [messageKey]);
     })
     
+    // initialize monitorStore
+    masterMonitorStore.init(io);
+    workerMonitorStore.init(io, workers);
+    logMonitorStore.init(io);
+
+    const monitorStores = {
+        masterMonitorStore,
+        workerMonitorStore,
+        logMonitorStore
+    }
+
     workers.map(worker => addListeners(workers, worker, handleWokerExit));
-    return workers;   
+    return [workers, monitorStores];   
 }
 
+const initGatherMonitorLoop = (workers, monitorStores, interval) => {
+    const {workerMonitorStore, masterMonitorStore} = monitorStores;
+    setInterval(() => {
+        workers.map(worker => worker.send('requestMonitor'));
+        masterMonitorStore.setMonitor('mem', getMemInfo());
+        // console.log(getMemInfo())
+    }, interval);
+
+    workers.map(worker => {
+        worker.on('message', (message) => {
+            const {type} = message;
+            if(type === 'responseMonitor'){
+                const {monitor} = message;
+                // console.log(monitor)
+                const {pid} = worker;
+                workerMonitorStore.setMonitor(pid, 'mem', monitor.mem);
+                workerMonitorStore.setMonitor(pid, 'words', monitor.words);
+                workerMonitorStore.setMonitor(pid, 'searching', monitor.searching);
+            }
+        })
+    })
+}
+ 
 module.exports = {
     init,
     load,
     search,
     clear,
+    initGatherMonitorLoop
 }

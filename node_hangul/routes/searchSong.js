@@ -2,17 +2,21 @@ var express = require('express');
 var router = express.Router();
 var extractJAMO = require('../util/extractJAMO');
 const master = require('../lib/master');
+const timer = require('../lib/timer.js');
 const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
 
 // search by distributed worker
 router.get('/withWorkers/:pattern', async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
+		const stopWatch = timer.create(3);
+		stopWatch.start();
 		const {app} = req;
 		const {pattern} = req.params;
 		const {userId, supportThreeWords} = req.query;
 		const ip = req.connection.remoteAddress;
 		const workers = app.get('workers');	
+		const {masterMonitorStore, logMonitorStore} = app.get('monitorStores');
 
 		// const lastKey = req.app.get('messageKey');
 		// const messageKey = lastKey + 1;
@@ -45,6 +49,10 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const patternJAMO = extractJAMO(pattern);	
 		global.logger.trace('%s',patternJAMO);
 
+		let currentSearching = masterMonitorStore.getMonitor()['searching'];
+        masterMonitorStore.setMonitor('searching', currentSearching+1);
+		masterMonitorStore.broadcast();
+		
 		const searchResults = searchGroup.map(async group => {
 			return await master.search(workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords});
 		})
@@ -87,7 +95,27 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const resultsUnique = resultsUniqueString.map(JSON.parse);
 		global.logger.trace(resultsUnique)
 		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, pattern, resultsUnique.length);
-	
+
+		const elapsed = stopWatch.end();
+		const logMonitor = {
+			eventTime: (new Date()).toLocaleString(),
+			userId: userId ? userId : 'None',
+			ip: ip ? ip : 'None',
+			keyword: `[${pattern}]`,
+			elapsed: elapsed,
+			resultCount: resultsUnique.length,
+		}
+
+		const storedLog = logMonitorStore.getMonitor()['log'];
+		const newLog = storedLog.length > 100 ? storedLog.slice(0, storedLog.length - 1) : [...storedLog];
+		newLog.unshift(logMonitor);
+		logMonitorStore.setMonitor('log', newLog);
+		logMonitorStore.broadcast();
+
+		let searchMonitorAfterSearch = masterMonitorStore.getMonitor()['searching'];
+        masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch-1);
+		masterMonitorStore.broadcast();
+
 		res.send({result:resultsUnique, count:resultsUnique.length});
 		
 	} catch (err) {

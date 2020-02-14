@@ -1,10 +1,12 @@
 const hangul = require('hangul-js');
 const fs = require('fs');
+const getMemInfo = require('./getMemInfo');
 
 let songArray = [];
 const errored = [];
 const WORDSEPARATOR = '^';
-const MIN_KEY_LENGTH = 2
+const MIN_KEY_LENGTH = 2;
+let searchCount = 0;
 
 const getJAMO = (hangulStr) => {
     return hangul.disassemble(hangulStr).join('');	
@@ -105,6 +107,8 @@ const msgHandlers = {
         }
     },
     'search' : (subType, messageKey, data) => {
+        searchCount += 1;
+        // console.log(searchCount);
         // default max result 100,000,000 
         const {pattern, patternJAMO, limit=100000000, supportThreeWords} = data;
         const notSupportThreeWords = !supportThreeWords;
@@ -196,6 +200,8 @@ const msgHandlers = {
         // console.log(subType.key, result, keywordExpr, notSupportThreeWords)
         limit && result.splice(limit);
         result.map(obj => obj.weight = subType.weight)
+        searchCount -= 1;
+        // console.log(searchCount);
 
         process.send({
             type: 'reply-search',
@@ -211,14 +217,27 @@ const msgHandlers = {
 let totalMessage = 0;
 
 // 
-process.on('message', (message) => {
+process.on('message', message => {
     try {
         totalMessage ++;
         const {type, subType, messageKey, data} = message;
-        msgHandlers[type](subType, messageKey, data);
+        msgHandlers[type] && msgHandlers[type](subType, messageKey, data);
     } catch (err) {
         console.error(err);
         process.exit();
+    }
+})
+
+process.on('message', message => {
+    if(message === 'requestMonitor'){
+        process.send({
+            type: 'responseMonitor',
+            monitor : {
+                mem: getMemInfo(),
+                words: songArray.length,
+                searching: searchCount
+            }
+        })
     }
 })
 

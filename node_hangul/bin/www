@@ -7,6 +7,8 @@
 var app = require('../app');
 var debug = require('debug')('node_db2:server');
 var http = require('http');
+const sockApp = require('../socket/main');
+const master = require('../lib/master');
 
 /**
  * Get port from environment and store in Express.
@@ -20,6 +22,39 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+
+/*
+ * Create Socket.io Server.
+ */
+
+const io = require('socket.io')(server);
+
+// in the router, can broadcast message using req.app.get('io').sockets.emit()
+// in the router, can emit message using req.app.get('io').sockets.connected[socketio].emit()
+app.set('io',io); 
+app.set('sockets', io.sockets);
+const socketServer = sockApp.createServer(io);
+
+// initialize search workers
+
+const handleWorkerExit = (app) => {
+  return (oldWorker, newWorker) => {
+    console.log(`replace workder : old[${oldWorker.pid}] new[${newWorker.pid}]`);
+    const workers = app.get('workers');
+    const newWorkers = [
+      ...workers.filter(worker => worker.pid !== oldWorker.pid),
+      newWorker
+    ]
+    app.set('workers', newWorkers);
+  }
+}
+const [workers, monitorStores] = master.init(global.NUMBER_OF_WORKER, io, handleWorkerExit(app));
+
+app.set('workers', workers);
+app.set('monitorStores', monitorStores);
+socketServer.setMonitorStores(monitorStores);
+const timer = socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
+master.initGatherMonitorLoop(workers, monitorStores, global.MONITOR_BROADCAST_INTERVAL);
 
 /**
  * Listen on provided port, on all network interfaces.
