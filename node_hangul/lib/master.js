@@ -213,13 +213,14 @@ const sendLine = (workers, keyStore, lineMaker) => {
                  supportThreeWords,
              },
          }
-         workers[workerIndex].send(job);
+         workers[workerIndex].send(job); 
          lineMaker.startOfLine = '';
      } else {
-         // to prepend line to next line
+         // to prepend line to next line 
+         // this can be occurred, when words contains \r\n.
          global.logger.trace('not proper number of columns : ', lineMaker.hasProperColumns(combinedLine));
-         global.logger.trace(line)
-         lineMaker.startOfLine = line.replace(lineMaker.lineSep, '');
+         global.logger.trace(combinedLine)
+         lineMaker.startOfLine = combinedLine.replace(lineMaker.lineSep, '');
      }
  }
 } 
@@ -446,7 +447,7 @@ const init = (max_workers, io, handleWokerExit) => {
     keyStore.init();
 
     // global.logger.info(masterMonitorStore.getMonitor())
-    const messageKey = keyStore.getNextKey();
+    const messageKey = keyStore.getKey();
     global.workerMessages.set(messageKey, []);
     const workerInit= new Array(max_workers);
     workerInit.fill(0);

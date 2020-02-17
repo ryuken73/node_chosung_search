@@ -21,7 +21,7 @@ const createSongObj = (data) => {
         const {wordSep, line, supportThreeWords} = data;
         const wordArray = line.split(wordSep);
         if(wordArray.length < MIN_KEY_LENGTH){
-            console.error(`wordArray is to short[MIN_KEY_LENGTH = 2] but current Data :`, wordArray);
+            console.error(`wordArray is too short[MIN_KEY_LENGTH = 2] but current Data :`, wordArray);
             errored.push(wordArray);
             return {artistName:'', songName:'',artistNsong, songNartist};
         }
