@@ -65,6 +65,7 @@ app.use('/load', require('./routes/load'));
 app.use('/loadSong', require('./routes/loadSong')); 
 app.use('/search', require('./routes/search'));
 app.use('/searchSong', require('./routes/searchSong'));
+app.use('/clearSong', require('./routes/clearSong'));
 
 
 // catch 404 and forward to error handler

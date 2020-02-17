@@ -77,6 +77,7 @@ const msgHandlers = {
             clientId: process.pid,
             messageKey, 
             success: true, 
+            result:[]
         })
     },
     'index' : (subType = null, messageKey, data) => {

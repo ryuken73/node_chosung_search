@@ -133,7 +133,12 @@ const handler = {
     },
     'reply-clear' : {
         'TIME_OUT' : function(){},
-        'ALL_DONE' : function(message){}     
+        'ALL_DONE' : function(message){
+            global.logger.info(`Clearing all worker's data done!`);
+            masterMonitorStore.setMonitor('lastIndexedDate', '');
+            masterMonitorStore.setMonitor('lastIndexedCount', 0);
+            clearEvent.emit(`success_${messageKey}`);
+        }     
     },    
 }
 
@@ -176,8 +181,8 @@ const addListeners = (workers, worker, handleWokerExit) => {
 function reqplyClearHandler(message) {
     const {clientId, messageKey, success} = message;
     global.logger.info(`[${messageKey}][${clientId}] clear result[${success}]`);
-    const results = clearResults.get(messageKey);  
-    const TIMED_OUT = !clearResults.has(messageKey);
+    const results = workerMessages.get(messageKey);  
+    const TIMED_OUT = !workerMessages.has(messageKey);
     if(TIMED_OUT) {
         // timed out or disappered by unknown action
         console.log(`[${messageKey}] clear reply timed out!`)
@@ -188,7 +193,7 @@ function reqplyClearHandler(message) {
     const ALL_CLEAR_DONE = results.length === NUMBER_OF_WORKER;
     if(ALL_CLEAR_DONE){
         clearEvent.emit(`success_${messageKey}`);
-        clearResults.delete(messageKey)
+        workerMessages.delete(messageKey)
     }
 }
 
@@ -277,14 +282,14 @@ const load =  async (workers, io, options = {}) => {
 const clear = async (workers) => {
     try {
         // set uniq key (messageKey) and initialize empty result array
-        global.logger.info(`clear search array : [${global.workerMessages.length}]`);
-        keyStore.init();
-        const messageKey = keyStore.getKey();
-        clearResults.set(messageKey, []);
+        global.logger.info(`clear search array start!`);
+        // keyStore.init();
+        const messageKey = keyStore.getNextKey();
+        workerMessages.set(messageKey, []);
 
         const timer = setTimeout(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
-            clearResults.delete(messageKey);
+            workerMessages.delete(messageKey);
         }, CLEAR_TIMEOUT);
 
         workers.map(worker => {
