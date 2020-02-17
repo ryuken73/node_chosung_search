@@ -218,8 +218,8 @@ const sendLine = (workers, keyStore, lineMaker) => {
      } else {
          // to prepend line to next line 
          // this can be occurred, when words contains \r\n.
-         global.logger.trace('not proper number of columns : ', lineMaker.hasProperColumns(combinedLine));
-         global.logger.trace(combinedLine)
+         global.logger.info('not proper number of columns : ',combinedLine, lineMaker.hasProperColumns(combinedLine));
+         //global.logger.trace(combinedLine)
          lineMaker.startOfLine = combinedLine.replace(lineMaker.lineSep, '');
      }
  }
@@ -230,7 +230,7 @@ const load =  async (workers, io, options = {}) => {
     //await clear(workers);
     return new Promise((resolve, reject) => {
         const opts = {
-            wordSep  : '^',
+            wordSep  : '"^"',
             lineSep  : '\r\n',
             encoding : 'utf8',
             highWaterMark : 64 * 1024 * 10,
@@ -250,7 +250,7 @@ const load =  async (workers, io, options = {}) => {
             startOfLine : '',
             CORRECT_NUMBER_OF_COLUMNS: 2,
             hasProperColumns(line) {
-                global.logger.trace(this.CORRECT_NUMBER_OF_COLUMNS, this.wordSep, line.split(this.wordSep).length);
+                global.logger.debug(this.CORRECT_NUMBER_OF_COLUMNS, this.wordSep, line.split(this.wordSep).length);
                 return line.split(this.wordSep).length === this.CORRECT_NUMBER_OF_COLUMNS;
             }
         }
