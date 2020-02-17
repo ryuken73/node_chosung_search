@@ -68,8 +68,9 @@ const clearWorkerMessages = () => {
     return new Map();
 }
 
-const restartWorkder = (childModule) => {
-    return child_process.fork(childModule);
+const restartWorkder = (childModule, argv) => {
+    global.logger.info('start new worker messageKey :', argv)
+    return child_process.fork(childModule, argv);
 }
 
 const checkJobStatus = (message) => {
@@ -90,6 +91,7 @@ const checkJobStatus = (message) => {
         messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
         return 'DONE';
     }
+
 } 
 
 const handler = {
@@ -166,9 +168,11 @@ const addListeners = (workers, worker, handleWokerExit) => {
     worker.on('exit', (code,signal) => {
         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
         searchEvent.emit('worker_exit');
-        global.workerMessages = clearWorkerMessages();
+        // global.workerMessages = clearWorkerMessages();
+        const messageKey = keyStore.getNextKey();
+        global.workerMessages.set(messageKey,[]);
         const oldWorker = worker;
-        const newWorker = restartWorkder('./lib/worker.js');
+        const newWorker = restartWorkder('./lib/worker.js', [messageKey]);
         addListeners(workers, newWorker, handleWokerExit);
         handleWokerExit(oldWorker, newWorker);
         masterMonitorStore.setMonitor('searching', 0);
@@ -428,6 +432,17 @@ const workerMonitorStore = {
         this.monitor.set(pid, newMonitor);
         //this.io.emit('worker-monitor', this.getMonitor());
     },
+    delWorker(pid){
+        this.monitor.delete(pid)
+    },
+    addWorker(pid){
+        this.monitor.set(pid, {
+            pid: pid,
+            mem : '0MB',
+            words : 0,
+            searching : 0
+        });
+    },
     broadcast(){this.io.emit('workerMonitor', this.monitor.values());}
 }
 
@@ -477,14 +492,23 @@ const init = (max_workers, io, handleWokerExit) => {
     return [workers, monitorStores];   
 }
 
-const initGatherMonitorLoop = (workers, monitorStores, interval) => {
-    const {workerMonitorStore, masterMonitorStore} = monitorStores;
+const initGatherMonitorLoop = (app, interval) => {
+    const monitorStores= app.get('monitorStores');
+    const {masterMonitorStore} = monitorStores;
+    
     setInterval(() => {
+        const workers = app.get('workers');
         workers.map(worker => worker.send('requestMonitor'));
         masterMonitorStore.setMonitor('mem', getMemInfo());
         // console.log(getMemInfo())
     }, interval);
+}
 
+const attachMessageEventHandler = (app) => {
+    const monitorStores = app.get('monitorStores');
+    const {workerMonitorStore} = monitorStores;
+
+    const workers = app.get('workers');
     workers.map(worker => {
         worker.on('message', (message) => {
             const {type} = message;
@@ -505,5 +529,6 @@ module.exports = {
     load,
     search,
     clear,
-    initGatherMonitorLoop
+    initGatherMonitorLoop,
+    attachMessageEventHandler
 }
