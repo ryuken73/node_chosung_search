@@ -65,7 +65,11 @@ const getKeyword = (searchMode, str, complexSep) => {
 
 const mkRegExpr = (str) => {
 
-    if(typeof(str) === 'string') return new RegExp(str.trimStart().trimEnd().split(' ').join('.+'));
+    if(typeof(str) === 'string') {
+        const wordsSplited = str.trimStart().trimEnd().split(' ');
+        const whitespaceRemoved = wordsSplited.filter(word => word !== '');
+        return new RegExp(whitespaceRemoved.join('.+'));
+    }
     return null;
 }
 
@@ -129,7 +133,8 @@ const msgHandlers = {
         
         const hatRemovedUpperCased = upperCased.endsWith('^') ? upperCased.replace(/\^$/,'') : upperCased;
         const keywordExpr = mkRegExpr(hatRemovedUpperCased);
-        
+        console.log(keywordExpr);
+
         let result;
         switch(subType.key){
             case 'artistNsong' :
