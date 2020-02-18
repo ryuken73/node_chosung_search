@@ -16,6 +16,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const {userId, supportThreeWords} = req.query;
 		const ip = req.connection.remoteAddress;
 		const workers = app.get('workers');	
+		const cacheWorkers = app.get('cacheWorkers');
 		const {masterMonitorStore, logMonitorStore} = app.get('monitorStores');
 
 		// const lastKey = req.app.get('messageKey');
@@ -54,7 +55,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		masterMonitorStore.broadcast();
 		
 		const searchResults = searchGroup.map(async group => {
-			return await master.search(workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords});
+			return await master.search(workers, cacheWorkers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords});
 		})
 		// const searchResults = await master.search(pattern, jamo, LIMIT_PER_WORKER);
 

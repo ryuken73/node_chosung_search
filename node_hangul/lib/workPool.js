@@ -22,25 +22,24 @@ const workerPool = {
                 const pid = worker.pid;
                 worker.sequence = worker.sequence ? ++worker.sequence : 1;
                 const reqId = `${pid}_${worker.sequence}`;
-                console.log(reqId,job);
+                console.log(reqId, job);
                 worker.send({reqId, job});
                 const handleMessage = (message) => {
                     console.log(`message:`, message)
                     const {resId, success, result} = message;
                     if(resId === reqId) {
                         worker.removeListener('message', handleMessage);
-                        console.log(worker.sequence)
                         if(success) {
                             resolve(result);
                         } else {
                             reject(result);
                         }
                     }            
-                }
-                worker.on('message', handleMessage);
-    
+                }  
+                worker.on('message', handleMessage);  
             })
-        }
+        };
+
     },
     _attachListeners(worker){
         worker.on('exit', (code,signal) => {
@@ -58,7 +57,5 @@ const workerPool = {
         })
     }
 }
-
-const {createWorker,}  = workerPool;
 
 module.exports = workerPool

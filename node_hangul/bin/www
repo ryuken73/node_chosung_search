@@ -13,120 +13,126 @@ const master = require('../lib/master');
 /**
  * Get port from environment and store in Express.
  */
+async function main(){
 
-var port = normalizePort(global.PORT);
-app.set('port', port);
+  var port = normalizePort(global.PORT);
+  app.set('port', port);
 
-/**
- * Create HTTP server.
- */
+  /**
+   * Create HTTP server.
+   */
 
-var server = http.createServer(app);
+  var server = http.createServer(app);
 
-/*
- * Create Socket.io Server.
- */
+  /*
+  * Create Socket.io Server.
+  */
 
-const io = require('socket.io')(server);
+  const io = require('socket.io')(server);
 
-// in the router, can broadcast message using req.app.get('io').sockets.emit()
-// in the router, can emit message using req.app.get('io').sockets.connected[socketio].emit()
-app.set('io',io); 
-app.set('sockets', io.sockets);
-const socketServer = sockApp.createServer(io);
+  // in the router, can broadcast message using req.app.get('io').sockets.emit()
+  // in the router, can emit message using req.app.get('io').sockets.connected[socketio].emit()
+  app.set('io',io); 
+  app.set('sockets', io.sockets);
+  const socketServer = sockApp.createServer(io);
 
-// initialize search workers
+  // initialize search workers
 
-const handleWorkerExit = (app) => {
-  return (oldWorker, newWorker) => {
-    global.logger.info(`replace worker : old[${oldWorker.pid}] new[${newWorker.pid}]`);
-    const workers = app.get('workers');
-    // console.log(workers);
-    const newWorkers = [
-      ...workers.filter(worker => worker.pid !== oldWorker.pid),
-      newWorker
-    ]
-    // console.log(newWorkers);
-    app.set('workers', newWorkers);
-    const monitorStores = app.get('monitorStores');
-    master.attachMessageEventHandler(app)
-    monitorStores.workerMonitorStore.delWorker(oldWorker.pid);
-    monitorStores.workerMonitorStore.addWorker(newWorker.pid);
+  const handleWorkerExit = (app) => {
+    return (oldWorker, newWorker) => {
+      global.logger.info(`replace worker : old[${oldWorker.pid}] new[${newWorker.pid}]`);
+      const workers = app.get('workers');
+      // console.log(workers);
+      const newWorkers = [
+        ...workers.filter(worker => worker.pid !== oldWorker.pid),
+        newWorker
+      ]
+      // console.log(newWorkers);
+      app.set('workers', newWorkers);
+      const monitorStores = app.get('monitorStores');
+      master.attachMessageEventHandler(app)
+      monitorStores.workerMonitorStore.delWorker(oldWorker.pid);
+      monitorStores.workerMonitorStore.addWorker(newWorker.pid);
+    }
   }
-}
-const [workers, monitorStores] = master.init(global.NUMBER_OF_WORKER, io, handleWorkerExit(app));
+  const [workers, monitorStores] = master.init(global.NUMBER_OF_WORKER, io, handleWorkerExit(app));
+  const cacheWorkers = await master.initCacheWorkers();
 
-app.set('workers', workers);
-app.set('monitorStores', monitorStores);
-socketServer.setMonitorStores(monitorStores);
-const timer = socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
-master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
-master.attachMessageEventHandler(app);
+  app.set('workers', workers);
+  app.set('cacheWorkers', cacheWorkers);
+  app.set('monitorStores', monitorStores);
+  socketServer.setMonitorStores(monitorStores);
+  const timer = socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
+  master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
+  master.attachMessageEventHandler(app);
 
-/**
- * Listen on provided port, on all network interfaces.
- */
+  /**
+   * Listen on provided port, on all network interfaces.
+   */
 
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+  server.listen(port);
+  server.on('error', onError);
+  server.on('listening', onListening);
 
-/**
- * Normalize a port into a number, string, or false.
- */
+  /**
+   * Normalize a port into a number, string, or false.
+   */
 
-function normalizePort(val) {
-  var port = parseInt(val, 10);
+  function normalizePort(val) {
+    var port = parseInt(val, 10);
 
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
+    if (isNaN(port)) {
+      // named pipe
+      return val;
+    }
 
-  if (port >= 0) {
-    // port number
-    return port;
-  }
+    if (port >= 0) {
+      // port number
+      return port;
+    }
 
-  return false;
-}
-
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
+    return false;
   }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+  /**
+   * Event listener for HTTP server "error" event.
+   */
 
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
+  function onError(error) {
+    if (error.syscall !== 'listen') {
       throw error;
+    }
+
+    var bind = typeof port === 'string'
+      ? 'Pipe ' + port
+      : 'Port ' + port;
+
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+      case 'EACCES':
+        console.error(bind + ' requires elevated privileges');
+        process.exit(1);
+        break;
+      case 'EADDRINUSE':
+        console.error(bind + ' is already in use');
+        process.exit(1);
+        break;
+      default:
+        throw error;
+    }
+  }
+
+  /**
+   * Event listener for HTTP server "listening" event.
+   */
+
+  function onListening() {
+    var addr = server.address();
+    var bind = typeof addr === 'string'
+      ? 'pipe ' + addr
+      : 'port ' + addr.port;
+    debug('Listening on ' + bind);
   }
 }
 
-/**
- * Event listener for HTTP server "listening" event.
- */
-
-function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  debug('Listening on ' + bind);
-}
+main();

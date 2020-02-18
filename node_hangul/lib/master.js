@@ -4,6 +4,12 @@ const readline = require('readline');
 const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 
+const NUMBER_OF_CACHE = 1;
+const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
+const workerPool = require('./workPool');
+const cacheModule = 'lib/cache.js';
+const cacheWorkers = workerPool.createWorker(cacheModule, [], NUMBER_OF_CACHE, handleProcessExit);
+
 const getMemInfo = require('./getMemInfo');
 
 const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
@@ -312,7 +318,7 @@ const clear = async (workers) => {
 
 }
 
-const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords}) => {
+const search = async (workers, cacheWorkers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords}) => {
     try {
         // set uniq search key (messageKey) and initialize empty result array
         // messageKey ++;
@@ -320,6 +326,15 @@ const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER
 		// const messageKey = lastKey + 1;
         // app.set(messageKey);
         // global.messageKey++;
+            // before send job to search worker, send job to cache;
+        const jobForCache = {
+            cmd : 'search',
+            argv : {pattern}
+        }
+        const resultPromise = cacheWorkers.map( async worker => await worker.runJob(jobForCache))
+        global.logger.info(await Promise.all(resultPromise))
+        global.logger.info('this')
+
         const messageKey = keyStore.getNextKey();        
         global.workerMessages.set(messageKey, []);
 
@@ -332,6 +347,7 @@ const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
             global.workerMessages.delete(messageKey);
         }, SEARCH_TIMEOUT);
+
         
         // result limit per worker
         const limit = RESULT_LIMIT_WORKER;
@@ -349,6 +365,7 @@ const search = async (workers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER
                     supportThreeWords
                 }
             }
+
             worker.send(job);                 
         })    
         return await waitResult(messageKey, timer, searchEvent); 
@@ -523,6 +540,13 @@ const attachMessageEventHandler = (app) => {
         })
     })
 }
+
+const initCacheWorkers = async () => {
+    const job = {cmd : 'init'};
+    const initPromise = cacheWorkers.map(async worker => await worker.runJob(job));
+    const workers = await Promise.all(initPromise);
+    return cacheWorkers
+}
  
 module.exports = {
     init,
@@ -530,5 +554,6 @@ module.exports = {
     search,
     clear,
     initGatherMonitorLoop,
-    attachMessageEventHandler
+    attachMessageEventHandler,
+    initCacheWorkers
 }
