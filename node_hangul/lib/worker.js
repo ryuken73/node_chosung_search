@@ -63,14 +63,25 @@ const getKeyword = (searchMode, str, complexSep) => {
     return [firstUpperCased, secondUpperCased]
 }
 
+const replaceMeta = (word, replacer) => {
+    const re = /([?,\\,*,+,.,{,},\[,\]])/g;
+    return word.replace(re, replacer + '\$1');
+}
+
 const mkRegExpr = (str) => {
 
-    if(typeof(str) === 'string') {
-        const wordsSplited = str.trimStart().trimEnd().split(' ');
-        const whitespaceRemoved = wordsSplited.filter(word => word !== '');
-        return new RegExp(whitespaceRemoved.join('.+'));
+    try {
+        if(typeof(str) === 'string') {
+            const wordsSplited = str.trimStart().trimEnd().split(' ');
+            const whitespaceRemoved = wordsSplited.filter(word => word !== '');
+            const escapeMetaCharacters = whitespaceRemoved.map(word => replaceMeta(word, '\\'));
+            return new RegExp(escapeMetaCharacters.join('.+'));
+        }
+        return null;
+    } catch (err) {
+        return null;
     }
-    return null;
+
 }
 
 const msgHandlers = {
