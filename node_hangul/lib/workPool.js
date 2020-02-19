@@ -22,12 +22,12 @@ const workerPool = {
                 const pid = worker.pid;
                 worker.sequence = worker.sequence ? ++worker.sequence : 1;
                 const reqId = `${pid}_${worker.sequence}`;
-                console.log(reqId, job);
+                // console.log(reqId, job);
                 worker.send({reqId, job});
                 const handleMessage = (message) => {
-                    console.log(`message:`, message)
                     const {resId, success, result} = message;
                     if(resId === reqId) {
+                        global.logger.info(`[workerPool]got response:`, resId)
                         worker.removeListener('message', handleMessage);
                         if(success) {
                             resolve(result);

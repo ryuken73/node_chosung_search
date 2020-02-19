@@ -8,7 +8,6 @@ const NUMBER_OF_CACHE = 1;
 const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
 const workerPool = require('./workPool');
 const cacheModule = 'lib/cache.js';
-const cacheWorkers = workerPool.createWorker(cacheModule, [], NUMBER_OF_CACHE, handleProcessExit);
 
 const getMemInfo = require('./getMemInfo');
 
@@ -326,14 +325,7 @@ const search = async (workers, cacheWorkers, {group, pattern, patternJAMO, RESUL
 		// const messageKey = lastKey + 1;
         // app.set(messageKey);
         // global.messageKey++;
-            // before send job to search worker, send job to cache;
-        const jobForCache = {
-            cmd : 'search',
-            argv : {pattern}
-        }
-        const resultPromise = cacheWorkers.map( async worker => await worker.runJob(jobForCache))
-        global.logger.info(await Promise.all(resultPromise))
-        global.logger.info('this')
+        // before send job to search worker, send job to cache;
 
         const messageKey = keyStore.getNextKey();        
         global.workerMessages.set(messageKey, []);
@@ -475,7 +467,6 @@ const logMonitorStore = {
     setMonitor(key, value) {
         // console.log(key, value)
         this.monitor[key] = value;
-        //this.io.emit('master-monitor', this.monitor);
     },
     broadcast() {this.io.emit('logMonitor', this.monitor.log);}
   }
@@ -542,9 +533,11 @@ const attachMessageEventHandler = (app) => {
 }
 
 const initCacheWorkers = async () => {
-    const job = {cmd : 'init'};
-    const initPromise = cacheWorkers.map(async worker => await worker.runJob(job));
-    const workers = await Promise.all(initPromise);
+    // const job = {cmd : 'init'};
+    // const initPromise = cacheWorkers.map(async worker => await worker.runJob(job));
+    const cacheWorkers = workerPool.createWorker(cacheModule, [], NUMBER_OF_CACHE, handleProcessExit);
+    cacheWorkers.map(worker => worker.runJob({cmd:'set', pattern:'111', results:['111']}));
+    cacheWorkers.map(worker => worker.runJob({cmd:'set', pattern:'222', results:['222']}));
     return cacheWorkers
 }
  

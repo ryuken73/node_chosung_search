@@ -144,7 +144,7 @@ const msgHandlers = {
         
         const hatRemovedUpperCased = upperCased.endsWith('^') ? upperCased.replace(/\^$/,'') : upperCased;
         const keywordExpr = mkRegExpr(hatRemovedUpperCased);
-        console.log(keywordExpr);
+        // console.log(keywordExpr);
 
         let result;
         switch(subType.key){

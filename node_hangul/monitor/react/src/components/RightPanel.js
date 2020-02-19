@@ -46,14 +46,13 @@ export default function RightPanel({master, currentLog}) {
         <Box component="div" overflow="auto" textOverflow="ellipsis" width="95%" height="50vh"  fontSize="fontSize" bgcolor={teal[800]}>
 
           {currentLog.map(log => (
-            <div style={{display:"flex", flexDirection:"row", justifyContent:"flex-start", height:"1.2em"}}>
+            <div style={{display:"flex", flexDirection:"row", justifyContent:"flex-start", height:"1.2em", color: log.cacheHit && 'cyan'}}>
               <div style={{display:'flex', flexGrow:0, flexShrink:2, flexBasis:"130px", overflow:'hidden'}}>{log.eventTime}</div>
               <div style={{display:'flex', flexGrow:0, flexShrink:1, flexBasis:"80px", overflow:'hidden'}}>{log.userId}</div>
               <div style={{display:'flex', flexGrow:0, flexShrink:2, flexBasis:"130px", overflow:'hidden'}}>{log.ip}</div>
               <div style={{display:'flex', flexGrow:0, flexShrink:0, flexBasis:"60px", overflow:'hidden'}}>{log.elapsed}초</div>
               <div style={{display:'flex', flexGrow:0, flexShrink:0, flexBasis:"70px", overflow:'hidden'}}>{log.resultCount}건</div>
               <div style={{display:'flex', flexShrink:0, flexBasis:"170px", overflow:'hidden'}}>{log.keyword}</div>
-
             </div>
           ))}
 
