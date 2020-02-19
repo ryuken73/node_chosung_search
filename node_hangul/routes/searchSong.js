@@ -13,7 +13,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		stopWatch.start();
 		const {app} = req;
 		const {pattern} = req.params;
-		const {userId, supportThreeWords} = req.query;
+		const {userId, supportThreeWords, count=500} = req.query;
 		const ip = req.connection.remoteAddress;
 		const workers = app.get('workers');	
 		const cacheWorkers = app.get('cacheWorkers');
@@ -45,9 +45,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const patternJAMO = extractJAMO(pattern);	
 		global.logger.trace('%s',patternJAMO);
 
-		let currentSearching = masterMonitorStore.getMonitor()['searching'];
-        masterMonitorStore.setMonitor('searching', currentSearching+1);
-		masterMonitorStore.broadcast();
+		broadcastSearch(masterMonitorStore, 'start');
 
 		const {cacheHit, resultsFromCache} = await lookupCache(cacheWorkers, patternJAMO);
 		if(cacheHit){
@@ -58,7 +56,8 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			const resultCount = cacheResult[0].length;
 			const bcastMessage =  {userId, ip, pattern, resultCount, cacheHit};
 			broadcastLog(stopWatch, logMonitorStore, bcastMessage);
-			res.send({result:cacheResult[0], count:resultCount});
+			broadcastSearch(masterMonitorStore, 'end');
+			res.send({result: cacheResult[0].slice(0,count), count: resultCount});
 			return true;
 		}
 					
@@ -112,13 +111,10 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, pattern, resultCount);
 
 		broadcastLog(stopWatch, logMonitorStore, {userId, ip, pattern, resultCount});
-
-		let searchMonitorAfterSearch = masterMonitorStore.getMonitor()['searching'];
-        masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch-1);
-		masterMonitorStore.broadcast();
+		broadcastSearch(masterMonitorStore, 'end');
 
 		updateCache(cacheWorkers, patternJAMO, resultsUnique);
-		res.send({result:resultsUnique, count:resultsUnique.length});
+		res.send({result: resultsUnique.slice(0,count), count:resultsUnique.length});
 		
 	} catch (err) {
 		console.error(err);
@@ -183,6 +179,13 @@ function broadcastLog(stopWatch, logMonitorStore, params){
 	newLog.unshift(logMonitor);
 	logMonitorStore.setMonitor('log', newLog);
 	logMonitorStore.broadcast();
+}
+
+function broadcastSearch(masterMonitorStore, type){
+	let searchMonitorAfterSearch = masterMonitorStore.getMonitor()['searching'];
+	type === 'start' && masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch+1);
+	type === 'end' && masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch-1);
+	masterMonitorStore.broadcast();
 }
 
 module.exports = router;
