@@ -7,7 +7,7 @@ const workerPool = {
         const array = new Array(count);
         array.fill(1);    
         this.workers = array.map(ele => child_process.fork(jsFile, args));
-        this.workers.map(worker => this._extendWorker(worker));
+        this.workers.map(worker => this._attachMethods(worker));
         this.workers.map(worker => this._attachListeners(worker));
 
         this.jsFile = jsFile;
@@ -16,7 +16,7 @@ const workerPool = {
 
         return this.workers;
     },
-    _extendWorker(worker){
+    _attachMethods(worker){
         worker.runJob = (job) => {
             return new Promise((resolve, reject) => {
                 const pid = worker.pid;
@@ -27,7 +27,7 @@ const workerPool = {
                 const handleMessage = (message) => {
                     const {resId, success, result} = message;
                     if(resId === reqId) {
-                        global.logger.info(`[workerPool]got response:`, resId)
+                        global.logger.info(`[workerPool][${pid}]got response:resId =`, resId)
                         worker.removeListener('message', handleMessage);
                         if(success) {
                             resolve(result);
@@ -48,7 +48,7 @@ const workerPool = {
             //global.workerMessages = clearWorkerMessages();
             const oldWorker = worker;
             const newWorker = child_process.fork(this.jsFile, this.jsArgs);
-            this._extendWorker(newWorker);
+            this._attachMethods(newWorker);
             this._attachListeners(newWorker);
             this.workerExitCallback(oldWorker, newWorker);
         })

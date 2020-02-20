@@ -4,7 +4,6 @@ const readline = require('readline');
 const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 
-const NUMBER_OF_CACHE = 1;
 const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
 const workerPool = require('./workPool');
 const cacheModule = 'lib/cache.js';
@@ -19,6 +18,12 @@ const PROGRESS_UNIT = 100000;
 const searchEvent = new eventEmitter();
 const clearEvent = new eventEmitter();
 const NEED_ORDERING = false;
+
+const workerMonitorStore = require('./workerMonitorStore');
+const masterMonitorStore = require('./masterMonitorStore');
+const logMonitorStore = require('./logMonitorStore');
+const cacheWorkerMonitorStore = require('./cacheWorkerMonitorStore');
+
 global.workerMessages = new Map();
 let clearResults = new Map();
 
@@ -319,21 +324,10 @@ const clear = async (workers) => {
 
 const search = async (workers, cacheWorkers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords}) => {
     try {
-        // set uniq search key (messageKey) and initialize empty result array
-        // messageKey ++;
-        // const lastKey = app.get('messageKey');
-		// const messageKey = lastKey + 1;
-        // app.set(messageKey);
-        // global.messageKey++;
-        // before send job to search worker, send job to cache;
-
+     
         const messageKey = keyStore.getNextKey();        
         global.workerMessages.set(messageKey, []);
-
-        // let currentSearching = masterMonitorStore.getMonitor()['searching'];
-        // masterMonitorStore.setMonitor('searching', currentSearching+1);
-        // masterMonitorStore.broadcast();
-    
+  
         // if any of worker exeed timeout, delete temporary search result.
         const timer = setTimeout(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
@@ -357,7 +351,6 @@ const search = async (workers, cacheWorkers, {group, pattern, patternJAMO, RESUL
                     supportThreeWords
                 }
             }
-
             worker.send(job);                 
         })    
         return await waitResult(messageKey, timer, searchEvent); 
@@ -385,131 +378,79 @@ function waitResult(messageKey, timer, event){
     })
 }
 
-function replyIndexHandler(message){
-    // global.logger.debug(message);
-    // console.log('got reply-index');
-}
-
 const keyStore = {
     init() {this.messageKey = 0},
     getKey() {return this.messageKey},
     getNextKey() {return ++this.messageKey},
     increaseKey() {this.messageKey ++}
 }
- 
-const masterMonitorStore = {
-    init(io) {
-        this.monitor = {    
-            lastIndexedDate : '',
-            lastIndexedCount : 0,
-            pid : process.pid,
-            mem : getMemInfo(),
-            searching : 0
-        }; 
-        this.io = io;
-        this.io.emit('masterMonitor', this.monitor);
-    },
-    getMonitor() {return {...this.monitor}},
-    setMonitor(key, value) {
-        // console.log(key, value)
-        this.monitor[key] = value;
-        //this.io.emit('master-monitor', this.monitor);
-    },
-    broadcast() {this.io.emit('masterMonitor', this.monitor);}
-}
 
-const workerMonitorStore = {
-    init(io, workers) {
-        this.io = io;
-        // initialMonitors : input for new Map(), like [[pid, {pid:, mem:, words, working:}][]]
-        const initialMonitors = workers.map(worker => [worker.pid, {
-            pid: worker.pid,
-            mem : '0MB',
-            words : 0,
-            searching : 0
-        }]);
-        this.monitor = new Map(initialMonitors);
-        this.io.emit('workerMonitor', this.monitor.values());
-    },
-    getMonitor(pid){
-        const result = pid ? this.monitor.get(pid) : [...this.monitor.values()];
-        return result
-    },
-    setMonitor(pid, key, value){
-        const workerMonitor = this.monitor.get(pid);
-        const newMonitor = {...workerMonitor, [key]:value};
-        this.monitor.set(pid, newMonitor);
-        //this.io.emit('worker-monitor', this.getMonitor());
-    },
-    delWorker(pid){
-        this.monitor.delete(pid)
-    },
-    addWorker(pid){
-        this.monitor.set(pid, {
-            pid: pid,
-            mem : '0MB',
-            words : 0,
-            searching : 0
-        });
-    },
-    broadcast(){this.io.emit('workerMonitor', this.monitor.values());}
-}
-
-const logMonitorStore = {
-    init(io) {
-      this.monitor = {    
-        log : []
-      }; 
-      this.io = io;
-      this.io.emit('logMonitor', this.monitor);
-    },
-    getMonitor() {return {...this.monitor}},
-    setMonitor(key, value) {
-        // console.log(key, value)
-        this.monitor[key] = value;
-    },
-    broadcast() {this.io.emit('logMonitor', this.monitor.log);}
-  }
-
-const init = (max_workers, io, handleWokerExit) => {
+const init = async (maxWorkers, maxCache, io, handleWokerExit) => {
     keyStore.init();
 
     // global.logger.info(masterMonitorStore.getMonitor())
     const messageKey = keyStore.getKey();
     global.workerMessages.set(messageKey, []);
-    const workerInit= new Array(max_workers);
-    workerInit.fill(0);
+    const workerInit= new Array(maxWorkers);
+    workerInit.fill(0); 
 
     const workers = workerInit.map( worker => {
         global.logger.info('start subprocess!')
         return child_process.fork('./lib/worker.js', [messageKey]);
     })
+
+    const cacheWorkers = await initCacheWorkers(maxCache);
     
     // initialize monitorStore
     masterMonitorStore.init(io);
     workerMonitorStore.init(io, workers);
+    cacheWorkerMonitorStore.init(io, cacheWorkers);
     logMonitorStore.init(io);
 
     const monitorStores = {
         masterMonitorStore,
         workerMonitorStore,
+        cacheWorkerMonitorStore,
         logMonitorStore
     }
 
     workers.map(worker => addListeners(workers, worker, handleWokerExit));
-    return [workers, monitorStores];   
+    return [workers, cacheWorkers, monitorStores];   
 }
 
 const initGatherMonitorLoop = (app, interval) => {
     const monitorStores= app.get('monitorStores');
     const {masterMonitorStore} = monitorStores;
+    const {cacheWorkerMonitorStore} = monitorStores;
     
-    setInterval(() => {
+    setInterval(async () => {
+        requestUpdateMonitorWorker();
+        requestUpdateMonitorMaster();
+        await requestUpdateMonitorCache();
+    }, interval);
+
+    function requestUpdateMonitorWorker() {
         const workers = app.get('workers');
         workers.map(worker => worker.send('requestMonitor'));
+    }
+    function requestUpdateMonitorMaster() {
         masterMonitorStore.setMonitor('mem', getMemInfo());
-        // console.log(getMemInfo())
-    }, interval);
+    }
+
+    async function requestUpdateMonitorCache(){
+        const cacheWorkers = app.get('cacheWorkers');
+        const requestMonitorJob = {
+            cmd: 'requestMonitor'
+        }
+        const reqPromises = cacheWorkers.map(async worker => await worker.runJob(requestMonitorJob));
+        const monitorValues = await Promise.all(reqPromises);
+        monitorValues.map(value => {
+            const {pid, cacheCount, cacheHit, mem} = value;
+            cacheWorkerMonitorStore.setMonitor(pid, 'mem', mem);
+            cacheWorkerMonitorStore.setMonitor(pid, 'cacheCount', cacheCount);
+            cacheWorkerMonitorStore.setMonitor(pid, 'cacheHit', cacheHit);
+        })        
+    }
 }
 
 const attachMessageEventHandler = (app) => {
@@ -532,12 +473,8 @@ const attachMessageEventHandler = (app) => {
     })
 }
 
-const initCacheWorkers = async () => {
-    // const job = {cmd : 'init'};
-    // const initPromise = cacheWorkers.map(async worker => await worker.runJob(job));
-    const cacheWorkers = workerPool.createWorker(cacheModule, [], NUMBER_OF_CACHE, handleProcessExit);
-    cacheWorkers.map(worker => worker.runJob({cmd:'set', pattern:'111', results:['111']}));
-    cacheWorkers.map(worker => worker.runJob({cmd:'set', pattern:'222', results:['222']}));
+const initCacheWorkers = async (maxCache) => {
+    const cacheWorkers = workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit);
     return cacheWorkers
 }
  

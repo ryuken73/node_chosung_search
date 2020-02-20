@@ -1,17 +1,22 @@
-
+const getMemInfo = require('./getMemInfo');
 
 const cache = {
     init : () => {
+        this.pid = process.pid;
         this.cache = new Map();
+        this.cacheCount = 0;
+        this.cacheHit = 0;
         return this;
     },
     lookup : (pattern) => {
         const result = this.cache.get(pattern) || [];
+        result.length > 0 && this.cacheHit++;
         return result;
     },
     update : (pattern, results) => {
         // console.log(`set cache[${pattern}]:`, results)
         this.cache.set(pattern, results);
+        this.cacheCount++;
         // console.log([...this.cache])
         return true;
     },
@@ -37,8 +42,18 @@ const cache = {
         case 'delete' :
             result = cache.delete(pattern, results);
             break;
+        case 'requestMonitor' :
+            const {pid, cacheCount, cacheHit} = this;
+            result = {
+                pid,
+                cacheCount,
+                cacheHit,
+                mem: getMemInfo()
+            }
+            console.log(result)
+            break;
     }
-    console.log(`cache work done: ${process.pid}: ${cmd}`);
+    console.log(`cache work done: ${process.pid}: cmd = ${cmd}`);
     process.send({
         resId : reqId,
         success: true,

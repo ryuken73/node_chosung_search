@@ -35,10 +35,12 @@ class SocketServer {
     }
     startBroadcastLoop(interval = 5000){
         global.logger.info('start broadcast loop!');
+        const {masterMonitorStore, workerMonitorStore, cacheWorkerMonitorStore} = this.monitorStores;
         // this.rootNameSpace.emit('logMonitor',this.monitorStores.logMonitorStore.getMonitor().log);
         return setInterval(() => {
-            this.rootNameSpace.emit('masterMonitor',this.monitorStores.masterMonitorStore.getMonitor());
-            this.rootNameSpace.emit('workerMonitor',this.monitorStores.workerMonitorStore.getMonitor());
+            this.rootNameSpace.emit('masterMonitor', masterMonitorStore.getMonitor());
+            this.rootNameSpace.emit('workerMonitor', workerMonitorStore.getMonitor());
+            this.rootNameSpace.emit('cacheWorkerMonitor', cacheWorkerMonitorStore.getMonitor());
         }, interval)
     }
     getInfo(socket){

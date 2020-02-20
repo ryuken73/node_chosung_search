@@ -55,14 +55,15 @@ async function main(){
       monitorStores.workerMonitorStore.addWorker(newWorker.pid);
     }
   }
-  const [workers, monitorStores] = master.init(global.NUMBER_OF_WORKER, io, handleWorkerExit(app));
-  const cacheWorkers = await master.initCacheWorkers();
 
+  const [workers, cacheWorkers, monitorStores] = await master.init(global.NUMBER_OF_WORKER, global.NUMBER_OF_CACHE, io, handleWorkerExit(app));
+  
   app.set('workers', workers);
   app.set('cacheWorkers', cacheWorkers);
   app.set('monitorStores', monitorStores);
+
   socketServer.setMonitorStores(monitorStores);
-  const timer = socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
+  socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
   master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
   master.attachMessageEventHandler(app);
 

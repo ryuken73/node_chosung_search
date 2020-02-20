@@ -228,8 +228,8 @@ function threeWordsSearch(songArray, keywordExpr, keywordExprCanBeNospacing){
     return songArray.filter(song => {
         return song.jamoArtistNSong.toUpperCase().search(keywordExprCanBeNospacing) != -1 
             || song.jamoSongNArtist.toUpperCase().search(keywordExprCanBeNospacing) != -1
-            // || song.jamoArtistNSongNoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1
-            // || song.jamoSongNArtistNoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1
+            || song.jamoArtistNSongNoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1
+            || song.jamoSongNArtistNoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1
     })
 }
 
