@@ -27,8 +27,10 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern} ${supportThreeWords}]`);
 		const threeWordsSearchGroup = [
-			{key: 'artistNsongWithoutHat', weight: 1},
-			{key: 'songNartistWithoutHat', weight: 2},
+			// {key: 'artistNsongWithoutHat', weight: 1},
+			// {key: 'songNartistWithoutHat', weight: 2},
+			{key: 'threeWordsSearch', weight: 1},
+			
 		]
 
 		const normalSearchGroup = [

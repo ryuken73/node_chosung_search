@@ -33,6 +33,8 @@ const createSongObj = (data) => {
             songName,
             artistNsong : supportThreeWords ? `${artistName} ${songName}` : '',
             songNartist : supportThreeWords ? `${songName} ${artistName}` : '',
+            artistNsongNoBlank : `${songName.replace(/\s+/g, '')} ${artistName.replace(/\s+/g, '')}`,
+            songNartistNoBlank : `${artistName.replace(/\s+/g, '')} ${songName.replace(/\s+/g, '')}`,
             year,
             label
         } 
@@ -68,14 +70,15 @@ const replaceMeta = (word, replacer) => {
     return word.replace(re, replacer + '\$1');
 }
 
-const mkRegExpr = (str) => {
+const mkRegExpr = (str, spacing) => {
 
     try {
         if(typeof(str) === 'string') {
             const wordsSplited = str.trimStart().trimEnd().split(' ');
             const whitespaceRemoved = wordsSplited.filter(word => word !== '');
             const escapeMetaCharacters = whitespaceRemoved.map(word => replaceMeta(word, '\\'));
-            return new RegExp(escapeMetaCharacters.join('.+'));
+            const spcaceExpr = spacing ? '.+' : '.*';
+            return new RegExp(escapeMetaCharacters.join(spcaceExpr));
         }
         return null;
     } catch (err) {
@@ -102,6 +105,8 @@ const msgHandlers = {
             songObject.jamoSong = getJAMO(songObject.songName);
             songObject.jamoArtistNSong = getJAMO(songObject.artistNsong);
             songObject.jamoSongNArtist = getJAMO(songObject.songNartist);
+            songObject.jamoArtistNSongNoBlank = getJAMO(songObject.artistNsongNoBlank);
+            songObject.jamoSongNArtistNoBlank = getJAMO(songObject.songNartistNoBlank);
 
             songArray.push(songObject);
             process.send({
@@ -138,12 +143,13 @@ const msgHandlers = {
             // const artists = upperCased.split(' ');
             // const regPattern = `/${artists.join('.+')}/`;
             const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased, WORDSEPARATOR);
-            firstRegExpr = mkRegExpr(firstUpperCased);
-            secondRegExpr = mkRegExpr(secondUpperCased);     
+            firstRegExpr = mkRegExpr(firstUpperCased, spacing=true);
+            secondRegExpr = mkRegExpr(secondUpperCased, spacing=true);     
         }  
         
         const hatRemovedUpperCased = upperCased.endsWith('^') ? upperCased.replace(/\^$/,'') : upperCased;
-        const keywordExpr = mkRegExpr(hatRemovedUpperCased);
+        const keywordExpr = mkRegExpr(hatRemovedUpperCased, spacing=true);
+        const keywordExprCanBeNospacing = mkRegExpr(hatRemovedUpperCased, spacing=false);
         // console.log(keywordExpr);
 
         let result;
@@ -193,28 +199,15 @@ const msgHandlers = {
             case 'songNartistWithoutHat' :
                 result = notSupportThreeWords ? [] : songArray.filter(song => song.jamoSongNArtist.toUpperCase().search(keywordExpr) != -1);
                 break;
+            case 'threeWordsSearch' :
+                result = threeWordsSearch(songArray, keywordExpr, keywordExprCanBeNospacing);
+                break;
             default :
                 result = []
                 break;
 
         }
-        
-        // // 1. 한글비교 (한글 like 검색)
-        // const matchedArtistArray = songArray.filter(song => song.artistName.includes(pattern))
-        // const matchedSongArray = songArray.filter(song => song.songName.includes(pattern))
-        // // 2. 자모분리비교 ()
-        // const matchedArtistArrayJAMO = songArray.filter(song => song.jamoArtist.startsWith(jamo))
-        // const matchedSongArrayJAMO = songArray.filter(song => song.jamoSong.startsWith(jamo))
 
-        // // to order data, make results as array of array
-        // const result = [
-        //     [...matchedArtistArray],
-        //     [...matchedArtistArrayJAMO],
-        //     [...matchedSongArray],
-        //     [...matchedSongArrayJAMO]
-        // ]
-
-        // console.log(subType.key, result, keywordExpr, notSupportThreeWords)
         limit && result.splice(limit);
         result.map(obj => obj.weight = subType.weight)
         searchCount -= 1;
@@ -230,6 +223,16 @@ const msgHandlers = {
         })
     }
 }
+
+function threeWordsSearch(songArray, keywordExpr, keywordExprCanBeNospacing){
+    return songArray.filter(song => {
+        return song.jamoArtistNSong.toUpperCase().search(keywordExprCanBeNospacing) != -1 
+            || song.jamoSongNArtist.toUpperCase().search(keywordExprCanBeNospacing) != -1
+            // || song.jamoArtistNSongNoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1
+            // || song.jamoSongNArtistNoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1
+    })
+}
+
 
 let totalMessage = 0;
 
