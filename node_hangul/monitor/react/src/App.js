@@ -97,8 +97,8 @@ export default class App extends Component {
       <div className="App">
         <Header text={"Status"}></Header>
         <Box height="80vh" display="flex" alignItems="stretch" flexDirection="row">
-          <LeftPanel workers={workers}></LeftPanel>
           <RightPanel master={master} currentLog={currentLog}></RightPanel>
+          <LeftPanel workers={workers}></LeftPanel>
         </Box>
         <Box height="10vh" display="flex" justifyContent="space-around" flexDirection="row" alignItems="center" bgcolor={brown[900]}>
           <BrownButton onClick={this.onClickLoad} variant="contained" color="primary" size="medium">load</BrownButton> 
