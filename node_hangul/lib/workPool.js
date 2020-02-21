@@ -27,7 +27,7 @@ const workerPool = {
                 const handleMessage = (message) => {
                     const {resId, success, result} = message;
                     if(resId === reqId) {
-                        global.logger.info(`[workerPool][${pid}]got response:resId =`, resId)
+                        global.logger.debug(`[workerPool][${pid}]got response:resId =`, resId)
                         worker.removeListener('message', handleMessage);
                         if(success) {
                             resolve(result);

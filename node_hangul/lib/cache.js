@@ -50,10 +50,10 @@ const cache = {
                 cacheHit,
                 mem: getMemInfo()
             }
-            console.log(result)
+            // console.log(result)
             break;
     }
-    console.log(`cache work done: ${process.pid}: cmd = ${cmd}`);
+    // console.log(`cache work done: ${process.pid}: cmd = ${cmd}`);
     process.send({
         resId : reqId,
         success: true,

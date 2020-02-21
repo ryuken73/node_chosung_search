@@ -66,18 +66,18 @@ const getKeyword = (searchMode, str, complexSep) => {
 }
 
 const replaceMeta = (word, replacer) => {
-    const re = /([?,\\,*,+,.,{,},\[,\]])/g;
+    const re = /([?\\\*\+\.\{\}\[\]\(\)])/g
     return word.replace(re, replacer + '\$1');
 }
 
 const mkRegExpr = (str, spacing) => {
-
     try {
         if(typeof(str) === 'string') {
             const wordsSplited = str.trimStart().trimEnd().split(' ');
             const whitespaceRemoved = wordsSplited.filter(word => word !== '');
             const escapeMetaCharacters = whitespaceRemoved.map(word => replaceMeta(word, '\\'));
             const spcaceExpr = spacing ? '.+' : '.*';
+            console.log(escapeMetaCharacters.join(spcaceExpr))
             return new RegExp(escapeMetaCharacters.join(spcaceExpr));
         }
         return null;
@@ -150,7 +150,6 @@ const msgHandlers = {
         const hatRemovedUpperCased = upperCased.endsWith('^') ? upperCased.replace(/\^$/,'') : upperCased;
         const keywordExpr = mkRegExpr(hatRemovedUpperCased, spacing=true);
         const keywordExprCanBeNospacing = mkRegExpr(hatRemovedUpperCased, spacing=false);
-        // console.log(keywordExpr);
 
         let result;
         switch(subType.key){
