@@ -73,34 +73,6 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		global.logger.trace(resultsConcat);
 		supportThreeWords ?  resultsConcat.sort(sortThreeWords) : resultsConcat.sort(sortMultiFields)
 
-		function sortThreeWords(a, b){
-			console.log(a.artistName, b.artistName, pattern, a.artistName.startsWith(pattern) , b.artistName.startsWith(pattern));
-			const AB = -1;
-			const BA = 1;
-			if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
-			if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
-			if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
-			if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
-			if(a.artistName > b.artistName) return BA;
-			if(a.artistName < b.artistName) return AB;
-			if(a.songName > b.songName) return BA;
-			if(a.songName < b.songName) return AB;
-
-			return 0;
-		}
-		
-		function sortMultiFields(a, b){
-			if(a.weight > b.weight) return 1;
-			if(a.weight < b.weight) return -1;
-			if(a.artistName > b.artistName) return 1;
-			if(a.artistName < b.artistName) return -1;
-			if(a.songName > b.songName) return 1;
-			if(a.songName < b.songName) return -1;
-			// if(a.year > b.year) return 1;
-			// if(a.year < b.year) return -1;
-			return 0;
-		}
-
 		global.logger.trace(resultsConcat);
 		// get result count per weight
 		const countPerWeight = {};
@@ -198,7 +170,34 @@ function broadcastSearch(masterMonitorStore, type){
 	let searchMonitorAfterSearch = masterMonitorStore.getMonitor()['searching'];
 	type === 'start' && masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch+1);
 	type === 'end' && masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch-1);
-	masterMonitorStore.broadcast();
+	masterMonitorStore.broadcast();	
+}
+
+function sortThreeWords(a, b){
+	const AB = -1;
+	const BA = 1;
+	if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
+	if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
+	if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
+	if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
+	if(a.artistName > b.artistName) return BA;
+	if(a.artistName < b.artistName) return AB;
+	if(a.songName > b.songName) return BA;
+	if(a.songName < b.songName) return AB;
+
+	return 0;
+}
+
+function sortMultiFields(a, b){
+	if(a.weight > b.weight) return 1;
+	if(a.weight < b.weight) return -1;
+	if(a.artistName > b.artistName) return 1;
+	if(a.artistName < b.artistName) return -1;
+	if(a.songName > b.songName) return 1;
+	if(a.songName < b.songName) return -1;
+	// if(a.year > b.year) return 1;
+	// if(a.year < b.year) return -1;
+	return 0;
 }
 
 module.exports = router;
