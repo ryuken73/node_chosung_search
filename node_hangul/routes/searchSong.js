@@ -71,7 +71,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const resolvedResults = await Promise.all(searchResults);
 		const resultsConcat = resolvedResults.flat();
 		global.logger.trace(resultsConcat);
-		supportThreeWords ?  resultsConcat.sort(sortThreeWords) : resultsConcat.sort(sortMultiFields)
+		supportThreeWords ?  resultsConcat.sort(sortThreeWords(pattern)) : resultsConcat.sort(sortMultiFields)
 
 		global.logger.trace(resultsConcat);
 		// get result count per weight
@@ -173,19 +173,21 @@ function broadcastSearch(masterMonitorStore, type){
 	masterMonitorStore.broadcast();	
 }
 
-function sortThreeWords(a, b){
-	const AB = -1;
-	const BA = 1;
-	if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
-	if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
-	if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
-	if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
-	if(a.artistName > b.artistName) return BA;
-	if(a.artistName < b.artistName) return AB;
-	if(a.songName > b.songName) return BA;
-	if(a.songName < b.songName) return AB;
+function sortThreeWords(pattern){
+	return (a, b) => {
+		const AB = -1;
+		const BA = 1;
+		if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
+		if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
+		if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
+		if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
+		if(a.artistName > b.artistName) return BA;
+		if(a.artistName < b.artistName) return AB;
+		if(a.songName > b.songName) return BA;
+		if(a.songName < b.songName) return AB;
 
-	return 0;
+		return 0;
+	}
 }
 
 function sortMultiFields(a, b){

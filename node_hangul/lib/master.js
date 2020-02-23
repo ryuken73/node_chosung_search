@@ -2,11 +2,15 @@ const child_process = require('child_process');
 const fs = require('fs');
 const readline = require('readline');
 const EventEmitter = require('events');
+const path = require('path');
 class eventEmitter extends EventEmitter {}
 
 const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
 const workerPool = require('./workPool');
-const cacheModule = 'lib/cache.js';
+
+const workerModule = path.join(__dirname, '../', 'lib/worker.js');
+const cacheModule = path.join(__dirname, '../', 'lib/cache.js');
+
 
 const getMemInfo = require('./getMemInfo');
 
@@ -182,7 +186,7 @@ const addListeners = (workers, worker, handleWokerExit) => {
         const messageKey = keyStore.getNextKey();
         global.workerMessages.set(messageKey,[]);
         const oldWorker = worker;
-        const newWorker = restartWorkder('./lib/worker.js', [messageKey]);
+        const newWorker = restartWorkder(workerModule, [messageKey]);
         addListeners(workers, newWorker, handleWokerExit);
         handleWokerExit(oldWorker, newWorker);
         masterMonitorStore.setMonitor('searching', 0);
@@ -396,7 +400,7 @@ const init = async (maxWorkers, maxCache, io, handleWokerExit) => {
 
     const workers = workerInit.map( worker => {
         global.logger.info('start subprocess!')
-        return child_process.fork('./lib/worker.js', [messageKey]);
+        return child_process.fork(workerModule, [messageKey]);
     })
 
     const cacheWorkers = await initCacheWorkers(maxCache);
