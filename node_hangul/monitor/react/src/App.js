@@ -14,21 +14,6 @@ import {withStyles} from '@material-ui/core/styles';
 import axiosRequest from './lib/axiosRequest';
 import './App.css';
 
-const caches = [
-  {
-    pid:123,
-    mem:'129MB',
-    cacheCount:100,
-    cacheHit:209
-  },
-  {
-    pid:222,
-    mem:'139MB',
-    cacheCount:99,
-    cacheHit:123
-  },
-]
-
 const BrownButton = withStyles({
   root: {
     backgroundColor: brown[800],
@@ -47,6 +32,7 @@ export default class App extends Component {
     this.state = {
       master : {},
       workers : [],
+      cacheWorkers : [],
       currentLog : []
     }
   }  
@@ -60,6 +46,7 @@ export default class App extends Component {
     })
     socket.on('masterMonitor', this.updateMasterMonitor.bind(this));
     socket.on('workerMonitor', this.updateWorkerMonitor.bind(this));
+    socket.on('cacheWorkerMonitor', this.updateCacheWorkerMonitor.bind(this));
     socket.on('logMonitor', this.updateLogMonitor.bind(this));
     socket.on('error', this.resetState.bind(this));
     socket.on('disconnect', this.resetState.bind(this));
@@ -79,6 +66,13 @@ export default class App extends Component {
     this.setState({
       ...this.state,
       workers: workerMonitor
+    })
+  }
+
+  updateCacheWorkerMonitor(cacheWorkerMonitor){
+    this.setState({
+      ...this.state,
+      cacheWorkers: cacheWorkerMonitor
     })
   }
 
@@ -109,7 +103,7 @@ export default class App extends Component {
   }
 
   render() {
-    const {workers, master, currentLog} = this.state;
+    const {workers, master, currentLog, cacheWorkers} = this.state;
     return (
       <div className="App">
         <Header text={"Status"}></Header>
@@ -123,7 +117,7 @@ export default class App extends Component {
             <Title title={'worker'}></Title>
             <Worker workers={workers}></Worker>
             <Title title={'cache'}></Title>
-            <Cache caches={caches}></Cache>
+            <Cache caches={cacheWorkers}></Cache>
           </Box>
         </Box>
         <Box height="10vh" display="flex" justifyContent="space-around" flexDirection="row" alignItems="center" bgcolor={brown[900]}>

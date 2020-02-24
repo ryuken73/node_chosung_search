@@ -3,9 +3,9 @@ import Box from '@material-ui/core/Box';
 import {brown} from '@material-ui/core/colors';
 
 export default function Cache({caches}) {
-  const smallFontSize = `${12 - (caches.length/3)}px`;
-  const mediumFontSize = `${15 - (caches.length/3)}px`;
-  const bigFontSize = `${25 - (caches.length/3)}px`;
+  const smallFontSize = `${10 - (caches.length/3)}px`;
+  const mediumFontSize = `${13 - (caches.length/3)}px`;
+  const bigFontSize = `${22 - (caches.length/3)}px`;
 
   return (
     <Box display="flex" flexDirection={'row'} justifyContent="center" alignItems="flext-start" flexWrap="wrap" mx={0.5} mb={0.5} bgcolor={brown[700]}>
