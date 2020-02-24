@@ -8,14 +8,13 @@ export default function Worker({workers}) {
   const bigFontSize = `${25 - (workers.length/3)}px`;
 
   return (
-      <Box flexGrow={1} flexBasis={0} bgcolor={brown[800]}>
-        <Box component="div" textAlign="center">workers</Box>
-        <Box component="div" display="flex" width="100%" flexDirection="row" justifyContent="center" flexWrap="wrap">
+      // <Box flexGrow={1} flexBasis={0} bgcolor={brown[800]}>
+        <Box display="flex" flexDirection={'row'} justifyContent="center" alignItems="flex-start" flexWrap="wrap" mx={0.5} height='100vh' bgcolor={brown[700]}>
           {workers.map(worker => 
-            <Box flex="initial" display="flex" justifyContent="center" alignItems="center" flexDirection="row" 
-                  width={workers.length < 10 ? '30%':'20%'} 
-                  height={28-workers.length + 'vh'} m={1} fontSize={mediumFontSize} bgcolor={brown[700]}>
-              <Box display="flex" overflow="auto" justifyContent="flex-start" flexDirection="column" textAlign="left">
+            <Box display="flex" flexDirection="row" justifyContent="center" alignItems="center" 
+                //  width={workers.length < 10 ? '30%':'20%'} 
+                m={1} fontSize={mediumFontSize} bgcolor={brown[600]}>
+              <Box display="flex" overflow="auto" justifyContent="flex-start" flexDirection="column" textAlign="left" p={2}>
                 <div>PID: {worker.pid}</div>
                 <div>WORDS: {worker.words.toLocaleString()}</div>
                 <p></p>
@@ -25,6 +24,6 @@ export default function Worker({workers}) {
             </Box>
           )}
         </Box>
-      </Box>
+      // </Box>
   )
 }
