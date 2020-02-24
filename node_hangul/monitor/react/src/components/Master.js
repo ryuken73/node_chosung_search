@@ -6,23 +6,12 @@ import {makeStyles} from '@material-ui/core/styles';
 import Tooltip from '@material-ui/core/Tooltip';
 
 const useStyles = makeStyles(theme => ({
-  root: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    overflow: 'hidden',
-    backgroundColor: theme.palette.background.paper,
-  },
-  gridList: {
-    width: '100%',  
-    height: '100%',
-  },
   icon: {
     color: 'rgba(255, 255, 255, 0.54)',
   },
 }));
 
-export default function RightPanel({master, currentLog}) {
+export default function Master({master, currentLog}) {
   // console.log('render master')
   const classes = useStyles();
   const lastIndexedCount = master.lastIndexedCount ? master.lastIndexedCount : 0;
@@ -45,7 +34,7 @@ export default function RightPanel({master, currentLog}) {
              <div style={{fontSize:"60px"}}>{searching}</div> 
           </Box> 
         </Box>
-        <Box component="div" overflow="auto" textOverflow="ellipsis" width="100%" height="100vh" fontSize="fontSize" bgcolor={brown[700]}>
+        <Box component="div" overflow="auto" textOverflow="ellipsis" width="95%" height="50vh" fontSize="12px" bgcolor={brown[700]}>
           {currentLog.map(log => (
             <div style={{display:"flex", marginLeft:"10px", marginTop:'3px', flexDirection:"row", justifyContent:"flex-start", height:"1.2em", color: log.cacheHit && 'cyan'}}>
               <div style={logStyle}>{log.eventTime}</div>

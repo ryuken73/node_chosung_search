@@ -2,7 +2,7 @@ import React from 'react';
 import Box from '@material-ui/core/Box';
 import {brown} from '@material-ui/core/colors';
 
-export default function LeftPanel({workers}) {
+export default function Worker({workers}) {
   const smallFontSize = `${12 - (workers.length/3)}px`;
   const mediumFontSize = `${15 - (workers.length/3)}px`;
   const bigFontSize = `${25 - (workers.length/3)}px`;

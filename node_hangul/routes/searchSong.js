@@ -48,8 +48,8 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		global.logger.trace('%s',patternJAMO);
 
 		broadcastSearch(masterMonitorStore, 'start');
-
-		const {cacheHit, resultsFromCache} = await lookupCache(cacheWorkers, patternJAMO);
+		const userFrom = {ip, userId};
+		const {cacheHit, resultsFromCache} = await lookupCache(cacheWorkers, patternJAMO, userFrom);
 		if(cacheHit){
 			global.logger.info('*****return from cache!!!!!')
 			const cacheResult = resultsFromCache.filter(result => result.length !== 0);
@@ -68,28 +68,10 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 			return await master.search(workers, cacheWorkers, searchParams);
 		})		
 
-		// const searchResults = searchGroup.map(async group => {
-		// 	return await master.search(workers, cacheWorkers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords});
-		// })
-		// const searchResults = await master.search(pattern, jamo, LIMIT_PER_WORKER);
-
-		// resolvedResults = [[{},{}...],[],[]]
 		const resolvedResults = await Promise.all(searchResults);
 		const resultsConcat = resolvedResults.flat();
 		global.logger.trace(resultsConcat);
-		resultsConcat.sort(sortMultiFields)
-
-		function sortMultiFields(a, b){
-			if(a.weight > b.weight) return 1;
-			if(a.weight < b.weight) return -1;
-			if(a.artistName > b.artistName) return 1;
-			if(a.artistName < b.artistName) return -1;
-			if(a.songName > b.songName) return 1;
-			if(a.songName < b.songName) return -1;
-			if(a.year > b.year) return 1;
-			if(a.year < b.year) return -1;
-			return 0;
-		}
+		supportThreeWords ?  resultsConcat.sort(sortThreeWords(pattern)) : resultsConcat.sort(sortMultiFields)
 
 		global.logger.trace(resultsConcat);
 		// get result count per weight
@@ -124,7 +106,8 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 	}
 }); 
 
-async function lookupCache(cacheWorkers, patternJAMO){
+async function lookupCache(cacheWorkers, patternJAMO, userFrom){
+	const {ip, userId} = userFrom;
 	const cacheSearchJob = {
 		cmd: 'get',
 		pattern: patternJAMO
@@ -134,7 +117,7 @@ async function lookupCache(cacheWorkers, patternJAMO){
 	// resultsFromCache = [null, null, [results]]
 	global.logger.debug(resultsFromCache)
 	const cacheHit = resultsFromCache.some(result => result.length !== 0);
-    global.logger.info(`cache ${cacheHit ? 'hit':'misss'} [${patternJAMO}] `);
+    global.logger.info(`[${ip}][${userId}] cache ${cacheHit ? 'hit':'misss'} [${patternJAMO}] `);
 	return {cacheHit, resultsFromCache};
 }
 
@@ -187,7 +170,36 @@ function broadcastSearch(masterMonitorStore, type){
 	let searchMonitorAfterSearch = masterMonitorStore.getMonitor()['searching'];
 	type === 'start' && masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch+1);
 	type === 'end' && masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch-1);
-	masterMonitorStore.broadcast();
+	masterMonitorStore.broadcast();	
+}
+
+function sortThreeWords(pattern){
+	return (a, b) => {
+		const AB = -1;
+		const BA = 1;
+		if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
+		if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
+		if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
+		if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
+		if(a.artistName > b.artistName) return BA;
+		if(a.artistName < b.artistName) return AB;
+		if(a.songName > b.songName) return BA;
+		if(a.songName < b.songName) return AB;
+
+		return 0;
+	}
+}
+
+function sortMultiFields(a, b){
+	if(a.weight > b.weight) return 1;
+	if(a.weight < b.weight) return -1;
+	if(a.artistName > b.artistName) return 1;
+	if(a.artistName < b.artistName) return -1;
+	if(a.songName > b.songName) return 1;
+	if(a.songName < b.songName) return -1;
+	// if(a.year > b.year) return 1;
+	// if(a.year < b.year) return -1;
+	return 0;
 }
 
 module.exports = router;

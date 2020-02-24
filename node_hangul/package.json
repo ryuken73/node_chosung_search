@@ -3,7 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "nodemon ./bin/www"
+    "start": "nodemon ./bin/www",
+    "build": "pkg . -t linux,win -o ./build/autocomplete"
+  },
+  "bin": "bin/www",
+  "pkg": {
+    "scripts": ["lib/**/*"],
+    "assets": ["public/**/*", "views/**/*"]
   },
   "dependencies": {
     "body-parser": "~1.18.3",

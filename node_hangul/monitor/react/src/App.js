@@ -3,8 +3,8 @@ import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import socketIOClient from 'socket.io-client';
 import Header from './components/Header';
-import LeftPanel from './components/LeftPanel';
-import RightPanel from './components/RightPanel';
+import Master from './components/Master';
+import Worker from './components/Worker';
 import Constants from './config/Constants';
 import {brown} from '@material-ui/core/colors';
 import {withStyles} from '@material-ui/core/styles';
@@ -97,8 +97,8 @@ export default class App extends Component {
       <div className="App">
         <Header text={"Status"}></Header>
         <Box height="80vh" display="flex" alignItems="stretch" flexDirection="row">
-          <RightPanel master={master} currentLog={currentLog}></RightPanel>
-          <LeftPanel workers={workers}></LeftPanel>
+          <Master master={master} currentLog={currentLog}></Master>
+          <Worker workers={workers}></Worker>
         </Box>
         <Box height="10vh" display="flex" justifyContent="space-around" flexDirection="row" alignItems="center" bgcolor={brown[900]}>
           <BrownButton onClick={this.onClickLoad} variant="contained" color="primary" size="medium">load</BrownButton> 

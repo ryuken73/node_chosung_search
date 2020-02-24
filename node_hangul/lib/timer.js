@@ -5,7 +5,7 @@ class Timer {
         this.runnig = null;
         this.digits = digits;
 	}
-	start = () => {
+	start() {
 		if(this.running) {
 				console.log('timer already started');
 				return false;
@@ -14,10 +14,10 @@ class Timer {
 		this.startTime = time.getTime();
 		this.running = true;
 	}
-	getDuration = () => {
+	getDuration() {
 		return ((this.endTime - this.startTime ) / 1000).toFixed(this.digits);
 	}
-	end = () => {
+	end() {
 		if(!this.running) {
 			console.log('start timer first!');
 			return false;

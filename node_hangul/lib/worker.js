@@ -77,7 +77,7 @@ const mkRegExpr = (str, spacing) => {
             const whitespaceRemoved = wordsSplited.filter(word => word !== '');
             const escapeMetaCharacters = whitespaceRemoved.map(word => replaceMeta(word, '\\'));
             const spcaceExpr = spacing ? '.+' : '.*';
-            console.log(escapeMetaCharacters.join(spcaceExpr))
+            // console.log(escapeMetaCharacters.join(spcaceExpr))
             return new RegExp(escapeMetaCharacters.join(spcaceExpr));
         }
         return null;
