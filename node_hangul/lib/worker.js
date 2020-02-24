@@ -101,6 +101,7 @@ const msgHandlers = {
     'index' : (subType = null, messageKey, data) => {
         try {
             const songObject = createSongObj(data);
+            const lineLength = data.line.length + 2;
             songObject.jamoArtist = getJAMO(songObject.artistName);
             songObject.jamoSong = getJAMO(songObject.songName);
             songObject.jamoArtistNSong = getJAMO(songObject.artistNsong);
@@ -115,6 +116,7 @@ const msgHandlers = {
                 clientId: process.pid,
                 messageKey, 
                 result: 'success', 
+                lineLength
 
             });
             if(songArray.length % 100000 === 0){

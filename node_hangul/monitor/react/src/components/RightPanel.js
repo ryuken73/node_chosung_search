@@ -29,7 +29,7 @@ export default function RightPanel({master, currentLog}) {
   const {searching = 0} = master;
   const logStyle = {display:'flex', flexGrow:0, flexShrink:1, flexBasis:"130px", overflow:'hidden'};
   return (
-    <Box  display="flex" flexDirection="column" justifyContent="flex-start" alignItems="center" flexGrow={1} flexBasis={0} bgcolor={brown[800]}>
+    <Box  display="flex" flexDirection="column" justifyContent="flex-start" alignItems="center" flexGrow={1} ml={1} flexBasis={0} bgcolor={brown[800]}>
         <Box component="div">master</Box>
         <Box display="flex" width="100%" alignItems="center" justifyContent="space-around" flexDirection="row" height="20vh" m={1}  fontSize="fontSize" bgcolor={brown[700]}>
           <Box display="flex" justifyContent="flex-start" flexDirection="column" m={2} textAlign="left">

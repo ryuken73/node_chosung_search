@@ -102,7 +102,35 @@ const checkJobStatus = (message) => {
         return 'DONE';
     }
 
-} 
+}
+
+const getFileSize = (srcFile) => {
+    return new Promise((resolve, reject) => {
+        fs.stat(srcFile, (err, stat) => {
+            if(err){
+                reject(err);
+                return
+            }
+            resolve(stat.size);
+        })
+    })
+}
+
+const indexProgress = {
+    processed : 0,
+    oldProcessed : 0,
+    async setSrcFile(srcFile){
+        this.srcFile = srcFile;
+        const srcFileSize = await getFileSize(srcFile);
+        this.srcFileSize = srcFileSize;
+    },
+    update(length){
+        const oldProcessed = ((this.processed / this.srcFileSize)*100).toFixed(0);
+        const newProcessed = (((this.processed + length) / this.srcFileSize)*100).toFixed(0) ;
+        this.processed += length;
+        oldProcessed !== newProcessed && global.logger.info(`processed ${newProcessed}%`);
+    }
+}
 
 const handler = {
     'notify-start' : {
@@ -116,8 +144,9 @@ const handler = {
     'reply-index' : {
         'TIME_OUT' : function(){},
         'ALL_DONE' : function(message){
-            const {messageKey, subType} = message;
+            const {messageKey, subType, lineLength} = message;
             global.workerMessages.delete(messageKey);
+            indexProgress.update(lineLength);
             global.logger.debug('indexing done!');
         }    
     },
@@ -261,6 +290,7 @@ const load =  async (workers, io, options = {}) => {
         };
         global.logger.debug(combinedOpts);
         const {srcFile, encoding, end, wordSep, lineSep} = combinedOpts;
+        indexProgress.setSrcFile(srcFile);
         const rStream = fs.createReadStream(srcFile, {encoding, start:0, end});
         const rl = readline.createInterface({input:rStream});
         const lineMaker = {
