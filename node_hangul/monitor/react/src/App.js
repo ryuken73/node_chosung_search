@@ -104,27 +104,28 @@ export default class App extends Component {
 
   render() {
     const {workers, master, currentLog, cacheWorkers} = this.state;
+    const gap = 0.3;
     return (
-      <div className="App">
-        <Header text={"Status"}></Header>
+      <Box display="flex" flexDirection="column" height="100vh" className="App">
+        <Header gap={gap} text={"Status"}></Header>
         <Box display="flex" flexDirection="row" justifyContent="center" alignItems="stretch" height="80vh">
           <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow="1" width="45vw"> 
-            <Title title={'master'}></Title>
-            <Master master={master}></Master>
-            <Log currentLog={currentLog}></Log>
+            <Title gap={gap} title={'master'}></Title>
+            <Master gap={gap} master={master}></Master>
+            <Log gap={gap} currentLog={currentLog}></Log>
           </Box>
-          <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow="1" width='45vw'> 
-            <Title title={'worker'}></Title>
-            <Worker workers={workers}></Worker>
-            <Title title={'cache'}></Title>
-            <Cache caches={cacheWorkers}></Cache>
+          <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow="1"  width='45vw'> 
+            <Title gap={gap} title={'cache'}></Title>
+            <Cache gap={gap} caches={cacheWorkers}></Cache>            
+            <Title gap={gap} title={'worker'}></Title>
+            <Worker gap={gap} workers={workers}></Worker>
           </Box>
         </Box>
-        <Box height="10vh" display="flex" justifyContent="space-around" flexDirection="row" alignItems="center" bgcolor={brown[900]}>
-          <BrownButton onClick={this.onClickLoad} variant="contained" color="primary" size="medium">load</BrownButton> 
-          <BrownButton onClick={this.onClickClear} variant="contained" color="primary" size="medium">clear</BrownButton>
-        </Box>
-      </div>
+        <Box display="flex" flexDirection="row" justifyContent="space-around" alignItems="center" flexGrow="1" mx={gap} mb={gap} bgcolor={brown[900]}>
+            <BrownButton onClick={this.onClickLoad} variant="contained" color="primary"  size="medium">load</BrownButton> 
+            <BrownButton onClick={this.onClickClear} variant="contained" color="primary"  size="medium">clear</BrownButton>
+          </Box>
+      </Box>
     )
   }
 } 
