@@ -88,6 +88,7 @@ const restartWorkder = (childModule, argv) => {
 }
 
 const checkJobStatus = (message) => {
+    console.time('checkJobStatus')
     const {clientId, messageKey, subType={}, result} = message;
     const keyLocal = subType.key ? subType.key : subType;
     const resultLocal = result.map ? result.length : result;
@@ -99,7 +100,7 @@ const checkJobStatus = (message) => {
     const results = [...resultsBefore, result];
     global.workerMessages.set(messageKey, results);
     const ALL_DONE = results.length === NUMBER_OF_WORKER;
-
+    console.timeEnd('checkJobStatus')
     if(ALL_DONE) return 'DONE';
     if(subType === 'not-distributed') {
         messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
@@ -189,6 +190,7 @@ const handler = {
 
 const addListeners = (workers, worker, handleWokerExit) => {
     worker.on('message', (message) => {
+
         if(message.type === 'responseMonitor') return;
         const {type, clientId, subType = {}, messageKey, result} = message;
         message.messageKey = parseInt(messageKey);
@@ -205,8 +207,7 @@ const addListeners = (workers, worker, handleWokerExit) => {
             global.logger.debug(`[${messageKey}][${keyLocal}][${resultLocal}]ALL-DONE`);
             handler[type]['ALL_DONE'](message);
         }
-
-         type === 'reqly-clear' && reqplyClearHandler(message);
+        type === 'reqly-clear' && reqplyClearHandler(message);
     })
     worker.on('exit', (code,signal) => {
         console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);

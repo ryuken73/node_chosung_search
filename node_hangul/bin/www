@@ -63,8 +63,8 @@ async function main(){
   app.set('monitorStores', monitorStores);
 
   socketServer.setMonitorStores(monitorStores);
-  socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
-  master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
+  // socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
+  // master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
   master.attachMessageEventHandler(app);
 
   /**

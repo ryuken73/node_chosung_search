@@ -1,12 +1,14 @@
 const hangul = require('hangul-js');
 const fs = require('fs');
 const getMemInfo = require('./getMemInfo');
+const timer = require('../util/timer.js');
 
 let songArray = [];
 const errored = [];
 const WORDSEPARATOR = '^';
 const MIN_KEY_LENGTH = 2;
 let searchCount = 0;
+
 
 const getJAMO = (hangulStr) => {
     return hangul.disassemble(hangulStr).join('');	
@@ -130,6 +132,7 @@ const msgHandlers = {
         }
     },
     'search' : (subType, messageKey, data) => {
+        console.time('start1');
         searchCount += 1;
         // console.log(searchCount);
         // default max result 100,000,000 
@@ -152,7 +155,8 @@ const msgHandlers = {
         const hatRemovedUpperCased = upperCased.endsWith('^') ? upperCased.replace(/\^$/,'') : upperCased;
         const keywordExpr = mkRegExpr(hatRemovedUpperCased, spacing=true);
         const keywordExprCanBeNospacing = mkRegExpr(hatRemovedUpperCased, spacing=false);
-
+        console.timeEnd('start1');
+        console.time('start2');
         let result;
         switch(subType.key){
             case 'artistNsong' :
@@ -202,6 +206,7 @@ const msgHandlers = {
                 break;
             case 'threeWordsSearch' :
                 result = threeWordsSearch(songArray, keywordExpr, keywordExprCanBeNospacing);
+                console.timeEnd('start2');
                 break;
             default :
                 result = []
@@ -209,10 +214,13 @@ const msgHandlers = {
 
         }
 
+        console.time('start3')
         limit && result.splice(limit);
         result.map(obj => obj.weight = subType.weight)
         searchCount -= 1;
         // console.log(searchCount);
+        console.timeEnd('start3')
+        console.log(`resultCount = [${result.length}]`)
 
         process.send({
             type: 'reply-search',
