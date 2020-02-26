@@ -228,7 +228,7 @@ const msgHandlers = {
         searchCount -= 1;
         // console.log(searchCount);
         // console.timeEnd('start3')
-        console.log(`resultCount = [${result.length}]`)
+        // console.log(`resultCount = [${result.length}]`)
 
         process.send({
             type: 'reply-search',

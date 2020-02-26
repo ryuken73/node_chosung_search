@@ -8,8 +8,13 @@
   },
   "bin": "bin/www",
   "pkg": {
-    "scripts": ["lib/**/*"],
-    "assets": ["public/**/*", "views/**/*"]
+    "scripts": [
+      "lib/**/*"
+    ],
+    "assets": [
+      "public/**/*",
+      "views/**/*"
+    ]
   },
   "dependencies": {
     "body-parser": "~1.18.3",
@@ -22,6 +27,7 @@
     "jade": "~1.11.0",
     "lodash": "^4.17.11",
     "morgan": "~1.9.1",
+    "nodemailer": "^6.4.3",
     "nodemon": "^1.18.7",
     "q": "^2.0.3",
     "serve-favicon": "~2.5.0",
