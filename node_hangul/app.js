@@ -19,7 +19,7 @@ global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
 global.PORT = config.PORT || 3000;
 global.INDEXING_BYTES = (config.INDEXING_BYTES === undefined || config.INDEXING_BYTES === 0) ? Infinity 
                         : config.INDEXING_BYTES;
-global.LOG_LEVEL = config.LOG_LEVEL || 'info';
+// global.LOG_LEVEL = config.LOG_LEVEL || 'info';
 global.MONITOR_BROADCAST_INTERVAL = config.MONITOR_BROADCAST_INTERVAL || 500;
 global.messageKey = 0;
 
