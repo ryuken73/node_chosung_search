@@ -140,7 +140,7 @@ const msgHandlers = {
         }
     },
     'search' : (subType, messageKey, data) => {
-        console.time('start1');
+        // console.time('start1');
         searchCount += 1;
         // console.log(searchCount);
         // default max result 100,000,000 
@@ -163,8 +163,8 @@ const msgHandlers = {
         const hatRemovedUpperCased = upperCased.endsWith('^') ? upperCased.replace(/\^$/,'') : upperCased;
         const keywordExpr = mkRegExpr(hatRemovedUpperCased, spacing=true);
         const keywordExprCanBeNospacing = mkRegExpr(hatRemovedUpperCased, spacing=false);
-        console.timeEnd('start1');
-        console.time('start2');
+        // console.timeEnd('start1');
+        // console.time('start2');
         let result;
         switch(subType.key){
             case 'artistNsong' :
@@ -214,7 +214,7 @@ const msgHandlers = {
                 break;
             case 'threeWordsSearch' :
                 result = threeWordsSearch(songArray, keywordExpr, keywordExprCanBeNospacing);
-                console.timeEnd('start2');
+                // console.timeEnd('start2');
                 break;
             default :
                 result = []
@@ -222,12 +222,12 @@ const msgHandlers = {
 
         }
 
-        console.time('start3')
+        // console.time('start3')
         limit && result.splice(limit);
         result.map(obj => obj.weight = subType.weight)
         searchCount -= 1;
         // console.log(searchCount);
-        console.timeEnd('start3')
+        // console.timeEnd('start3')
         console.log(`resultCount = [${result.length}]`)
 
         process.send({
