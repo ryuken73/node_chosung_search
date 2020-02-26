@@ -97,7 +97,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		broadcastLog(stopWatch, logMonitorStore, {userId, ip, pattern, resultCount});
 		broadcastSearch(masterMonitorStore, 'end');
 
-		updateCache(cacheWorkers, patternJAMO, resultsUnique);
+		cacheWorkers.length > 0 && updateCache(cacheWorkers, patternJAMO, resultsUnique);
 		res.send({result: resultsUnique.slice(0,count), count:resultsUnique.length});
 		
 	} catch (err) {

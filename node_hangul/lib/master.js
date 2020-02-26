@@ -88,7 +88,7 @@ const restartWorkder = (childModule, argv) => {
 }
 
 const checkJobStatus = (message) => {
-    console.time('checkJobStatus')
+    // console.time('checkJobStatus')
     const {clientId, messageKey, subType={}, result} = message;
     const keyLocal = subType.key ? subType.key : subType;
     const resultLocal = result.map ? result.length : result;
@@ -98,9 +98,9 @@ const checkJobStatus = (message) => {
 
     const resultsBefore = global.workerMessages.get(messageKey);  
     const results = [...resultsBefore, result];
-    global.workerMessages.set(messageKey, results);
-    const ALL_DONE = results.length === NUMBER_OF_WORKER;
-    console.timeEnd('checkJobStatus')
+    global.workerMessages.set(messageKey, results);  
+    const ALL_DONE = results.length === NUMBER_OF_WORKER;  
+    // console.timeEnd('checkJobStatus')  
     if(ALL_DONE) return 'DONE';
     if(subType === 'not-distributed') {
         messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
