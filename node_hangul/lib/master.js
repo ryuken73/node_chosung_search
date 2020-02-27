@@ -88,7 +88,7 @@ const restartWorkder = (childModule, argv) => {
 }
 
 const checkJobStatus = (message) => {
-    console.time('checkJobStatus')
+    // console.time('checkJobStatus')
     const {clientId, messageKey, subType={}, result} = message;
     const keyLocal = subType.key ? subType.key : subType;
     const resultLocal = result.map ? result.length : result;
@@ -98,9 +98,9 @@ const checkJobStatus = (message) => {
 
     const resultsBefore = global.workerMessages.get(messageKey);  
     const results = [...resultsBefore, result];
-    global.workerMessages.set(messageKey, results);
-    const ALL_DONE = results.length === NUMBER_OF_WORKER;
-    console.timeEnd('checkJobStatus')
+    global.workerMessages.set(messageKey, results);  
+    const ALL_DONE = results.length === NUMBER_OF_WORKER;  
+    // console.timeEnd('checkJobStatus')  
     if(ALL_DONE) return 'DONE';
     if(subType === 'not-distributed') {
         messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
@@ -247,9 +247,14 @@ function reqplyClearHandler(message) {
 
 
 // main
-
+let totalLineBytes = 0;
+let totalprocessed = 0;
 const sendLine = (workers, keyStore, lineMaker) => {
     return line => {
+        console.log(line)
+        totalLineBytes += line.length + 5;
+        totalprocessed += 1
+        global.logger.info(totalLineBytes - 5, totalprocessed);
      const combinedLine = `${lineMaker.startOfLine}${line}`
     //  console.log(combinedLine)
      if(lineMaker.hasProperColumns(combinedLine)){
@@ -310,7 +315,10 @@ const load =  async (workers, io, options = {}) => {
         }
 
         global.logger.info('start indexing...');
-        rl.on('line', sendLine(workers, keyStore, lineMaker));
+        rl.on('line', (data) => {
+            console.log(rl.input.bytesRead)
+            sendLine(workers, keyStore, lineMaker)(data)
+        });
         
         rl.on('end', () => { 
             console.log('end: ',keyStore.getKey());

@@ -13,17 +13,15 @@ const config = require('./config.json');
 global.SRC_FILE = config.SRC_FILE || 'c:/temp/song_mst.txt';
 global.SEARCH_TIMEOUT = config.SEARCH_TIMEOUT || 10000;
 global.CLEAR_TIMEOUT = config.CLEAR_TIMEOUT || 5000;
-global.NUMBER_OF_WORKER = config.NUMBER_OF_WORKER || 5;
-global.NUMBER_OF_CACHE = config.NUMBER_OF_CACHE || 2;
+global.NUMBER_OF_WORKER = config.NUMBER_OF_WORKER === undefined ? 5 : config.NUMBER_OF_WORKER ;
+global.NUMBER_OF_CACHE = config.NUMBER_OF_CACHE === undefined ? 2 : config.NUMBER_OF_CACHE ;
 global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
 global.PORT = config.PORT || 3000;
 global.INDEXING_BYTES = (config.INDEXING_BYTES === undefined || config.INDEXING_BYTES === 0) ? Infinity 
                         : config.INDEXING_BYTES;
-global.LOG_LEVEL = config.LOG_LEVEL || 'info';
+// global.LOG_LEVEL = config.LOG_LEVEL || 'info';
 global.MONITOR_BROADCAST_INTERVAL = config.MONITOR_BROADCAST_INTERVAL || 500;
 global.messageKey = 0;
- 
-
 
 const app = express();
 
@@ -38,19 +36,25 @@ app.use(compression());
 app.use(cors());
 
 //// add for logtracer
-const env = app.get('env');
-if(env === 'development'){
-	
-	console.log('development environment!!');
-	
-	var logTracer = require('tracer').console(
-			{
-				format: "{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})",	
-				dateformat: 'yyyy-mm-dd HH:MM:ss',
-				level: global.LOG_LEVEL
-			}
-		);
+const {notification={}, logLevel="DEBUG", logFile="logger.log"} = config.LOGGER;
+const loggerOptions = {
+  notification,
+  logLevel,
+  logFile
 }
+
+global.logger = require('./lib/logger')(loggerOptions);
+// const env = app.get('env');
+// if(env === 'development'){	
+// 	console.log('development environment!!');	
+// 	var logTracer = require('tracer').console(
+// 			{
+// 				format: "{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})",	
+// 				dateformat: 'yyyy-mm-dd HH:MM:ss',
+// 				level: global.LOG_LEVEL
+// 			}
+// 		);
+// }
 ////
 
 app.use(bodyParser.json());
@@ -58,7 +62,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-global.logger = logTracer;
+// global.logger = logTracer;
 
 app.use('/', routes);
 app.use('/users', users);
