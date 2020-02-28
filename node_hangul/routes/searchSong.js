@@ -3,45 +3,37 @@ var router = express.Router();
 var extractJAMO = require('../util/extractJAMO');
 const master = require('../lib/master');
 const timer = require('../lib/timer.js');
+const searchType = require('../config/searchType');
 const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
 
 // search by distributed worker
 router.get('/withWorkers/:pattern', async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
+
 		const DIGITS = 3;
 		const stopWatch = timer.create(DIGITS);
 		stopWatch.start();
+
 		const {app} = req;
 		const {pattern} = req.params;
 		const {userId, supportThreeWords, count=global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress;
+
 		const workers = app.get('workers');	
 		const cacheWorkers = app.get('cacheWorkers');
 		const {masterMonitorStore, logMonitorStore} = app.get('monitorStores');
 
-		if(pattern.replace(/\s+/, '').length === 0){
+		if(isPatternWhiteSpaceOnly(pattern)){
 			global.logger.trace('countinue...');
 			res.send({result:null, count:null});
 			return false;
 		}
 
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern} ${supportThreeWords}]`);
-		const threeWordsSearchGroup = [
-			// {key: 'artistNsongWithoutHat', weight: 1},
-			// {key: 'songNartistWithoutHat', weight: 2},
-			{key: 'threeWordsSearch', weight: 1},
-			
-		]
 
-		const normalSearchGroup = [
-			{key: 'artistNsong', weight: 1},
-			{key: 'songNartist', weight: 2},
-			{key: 'artist', weight: 3},
-			{key: 'artistJAMO', weight: 4},
-			{key: 'song', weight: 5},
-			{key: 'songJAMO', weight: 6},
-		]
+		const {threeWordsSearchGroup, normalSearchGroup} = searchType;
+
 
 		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;
 
@@ -202,5 +194,7 @@ function sortMultiFields(a, b){
 	// if(a.year < b.year) return -1;
 	return 0;
 }
+
+const isPatternWhiteSpaceOnly = (pattern) => pattern.replace(/\s+/, '').length === 0;
 
 module.exports = router;
