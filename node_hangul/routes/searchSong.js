@@ -14,7 +14,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		stopWatch.start();
 		const {app} = req;
 		const {pattern} = req.params;
-		const {userId, supportThreeWords, count=500} = req.query;
+		const {userId, supportThreeWords, count=global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress;
 		const workers = app.get('workers');	
 		const cacheWorkers = app.get('cacheWorkers');
