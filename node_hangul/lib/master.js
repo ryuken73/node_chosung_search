@@ -251,10 +251,10 @@ let totalLineBytes = 0;
 let totalprocessed = 0;
 const sendLine = (workers, keyStore, lineMaker) => {
     return line => {
-        console.log(line)
-        totalLineBytes += line.length + 5;
-        totalprocessed += 1
-        global.logger.info(totalLineBytes - 5, totalprocessed);
+        // console.log(line)
+        // totalLineBytes += line.length + 5;
+        // totalprocessed += 1
+        // global.logger.info(totalLineBytes - 5, totalprocessed);
      const combinedLine = `${lineMaker.startOfLine}${line}`
     //  console.log(combinedLine)
      if(lineMaker.hasProperColumns(combinedLine)){
@@ -316,7 +316,7 @@ const load =  async (workers, io, options = {}) => {
 
         global.logger.info('start indexing...');
         rl.on('line', (data) => {
-            console.log(rl.input.bytesRead)
+            // console.log(rl.input.bytesRead)
             sendLine(workers, keyStore, lineMaker)(data)
         });
         

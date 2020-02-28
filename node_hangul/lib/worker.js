@@ -30,7 +30,7 @@ const createSongObj = (data) => {
 
         const [artistName, songName, year, label] = wordArray.map(word => clearWord(word));
         const artistNsongNartist = `${artistName} ${songName} ${artistName}`;
-        const artistNsongNartistNoBlank =  `${songName.replace(/\s+/g, '')} ${artistName.replace(/\s+/g, '')} ${songName.replace(/\s+/g, '')}`;
+        const artistNsongNartistNoBlank =  `${songName.replace(/\s+/g, '')}${artistName.replace(/\s+/g, '')}${songName.replace(/\s+/g, '')}`;
 
         return {
             artistName,
@@ -83,7 +83,7 @@ const mkRegExpr = (str, spacing) => {
             const wordsSplited = str.trimStart().trimEnd().split(' ');
             const whitespaceRemoved = wordsSplited.filter(word => word !== '');
             const escapeMetaCharacters = whitespaceRemoved.map(word => replaceMeta(word, '\\'));
-            const spcaceExpr = spacing ? '.+' : '.*';
+            const spcaceExpr = spacing ? '.+' : '.*?';
             // console.log(escapeMetaCharacters.join(spcaceExpr))
             return new RegExp(escapeMetaCharacters.join(spcaceExpr));
         }
