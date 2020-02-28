@@ -17,45 +17,33 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 
 		const {app} = req;
 		const {pattern} = req.params;
-		const {userId, supportThreeWords, count=global.MAX_SEARCH_RETURN_COUNT} = req.query;
+		const {userId, supportThreeWords, maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress;
+		const userFrom = {userId, ip};
+		const patternJAMO = extractJAMO(pattern).replace(/\s+/g, ' ');
+		global.logger.trace('%s',patternJAMO);
+
+		res.stopWatch = stopWatch;
+		req.metaData = {pattern, patternJAMO, ip, userId, maxReturnCount, supportThreeWords};
 
 		const workers = app.get('workers');	
 		const cacheWorkers = app.get('cacheWorkers');
 		const {masterMonitorStore, logMonitorStore} = app.get('monitorStores');
 
-		if(isPatternWhiteSpaceOnly(pattern)){
-			global.logger.trace('countinue...');
-			res.send({result:null, count:null});
-			return false;
-		}
+		if(isPatternWhiteSpaceOnly({pattern, res})) return;
 
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern} ${supportThreeWords}]`);
 
 		const {threeWordsSearchGroup, normalSearchGroup} = searchType;
-
-
 		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;
 
-		const patternJAMO = extractJAMO(pattern);	
-		global.logger.trace('%s',patternJAMO);
 
 		broadcastSearch(masterMonitorStore, 'start');
-		const userFrom = {ip, userId};
-		const {cacheHit, resultsFromCache} = await lookupCache(cacheWorkers, patternJAMO, userFrom);
-		if(cacheHit){
-			global.logger.info('*****return from cache!!!!!')
-			const cacheResult = resultsFromCache.filter(result => result.length !== 0);
-			// cacheResult must be [[result object]]
-			cacheResult.length > 1 && await deleteCache(cacheWorkers, patternJAMO);
-			const resultCount = cacheResult[0].length;
-			const bcastMessage =  {userId, ip, pattern, resultCount, cacheHit};
-			broadcastLog(stopWatch, logMonitorStore, bcastMessage);
-			broadcastSearch(masterMonitorStore, 'end');
-			res.send({result: cacheResult[0].slice(0,count), count: resultCount});
-			return true;
-		}
-					
+		
+		const {cacheHit, cacheResponse} = await lookupCache({cacheWorkers, patternJAMO, userFrom});
+		cacheHit ? processCacheResult({cacheHit, cacheResponse, req, res}) : doNothing();
+		if(cacheHit) return;
+
 		const searchResults = searchGroup.map(async group => {
 			const searchParams =  {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
 			return await master.search(workers, cacheWorkers, searchParams);
@@ -86,12 +74,12 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const resultCount = resultsUnique.length;
 		global.logger.trace(resultsUnique)
 		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, pattern, resultCount);
-
-		broadcastLog(stopWatch, logMonitorStore, {userId, ip, pattern, resultCount});
+		const elapsed = stopWatch.end();
+		broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern, resultCount});
 		broadcastSearch(masterMonitorStore, 'end');
 
 		cacheWorkers.length > 0 && updateCache(cacheWorkers, patternJAMO, resultsUnique);
-		res.send({result: resultsUnique.slice(0,count), count:resultsUnique.length});
+		res.send({result: resultsUnique.slice(0,maxReturnCount), count:resultsUnique.length});
 		
 	} catch (err) {
 		console.error(err);
@@ -99,7 +87,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 	}
 }); 
 
-async function lookupCache(cacheWorkers, patternJAMO, userFrom){
+async function lookupCache({cacheWorkers, patternJAMO, userFrom}){
 	const {ip, userId} = userFrom;
 	const cacheSearchJob = {
 		cmd: 'get',
@@ -107,11 +95,13 @@ async function lookupCache(cacheWorkers, patternJAMO, userFrom){
 	}
 	const resultPromise = cacheWorkers.map( async worker => await worker.runJob(cacheSearchJob));
 	const resultsFromCache = await Promise.all(resultPromise);
-	// resultsFromCache = [null, null, [results]]
+	// resultsFromCache = [null, null, [results], null]
 	global.logger.debug(resultsFromCache)
 	const cacheHit = resultsFromCache.some(result => result.length !== 0);
-    global.logger.info(`[${ip}][${userId}] cache ${cacheHit ? 'hit':'misss'} [${patternJAMO}] `);
-	return {cacheHit, resultsFromCache};
+	const cacheResponse = resultsFromCache.find(result => result.length !==0);
+	global.logger.info(`[${ip}][${userId}] cache ${cacheHit ? 'hit':'misss'} [${patternJAMO}] `);
+	
+	return {cacheHit, cacheResponse};
 }
 
 async function updateCache(cacheWorkers, patternJAMO, results){
@@ -139,9 +129,9 @@ async function deleteCache(cacheWorkers, patternJAMO){
 	return true;
 }
 
-function broadcastLog(stopWatch, logMonitorStore, params){
+function broadcastLog(elapsed, logMonitorStore, params){
 	const {userId, ip, pattern, resultCount, cacheHit} = params;
-	const elapsed = stopWatch.end();
+	// const elapsed = stopWatch.end();
 	const logMonitor = {
 		eventTime: (new Date()).toLocaleString(),
 		userId: userId ? userId : 'None',
@@ -195,6 +185,25 @@ function sortMultiFields(a, b){
 	return 0;
 }
 
-const isPatternWhiteSpaceOnly = (pattern) => pattern.replace(/\s+/, '').length === 0;
+const isPatternWhiteSpaceOnly = ({pattern, res}) => {
+	const patternWhiteSpaceRemoved = pattern.replace(/\s+/, '').length;
+	if(patternWhiteSpaceRemoved.length === 0) res.send({result:null, count:null});
+	res.stopWatch.end();
+	return patternWhiteSpaceRemoved.length === 0;
+}
+
+const processCacheResult = ({cacheHit, cacheResponse, req, res}) => {
+	global.logger.info('*****return from cache!!!!!');
+	const elapsed = res.stopWatch.end();
+	const {pattern, ip, userId, maxReturnCount} = req;
+	const resultCount = cacheResponse.length;
+	const bcastMessage =  {userId, ip, pattern, resultCount, cacheHit};
+	const {masterMonitorStore, logMonitorStore} = req.app.get('monitorStores');
+	broadcastLog(elapsed, logMonitorStore, bcastMessage);
+	broadcastSearch(masterMonitorStore, 'end');
+	res.send({result: cacheResponse.slice(0,maxReturnCount), count: resultCount});
+}
+
+const doNothing = () => {};
 
 module.exports = router;
