@@ -30,13 +30,16 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const cacheWorkers = app.get('cacheWorkers');
 		const {masterMonitorStore, logMonitorStore} = app.get('monitorStores');
 
-		if(isPatternWhiteSpaceOnly({pattern, res})) return;
+		if(isPatternWhiteSpaceOnly({pattern})) {
+			stopWatch.end();
+			res.send({result:null, count:null});
+			return;
+		} 
 
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern} ${supportThreeWords}]`);
 
 		const {threeWordsSearchGroup, normalSearchGroup} = searchType;
 		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;
-
 
 		broadcastSearch(masterMonitorStore, 'start');
 		
@@ -185,17 +188,12 @@ function sortMultiFields(a, b){
 	return 0;
 }
 
-const isPatternWhiteSpaceOnly = ({pattern, res}) => {
-	const patternWhiteSpaceRemoved = pattern.replace(/\s+/, '').length;
-	if(patternWhiteSpaceRemoved.length === 0) res.send({result:null, count:null});
-	res.stopWatch.end();
-	return patternWhiteSpaceRemoved.length === 0;
-}
+const isPatternWhiteSpaceOnly = ({pattern}) => pattern.replace(/\s+/, '').length === 0;
 
 const processCacheResult = ({cacheHit, cacheResponse, req, res}) => {
 	global.logger.info('*****return from cache!!!!!');
 	const elapsed = res.stopWatch.end();
-	const {pattern, ip, userId, maxReturnCount} = req;
+	const {pattern, ip, userId, maxReturnCount} = req.metaData;
 	const resultCount = cacheResponse.length;
 	const bcastMessage =  {userId, ip, pattern, resultCount, cacheHit};
 	const {masterMonitorStore, logMonitorStore} = req.app.get('monitorStores');
