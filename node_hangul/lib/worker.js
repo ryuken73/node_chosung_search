@@ -1,7 +1,6 @@
 const hangul = require('hangul-js');
 const fs = require('fs');
 const getMemInfo = require('./getMemInfo');
-const timer = require('../util/timer.js');
 
 let songArray = [];
 const errored = [];

@@ -9,7 +9,8 @@ const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
 router.get('/withWorkers/:pattern', async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
-		const stopWatch = timer.create(3);
+		const DIGITS = 3;
+		const stopWatch = timer.create(DIGITS);
 		stopWatch.start();
 		const {app} = req;
 		const {pattern} = req.params;
