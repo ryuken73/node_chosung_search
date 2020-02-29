@@ -28,7 +28,11 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 
 		const workers = app.get('workers');	
 		const cacheWorkers = app.get('cacheWorkers');
-		const {masterMonitorStore, logMonitorStore} = app.get('monitorStores');
+		const masterMonitorStore = app.get('masterMonitor');
+		const logMonitorStore = app.get('logMonitor');
+		const keyStore = app.get('taskKey');
+		const taskResults = app.get('taskResults');
+		const searchEvent = app.get('searchEvent');
 
 		if(isPatternWhiteSpaceOnly({pattern})) {
 			stopWatch.end();
@@ -40,13 +44,15 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		broadcastSearch(masterMonitorStore, 'start');
 
 		const {cacheHit, cacheResponse} = await lookupCache({cacheWorkers, patternJAMO, userFrom});
-		cacheHit ? processCacheResult({cacheHit, cacheResponse, req, res}) : doNothing();
+		cacheHit ? processCacheResult({cacheHit, cacheResponse, logMonitorStore, masterMonitorStore, req, res}) : doNothing();
 		if(cacheHit) return;
 				
 		const {threeWordsSearchGroup, normalSearchGroup} = searchType;
 		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;		
 		const searchParams = {pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
-		const searchResults = await searchRequest({workers, searchGroup, searchParams});
+
+		const searchResults = await searchRequest({workers, keyStore, taskResults, searchGroup, searchEvent, searchParams});
+		
 		supportThreeWords ?  searchResults.sort(sortThreeWords(pattern)) : searchResults.sort(sortMultiFields)
 		global.logger.trace(searchResults);
 		// get result count per weight and remove weight ftom results
@@ -126,18 +132,18 @@ function broadcastLog(elapsed, logMonitorStore, params){
 		cacheHit
 	}
 
-	const storedLog = logMonitorStore.getMonitor()['log'];
+	const storedLog = logMonitorStore.getStatus()['log'];
 	const newLog = storedLog.length > 100 ? storedLog.slice(0, storedLog.length - 1) : [...storedLog];
 	newLog.unshift(logMonitor);
-	logMonitorStore.setMonitor('log', newLog);
-	logMonitorStore.broadcast();
+	logMonitorStore.setStatus('log', newLog);
+	logMonitorStore.broadcast({eventName:'logMonitor', message:newLog});
 }
 
 function broadcastSearch(masterMonitorStore, type){
-	let searchMonitorAfterSearch = masterMonitorStore.getMonitor()['searching'];
-	type === 'start' && masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch+1);
-	type === 'end' && masterMonitorStore.setMonitor('searching', searchMonitorAfterSearch-1);
-	masterMonitorStore.broadcast();	
+	let searchMonitorAfterSearch = masterMonitorStore.getStatus()['searching'];
+	type === 'start' && masterMonitorStore.setStatus('searching', searchMonitorAfterSearch+1);
+	type === 'end' && masterMonitorStore.setStatus('searching', searchMonitorAfterSearch-1);
+	masterMonitorStore.broadcast({eventName:'masterMonitor'});	
 }
 
 function sortThreeWords(pattern){
@@ -171,23 +177,23 @@ function sortMultiFields(a, b){
 
 const isPatternWhiteSpaceOnly = ({pattern}) => pattern.replace(/\s+/, '').length === 0;
 
-const processCacheResult = ({cacheHit, cacheResponse, req, res}) => {
+const processCacheResult = ({cacheHit, cacheResponse, masterMonitorStore, logMonitorStore, req, res}) => {
 	global.logger.info('*****return from cache!!!!!');
 	const elapsed = res.stopWatch.end();
 	const {pattern, ip, userId, maxReturnCount} = req.metaData;
 	const resultCount = cacheResponse.length;
 	const bcastMessage =  {userId, ip, pattern, resultCount, cacheHit};
-	const {masterMonitorStore, logMonitorStore} = req.app.get('monitorStores');
+	// const {masterMonitorStore, logMonitorStore} = req.app.get('monitorStores');
 	broadcastLog(elapsed, logMonitorStore, bcastMessage);
 	broadcastSearch(masterMonitorStore, 'end');
 	res.send({result: cacheResponse.slice(0,maxReturnCount), count: resultCount});
 }
 
-const searchRequest = async ({workers, searchGroup, searchParams}) => {
+const searchRequest = async ({workers, keyStore, taskResults, searchGroup, searchEvent, searchParams}) => {
 	return new Promise(async (resolve, reject) => {
 		const resultsFromWorkers = searchGroup.map(async group => {
 			const params = {...searchParams, group};
-			return await master.search({workers, params});
+			return await master.search({workers, keyStore, taskResults, searchEvent, params});
 		})		
 		const resolvedResults = await Promise.all(resultsFromWorkers);
 		const resultsConcat = resolvedResults.flat();

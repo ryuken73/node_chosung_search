@@ -121,7 +121,7 @@ const msgHandlers = {
             songArray.push(songObject);
             process.send({
                 type: 'reply-index',
-                subType: 'not-distributed',
+                subType: 'replay-index',
                 clientId: process.pid,
                 messageKey, 
                 result: 'success', 
@@ -291,7 +291,6 @@ process.send({
     subType: 'start-worker-process',
     messageKey: process.argv[2],
     result: process.pid
-
 })
 
 process.on('uncaughtException', (err, origin) => {
