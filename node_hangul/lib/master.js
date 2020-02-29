@@ -365,9 +365,9 @@ const clear = async (workers) => {
 
 }
 
-const search = async (workers, cacheWorkers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords}) => {
+const search = async ({workers, params}) => {
     try {
-     
+        const {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords} = params;
         const messageKey = keyStore.getNextKey();        
         global.workerMessages.set(messageKey, []);
   

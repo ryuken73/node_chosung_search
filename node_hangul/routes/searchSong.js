@@ -37,44 +37,25 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		} 
 
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern} ${supportThreeWords}]`);
-
-		const {threeWordsSearchGroup, normalSearchGroup} = searchType;
-		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;
-
 		broadcastSearch(masterMonitorStore, 'start');
-		
+
 		const {cacheHit, cacheResponse} = await lookupCache({cacheWorkers, patternJAMO, userFrom});
 		cacheHit ? processCacheResult({cacheHit, cacheResponse, req, res}) : doNothing();
 		if(cacheHit) return;
-
-		const searchResults = searchGroup.map(async group => {
-			const searchParams =  {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
-			return await master.search(workers, cacheWorkers, searchParams);
-		})		
-
-		const resolvedResults = await Promise.all(searchResults);
-		const resultsConcat = resolvedResults.flat();
-		global.logger.trace(resultsConcat);
-		supportThreeWords ?  resultsConcat.sort(sortThreeWords(pattern)) : resultsConcat.sort(sortMultiFields)
-
-		global.logger.trace(resultsConcat);
-		// get result count per weight
-		const countPerWeight = {};
-		resultsConcat.map(result => {
-			const {weight} = result;
-			countPerWeight[weight] ? countPerWeight[weight]++ : countPerWeight[weight] = 1;
-		})
-		global.logger.info(`[${ip}][${userId}] result per weight : [%s] : %j`, pattern, countPerWeight);
-		// remove weight
-		resultsConcat.map(result => delete result.weight);
-		// sort and remove duplicate objects
-	    // make all element(object) of array string
-		const resultsStringified = resultsConcat.map(JSON.stringify);
-		// by using Set, get array with unique element 
-		const resultsUniqueString = Array.from(new Set(resultsStringified));
-		// revert string to object
-		const resultsUnique = resultsUniqueString.map(JSON.parse);
+				
+		const {threeWordsSearchGroup, normalSearchGroup} = searchType;
+		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;		
+		const searchParams = {pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
+		const searchResults = await searchRequest({workers, searchGroup, searchParams});
+		supportThreeWords ?  searchResults.sort(sortThreeWords(pattern)) : searchResults.sort(sortMultiFields)
+		global.logger.trace(searchResults);
+		// get result count per weight and remove weight ftom results
+		const [resultCountPerWeight, resultsWithoutWeight] = getResultCountPerWeight(searchResults);
+		global.logger.info(`[${ip}][${userId}] result per weight : [%s] : %j`, pattern, resultCountPerWeight);
+		// remove duplicate results
+		const resultsUnique = removeDuplicate(resultsWithoutWeight);
 		const resultCount = resultsUnique.length;
+		
 		global.logger.trace(resultsUnique)
 		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, pattern, resultCount);
 		const elapsed = stopWatch.end();
@@ -200,6 +181,37 @@ const processCacheResult = ({cacheHit, cacheResponse, req, res}) => {
 	broadcastLog(elapsed, logMonitorStore, bcastMessage);
 	broadcastSearch(masterMonitorStore, 'end');
 	res.send({result: cacheResponse.slice(0,maxReturnCount), count: resultCount});
+}
+
+const searchRequest = async ({workers, searchGroup, searchParams}) => {
+	return new Promise(async (resolve, reject) => {
+		const resultsFromWorkers = searchGroup.map(async group => {
+			const params = {...searchParams, group};
+			return await master.search({workers, params});
+		})		
+		const resolvedResults = await Promise.all(resultsFromWorkers);
+		const resultsConcat = resolvedResults.flat();
+		global.logger.trace(resultsConcat);
+		resolve(resultsConcat);
+	})
+}
+
+const getResultCountPerWeight = (searchResults) => {
+	const countPerWeight = {};
+	const resultsWithoutWeight = searchResults.map(result => {
+		const {weight} = result;
+		countPerWeight[weight] ? countPerWeight[weight]++ : countPerWeight[weight] = 1;
+		delete result.weight;
+		return result
+	})
+	return [countPerWeight, resultsWithoutWeight];
+}
+
+const removeDuplicate = (resultsWithoutWeight) => {
+	const resultsStringified = resultsWithoutWeight.map(JSON.stringify);
+	const resultsUniqueString = Array.from(new Set(resultsStringified));
+	const resultsUnique = resultsUniqueString.map(JSON.parse);
+	return resultsUnique;
 }
 
 const doNothing = () => {};
