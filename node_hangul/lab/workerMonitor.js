@@ -1,6 +1,6 @@
 const Monitor = require('./Monitor').Monitor;
 
-class workerMonitors extends Monitor {
+class workerMonitor extends Monitor {
     constructor({initialStatus, bcastIO}) {
         super({initialStatus, bcastIO});
     }
@@ -27,7 +27,7 @@ const createMonitors = (options) => {
                               return [key, monitor]
                           });
     if(initialStatus === false) return new Error('monitors should be instance of Monitor class');
-    return new workerMonitors({initialStatus, bcastIO})
+    return new workerMonitor({initialStatus, bcastIO})
 }
 
 module.exports = {
