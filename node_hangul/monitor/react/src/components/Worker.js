@@ -2,7 +2,7 @@ import React from 'react';
 import Box from '@material-ui/core/Box';
 import {brown} from '@material-ui/core/colors';
 
-export default function Worker({gap, workers}) {
+function Worker({gap, workers}) {
   const smallFontSize = `${12 - (workers.length/3)}px`;
   const mediumFontSize = `${15 - (workers.length/3)}px`;
   const bigFontSize = `${25 - (workers.length/3)}px`;
@@ -43,3 +43,5 @@ export default function Worker({gap, workers}) {
       // </Box>
   )
 }
+
+export default React.memo(Worker);

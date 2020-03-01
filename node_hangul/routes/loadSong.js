@@ -8,7 +8,7 @@ router.get('/useWorkers', async (req, res, next) => {
 	const keyStore = req.app.get('taskKey');
 	const masterMonitor = req.app.get('masterMonitor');
 	const taskResults = req.app.get('taskResults');
-	console.log(masterMonitor)
+	// console.log(masterMonitor)
 	const options = {
 		srcFile : global.SRC_FILE,
 		wordSep  : '^',

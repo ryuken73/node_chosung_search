@@ -14,7 +14,7 @@ const initialize = ({searchEvent, clearEvent, masterMonitor}) => {
                 const {messageKey, lineLength} = message;
                 // global.workerMessages.delete(messageKey);
                 // indexProgress.update(lineLength);
-                global.logger.debug('indexing done!');
+                global.logger.debug('indexing one line done!');
             }    
         },
         'reply-search' : {
@@ -47,7 +47,8 @@ const initialize = ({searchEvent, clearEvent, masterMonitor}) => {
                 return
             },
             'ALL_DONE' : function(message){
-                global.logger.info(`Clearing all worker's data done!`);
+                const {messageKey} = message;
+                global.logger.info(`clearing all worker's data done!`);
                 masterMonitor.setStatus('lastIndexedDate', '');
                 masterMonitor.setStatus('lastIndexedCount', 0);
                 clearEvent.emit(`success_${messageKey}`);

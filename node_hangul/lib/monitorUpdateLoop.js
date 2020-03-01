@@ -11,7 +11,7 @@ const workers = (app, interval) => {
     setInterval(() => {
         const workers = app.get('workers');
         const workerPids = workers.map(worker => worker.pid);
-        global.logger.info('workers.pid.', workerPids);
+        global.logger.trace('workers.pid.', workerPids);
         workers.map(worker => worker.send('requestMonitor'));
     }, interval);
 }

@@ -3,8 +3,16 @@ import Box from '@material-ui/core/Box';
 import {brown} from '@material-ui/core/colors';
 import Tooltip from '@material-ui/core/Tooltip';
 
-export default function Log({gap, currentLog}) {
+function Log({gap, currentLog}) {
+  console.log('rerendering Log');
   const logStyle = {display:'flex', flexGrow:0, flexShrink:1, flexBasis:"130px", overflow:'hidden'};
+  const ConditionalTooltip = ({keyword, children}) => {
+    if(keyword.length > 50){
+      return <Tooltip title={keyword}>{children}</Tooltip>
+    } else {
+      return <div>{children}</div>
+    }
+  }
   return (
     <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow={3} mx={gap} mb={gap} overflow="auto" textOverflow="ellipsis" fontSize="12px" bgcolor={brown[700]}>
       {currentLog.map(log => (
@@ -14,11 +22,16 @@ export default function Log({gap, currentLog}) {
           <div style={logStyle}>{log.ip}</div>
           <div style={logStyle}>{log.elapsed}초</div>
           <div style={logStyle }>{log.resultCount}건</div>
-          <Tooltip title={log.keyword}>
+          <ConditionalTooltip keyword={log.keyword}>
             <div style={{display:'flex', flexShrink:0, flexBasis:"auto", width:'300px', overflow:'hidden', textOverflow:'ellipsis'}}>{log.keyword}</div>
-          </Tooltip>
+          </ConditionalTooltip>
+          {/* <Tooltip title={log.keyword}>
+            <div style={{display:'flex', flexShrink:0, flexBasis:"auto", width:'300px', overflow:'hidden', textOverflow:'ellipsis'}}>{log.keyword}</div>
+          </Tooltip> */}
         </div>
       ))}
     </Box>
   )
 }
+
+export default React.memo(Log);

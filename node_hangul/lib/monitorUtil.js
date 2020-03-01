@@ -37,7 +37,7 @@ const mkCacheWorkerMonitor = ({pid, defaultNotifcationOption}) => {
 
 const getAllStatus = (workersMonitor) => {
     const allStatus = workersMonitor.map(workerMonitor => {
-        global.logger.info(workerMonitor.getStatus())
+        global.logger.trace(workerMonitor.getStatus())
         return workerMonitor.getStatus()
     })
     return allStatus.flat();

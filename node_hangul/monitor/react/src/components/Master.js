@@ -2,7 +2,7 @@ import React from 'react';
 import Box from '@material-ui/core/Box';
 import {brown} from '@material-ui/core/colors';
 
-export default function Master({gap, master}) {
+function Master({gap, master}) {
   const lastIndexedCount = master.lastIndexedCount ? master.lastIndexedCount : 0;
   const {searching = 0} = master;
   return (
@@ -32,3 +32,5 @@ export default function Master({gap, master}) {
         </Box>
   )
 }
+
+export default React.memo(Master);

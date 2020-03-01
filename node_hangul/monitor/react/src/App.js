@@ -62,7 +62,7 @@ export default class App extends Component {
   }
 
   updateWorkerMonitor(workerMonitor){
-    console.log('update workers:',workerMonitor)
+    // console.log('update workers:',workerMonitor)
     this.setState({
       ...this.state,
       workers: workerMonitor
@@ -88,7 +88,8 @@ export default class App extends Component {
     this.setState({
       master : {},
       workers : [],
-      currentLog : []
+      currentLog : [],
+      cacheWorkers : []
     })
   }
 

@@ -85,18 +85,25 @@ const getFileSize = (srcFile) => {
 }
 
 const indexProgress = {
-    processed : 0,
+    processed : 0, 
     oldProcessed : 0,
     async setSrcFile(srcFile){
         this.srcFile = srcFile;
         const srcFileSize = await getFileSize(srcFile);
         this.srcFileSize = srcFileSize;
     },
-    update(length){
-        const oldProcessed = ((this.processed / this.srcFileSize)*100).toFixed(0);
-        const newProcessed = (((this.processed + length) / this.srcFileSize)*100).toFixed(0) ;
-        this.processed += length;
-        oldProcessed !== newProcessed && global.logger.info(`processed ${newProcessed}%`);
+    update({bytesRead, digit=0}){
+        // console.log(this.processed, this.srcFileSize, bytesRead)
+        const oldProcessed = ((this.processed / this.srcFileSize)*100).toFixed(digit);
+        const newProcessed = ((bytesRead / this.srcFileSize)*100).toFixed(digit);
+        this.processed = bytesRead;
+        // global.logger.info(oldProcessed, newProcessed)
+        const diff = this.srcFileSize - bytesRead;
+        if(diff <= 0){
+            global.logger.info(this.srcFileSize, bytesRead);
+        }
+        if(oldProcessed !== newProcessed) return newProcessed;
+        return null;
     }
 }
 
@@ -192,6 +199,11 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
         global.logger.info('start indexing...');
         rl.on('line', (data) => {
             // console.log(rl.input.bytesRead)
+            const bytesRead = rl.input.bytesRead;
+            const digit = 0;
+            const percentProcessed = indexProgress.update({bytesRead, digit});
+            percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
+            parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
             sendLine(workers, keyStore, taskResults, lineMaker)(data)
         });
         
@@ -201,27 +213,24 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
         });
         rStream.on('close', () => {
             console.log('read stream closed!');
-            const totalProcessed = keyStore.getKey();
-            masterMonitor.setStatus('mem', getMemInfo());
-            masterMonitor.setStatus('lastIndexedCount', totalProcessed);
-            masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
+            totalProcessed = masterMonitor.getStatus('lastIndexedCount');
             resolve(totalProcessed);
         })
     })
 
 }
 
-const clear = async (workers) => {
+const clear = async ({workers, keyStore, taskResults, clearEvent}) => {
     try {
         // set uniq key (messageKey) and initialize empty result array
         global.logger.info(`clear search array start!`);
         // keyStore.init();
         const messageKey = keyStore.getNextKey();
-        workerMessages.set(messageKey, []);
+        taskResults.set(messageKey, []);
 
         const timer = setTimeout(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
-            workerMessages.delete(messageKey);
+            taskResults.delete(messageKey);
         }, CLEAR_TIMEOUT);
 
         workers.map(worker => {

@@ -55,7 +55,7 @@ class SocketServer {
         return setInterval(() => {
             const {workersMonitor, cacheWorkersMonitor} = this.getCurrentMonitor();
             const allStatus = monitorUtil.getAllStatus(workersMonitor);
-            global.logger.info('allStatus,', allStatus);
+            global.logger.trace('allStatus,', allStatus);
             this.rootNameSpace.emit('masterMonitor', masterMonitor.getStatus());
             // this.rootNameSpace.emit('workerMonitor', monitorUtil.getAllStatus(workersMonitor));
             this.rootNameSpace.emit('workerMonitor', allStatus);

@@ -8,22 +8,29 @@ const restartWorker = (childModule, argv) => {
 }
 
 const replyMonitorHandler = (message, pid) => {
-            const {monitor} = message;
-            monitorUtil.setWorkerStatus(pid, 'mem', monitor.mem);
-            monitorUtil.setWorkerStatus(pid, 'words', monitor.words);
-            monitorUtil.setWorkerStatus(pid, 'searching', monitor.searching);
-            return;
+    const {monitor} = message;
+    monitorUtil.setWorkerStatus(pid, 'mem', monitor.mem);
+    monitorUtil.setWorkerStatus(pid, 'words', monitor.words);
+    monitorUtil.setWorkerStatus(pid, 'searching', monitor.searching);
+    return;
 };
 
-const attachMessageHanlder = ({worker, taskResults, handlers}) => {
+const replyIndexHandler = (message, masterMonitor) =>{
+    const lastIndexedCount = masterMonitor.getStatus('lastIndexedCount') + 1;
+    masterMonitor.setStatus('lastIndexedCount', lastIndexedCount)
+}
+
+const attachMessageHanlder = ({worker, app, taskResults, handlers}) => {
     worker.on('message', message => {         
         const notGatherableJob = ['notify-start','reply-monitor', 'reply-index'];
        
         const {type, clientId, subType = {}, messageKey, result} = message;
         const taskType = subType.key ? subType.key : 'none';
         const resultForDebug = result.map ? result.length : result;
+        const masterMonitor = app.get('masterMonitor');
           
-        type === 'reply-index' && messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
+        // type === 'reply-index' && messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
+        type === 'reply-index' && replyIndexHandler(message, masterMonitor);
         type === 'reply-monitor' && replyMonitorHandler(message, worker.pid);
         global.logger.debug(type, notGatherableJob.includes(type));
         if(notGatherableJob.includes(type)) return; 
@@ -42,7 +49,7 @@ const attachMessageHanlder = ({worker, taskResults, handlers}) => {
 
         const ALL_DONE = resultsGathered.length === global.NUMBER_OF_WORKER;  
         if(ALL_DONE) {
-            global.logger.debug(`[${messageKey}][${taskType}][${resultForDebug}]ALL-DONE`);
+            global.logger.info(`[${messageKey}][${taskType}][${resultForDebug}]ALL-DONE`);
             taskResults.delete(messageKey);
             handlers[type]['ALL_DONE'](message, resultsGathered);
         }             
@@ -91,7 +98,7 @@ const attachExitHandler = ({worker, app, workerModule, handlers}) => {
             app.set('workersMonitor', newWorkersMoniotr)
 
             // attach messageHandler to new worker
-            attachMessageHanlder({worker: newWorker, taskResults: app.get('taskResults'), handlers});
+            attachMessageHanlder({worker: newWorker, app, taskResults: app.get('taskResults'), handlers});
             attachExitHandler({worker: newWorker, app, workerModule, handlers});
             attachErrorHandler(newWorker);
             // addListeners(workers, newWorker, workerExitHandler);

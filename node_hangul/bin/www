@@ -17,8 +17,8 @@ const monitor = require('../lib/monitor.js');
 const monitorUtil = require('../lib/monitorUtil');
 const monitorUpdateLoop = require('../lib/monitorUpdateLoop');
 const getMemInfo = require('../lib/getMemInfo');
-const workerHandlers = require('../lib/workerHandlers');
-const messageHandlers = require('../lib/messageHandlers');
+const workerHandlers = require('../lib/workerListener');
+const messageHandlers = require('../lib/workerHandler');
 
 const workerModule = path.join(__dirname, '../', 'lib/worker.js');
 const cacheModule = path.join(__dirname, '../', 'lib/cache.js');
@@ -113,7 +113,7 @@ async function main(){
   app.set('clearEvent', clearEvent);
 
   // attach eventListenr on workers (to process reply from workers)
-  workers.map(worker => workerHandlers.attachMessageHanlder({worker, taskResults, handlers}));
+  workers.map(worker => workerHandlers.attachMessageHanlder({worker, app, taskResults, handlers}));
   workers.map(worker => workerHandlers.attachExitHandler({worker, app, workerModule, handlers}));
   workers.map(worker => workerHandlers.attachErrorHandler(worker));
 
