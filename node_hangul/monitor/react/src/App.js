@@ -9,6 +9,7 @@ import Log from './components/Log';
 import Worker from './components/Worker';
 import Cache from './components/Cache';
 import Constants from './config/Constants';
+import PrettoSlide from './components/PrettoSlide';
 import {brown} from '@material-ui/core/colors';
 import {withStyles} from '@material-ui/core/styles';
 import axiosRequest from './lib/axiosRequest';
@@ -33,7 +34,8 @@ export default class App extends Component {
       master : {},
       workers : [],
       cacheWorkers : [],
-      currentLog : []
+      currentLog : [],
+      progress: 0
     }
   }  
   
@@ -48,6 +50,7 @@ export default class App extends Component {
     socket.on('workerMonitor', this.updateWorkerMonitor.bind(this));
     socket.on('cacheWorkerMonitor', this.updateCacheWorkerMonitor.bind(this));
     socket.on('logMonitor', this.updateLogMonitor.bind(this));
+    socket.on('progress', this.updateProgress.bind(this))
     socket.on('error', this.resetState.bind(this));
     socket.on('disconnect', this.resetState.bind(this));
     socket.on('connect_error', this.resetState.bind(this));
@@ -77,10 +80,18 @@ export default class App extends Component {
   }
 
   updateLogMonitor(logMonitor){
-    console.log('update log:',logMonitor)
+    console.log('update log:',logMonitor);
     this.setState({
       ...this.state,
       currentLog: logMonitor
+    })
+  }
+
+  updateProgress(progress){
+    console.log('update progress: ',progress);
+    this.setState({
+      ...this.state,
+      progress
     })
   }
 
@@ -103,8 +114,17 @@ export default class App extends Component {
     console.log(result);
   }
 
+  async onClickCacheClear(){
+    const result = await axiosRequest.get('clearCache');
+    console.log(result);
+  }
+
+  handleSliderChange(){
+    console.log('changed');
+  }
+
   render() {
-    const {workers, master, currentLog, cacheWorkers} = this.state;
+    const {workers, master, currentLog, cacheWorkers, progress} = this.state;
     const gap = 0.3;
     return (
       <Box display="flex" flexDirection="column" height="100vh" className="App">
@@ -122,8 +142,10 @@ export default class App extends Component {
             <Worker gap={gap} workers={workers}></Worker>
           </Box>
         </Box>
+        <PrettoSlide value={progress} onChange={this.handleSliderChange} aria-labelledby="continuous-slider" />
         <Box display="flex" flexDirection="row" justifyContent="space-around" alignItems="center" flexGrow="1" mx={gap} mb={gap} bgcolor={brown[900]}>
             <BrownButton onClick={this.onClickLoad} variant="contained" color="primary"  size="medium">load</BrownButton> 
+            <BrownButton onClick={this.onClickCacheClear} variant="contained" color="primary"  size="medium">clear cache</BrownButton>
             <BrownButton onClick={this.onClickClear} variant="contained" color="primary"  size="medium">clear</BrownButton>
           </Box>
       </Box>

@@ -203,6 +203,7 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
             const digit = 0;
             const percentProcessed = indexProgress.update({bytesRead, digit});
             percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
+            percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
             parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
             sendLine(workers, keyStore, taskResults, lineMaker)(data)
         });
@@ -246,7 +247,14 @@ const clear = async ({workers, keyStore, taskResults, clearEvent}) => {
     } catch (err) {
         global.logger.error(err);
     }
+}
 
+const clearCache = async (cacheWorkers) => {
+    const clearJobs = cacheWorkers.map(async cacheWorker => {
+        const job = {cmd : 'clear'};
+        return await cacheWorker.runJob(job);
+    })
+    return Promise.all(clearJobs);
 }
 
 const search = async ({workers, keyStore, taskResults, searchEvent, params}) => {
@@ -322,14 +330,14 @@ const createWorkers = (maxWorkers, workerModule, app) => {
     return workers;       
 }
 
-const createCacheWorkers = (maxCache, cacheModule) => {
+const createCacheWorkers = (maxCache, cacheModule) => { 
     return workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit)
 }
 
-const initCacheWorkers = async (maxCache) => {
-    const cacheWorkers = workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit);
-    return cacheWorkers
-}
+// const initCacheWorkers = async (maxCache) => {
+//     const cacheWorkers = workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit);
+//     return cacheWorkers
+// }
  
 module.exports = {
     createWorkers,
@@ -338,5 +346,6 @@ module.exports = {
     load,
     search,
     clear,
-    initCacheWorkers
+    clearCache
+    // initCacheWorkers
 }

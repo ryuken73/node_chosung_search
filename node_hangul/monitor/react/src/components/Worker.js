@@ -17,7 +17,7 @@ function Worker({gap, workers}) {
           flexWrap="wrap" 
           flexGrow="1" 
           mx={gap} 
-          mb={gap} 
+          // mb={gap} 
           bgcolor={brown[700]}
         >
           {workers.map(worker => 

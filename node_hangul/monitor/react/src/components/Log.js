@@ -14,7 +14,7 @@ function Log({gap, currentLog}) {
     }
   }
   return (
-    <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow={3} mx={gap} mb={gap} overflow="auto" textOverflow="ellipsis" fontSize="12px" bgcolor={brown[700]}>
+    <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow={3} mx={gap} overflow="auto" textOverflow="ellipsis" fontSize="12px" bgcolor={brown[700]}>
       {currentLog.map(log => (
         <div style={{display:"flex", marginLeft:"10px", marginTop:'3px', flexDirection:"row", justifyContent:"flex-start", height:"1.2em", color: log.cacheHit && 'cyan'}}>
           <div style={logStyle}>{log.eventTime}</div>
