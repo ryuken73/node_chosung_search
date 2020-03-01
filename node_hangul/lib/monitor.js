@@ -27,7 +27,7 @@ class Monitor {
         }
     }
     broadcast({eventName, message=this.getStatus()}){
-        global.logger.info(`broadcast ${eventName} ${message}`);
+        global.logger.debug(`broadcast ${eventName} ${message}`);
         try{
             this.io && this.io.emit(eventName, message);
         } catch(err) {
