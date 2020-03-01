@@ -47,8 +47,8 @@ async function main(){
 
   const io = require('socket.io')(server);
 
-  // in the router, can broadcast message using req.app.get('io').sockets.emit()
-  // in the router, can emit message using req.app.get('io').sockets.connected[socketio].emit()
+  // In the router, you can broadcast message using req.app.get('io').sockets.emit()
+  // In the router, you can emit message using req.app.get('io').sockets.connected[socketio].emit()
   app.set('io',io); 
   app.set('sockets', io.sockets);
   const socketServer = sockApp.createServer(io);
@@ -95,10 +95,11 @@ async function main(){
   app.set('workers', workers);
   app.set('cacheWorkers', cacheWorkers);
 
+  // monitorUtil can can access app (workersMonitor and cacheWorkersMonitor)
   monitorUtil.initialize(app);
 
-  const workersMonitor = workers.map(worker => monitorUtil.mkWorkerMonitor({worker, defaultNotifcationOption}));
-  const cacheWorkersMonitor = cacheWorkers.map(worker => monitorUtil.mkCacheWorkerMonitor({worker, defaultNotifcationOption}));
+  const workersMonitor = workers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
+  const cacheWorkersMonitor = cacheWorkers.map(worker => monitorUtil.mkCacheWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
   global.logger.debug(`workersMonitor initial status:`, workersMonitor[0].getStatus());
 
   app.set('workersMonitor', workersMonitor);
@@ -107,47 +108,20 @@ async function main(){
   // make worker message handler (message from worker emit search done or clear done event)
   const searchEvent = new eventEmitter();
   const clearEvent = new eventEmitter();
-  const handlers = messageHandlers.init({searchEvent, clearEvent, masterMonitor});
+  const handlers = messageHandlers.initialize({searchEvent, clearEvent, masterMonitor});
   app.set('searchEvent', searchEvent);
   app.set('clearEvent', clearEvent);
 
-  // const workerExitHandler = (app) => {
-  //   return (oldWorker, newWorker) => {
-  //     global.logger.info(`replace worker : old[${oldWorker.pid}] new[${newWorker.pid}]`);
-  //     const workers = app.get('workers');
-  //     // console.log(workers);
-  //     const newWorkers = [
-  //       ...workers.filter(worker => worker.pid !== oldWorker.pid),
-  //       newWorker
-  //     ]
-  //     // console.log(newWorkers);
-  //     app.set('workers', newWorkers);
-
-
-  //     const monitorStores = app.get('monitorStores');
-
-  //     master.attachMessageEventHandler(app)
-  //     monitorStores.workerMonitorStore.delWorker(oldWorker.pid);
-  //     monitorStores.workerMonitorStore.addWorker(newWorker.pid);
-  //   }
-  // }
-
   // attach eventListenr on workers (to process reply from workers)
-  workers.map(worker => workerHandlers.attachMessageHanlder({worker, app, taskResults, handlers}));
+  workers.map(worker => workerHandlers.attachMessageHanlder({worker, taskResults, handlers}));
   workers.map(worker => workerHandlers.attachExitHandler({worker, app, workerModule, handlers}));
   workers.map(worker => workerHandlers.attachErrorHandler(worker));
-   
-  //const [workers, cacheWorkers, monitorStores] = await master.init(global.NUMBER_OF_WORKER, global.NUMBER_OF_CACHE, io, handleWorkerExit(app));
-  
-  // app.set('workers', workers);
-  // app.set('cacheWorkers', cacheWorkers);
-  // app.set('monitorStores', monitorStores);
 
   socketServer.setMonitorStores(app);
   socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
   monitorUpdateLoop.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.workers(workers, global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.cacheWorkers(cacheWorkers, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUpdateLoop.workers(app, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUpdateLoop.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
   // master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
   // master.attachMessageEventHandler(app);
 

@@ -4,10 +4,10 @@ const getMemInfo = require('./getMemInfo');
 let app ;
 const initialize = (appRef) => {app = appRef;}
 
-const mkWorkerMonitor = ({worker, defaultNotifcationOption}) => {
+const mkWorkerMonitor = ({pid, defaultNotifcationOption}) => {
     // global.logger.trace('called mkWorkerMonitor,',defaultNotifcationOption);
     const initialStatus = {
-        pid : worker.pid,
+        pid ,
         mem : getMemInfo(),
         words : 0,
         searching : 0
@@ -20,10 +20,10 @@ const mkWorkerMonitor = ({worker, defaultNotifcationOption}) => {
     return monitor.createMonitor(options);
 }
   
-const mkCacheWorkerMonitor = ({worker, defaultNotifcationOption}) => {
+const mkCacheWorkerMonitor = ({pid, defaultNotifcationOption}) => {
     // global.logger.trace('called mkCacheWorkerMonitor,',defaultNotifcationOption);
     const initialStatus = {
-        pid : worker.pid,
+        pid ,
         mem : getMemInfo(),
         cacheCount : 0,
         cacheHit : 0
@@ -37,6 +37,7 @@ const mkCacheWorkerMonitor = ({worker, defaultNotifcationOption}) => {
 
 const getAllStatus = (workersMonitor) => {
     const allStatus = workersMonitor.map(workerMonitor => {
+        global.logger.info(workerMonitor.getStatus())
         return workerMonitor.getStatus()
     })
     return allStatus.flat();

@@ -12,7 +12,7 @@ class Monitor {
         this.status = initialStatus.map ? new Map(initialStatus) : new Map(Object.entries(initialStatus));
         if(bcastIO){
             this.io = bcastIO;
-            this.broadcast({eventName:bcastDefaultEventName});
+            // this.broadcast({eventName:bcastDefaultEventName});
         }
     }   
     getStatus(key){

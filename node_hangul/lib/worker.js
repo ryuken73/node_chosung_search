@@ -270,12 +270,13 @@ process.on('message', message => {
 process.on('message', message => {
     if(message === 'requestMonitor'){
         process.send({
-            type: 'responseMonitor',
-            monitor : {
+            type: 'reply-monitor',
+            monitor: {
                 mem: getMemInfo(),
                 words: songArray.length,
                 searching: searchCount
-            }
+            },
+            result:[]
         })
     }
 })

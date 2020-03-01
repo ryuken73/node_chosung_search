@@ -32,6 +32,7 @@ class SocketServer {
         }
     }
     setMonitorStores(app){
+        this.app = app;
         const logMonitor = app.get('logMonitor');
         const masterMonitor = app.get('masterMonitor');
         const workersMonitor = app.get('workersMonitor');
@@ -43,12 +44,21 @@ class SocketServer {
             cacheWorkersMonitor
         };
     }
+    getCurrentMonitor(){
+        const workersMonitor = this.app.get('workersMonitor');
+        const cacheWorkersMonitor = this.app.get('cacheWorkersMonitor');
+        return {workersMonitor, cacheWorkersMonitor};
+    }
     startBroadcastLoop(interval = 5000){
         global.logger.info('start broadcast loop!');
-        const {masterMonitor, workersMonitor, cacheWorkersMonitor} = this.monitors;
+        const {masterMonitor} = this.monitors;
         return setInterval(() => {
+            const {workersMonitor, cacheWorkersMonitor} = this.getCurrentMonitor();
+            const allStatus = monitorUtil.getAllStatus(workersMonitor);
+            global.logger.info('allStatus,', allStatus);
             this.rootNameSpace.emit('masterMonitor', masterMonitor.getStatus());
-            this.rootNameSpace.emit('workerMonitor', monitorUtil.getAllStatus(workersMonitor));
+            // this.rootNameSpace.emit('workerMonitor', monitorUtil.getAllStatus(workersMonitor));
+            this.rootNameSpace.emit('workerMonitor', allStatus);
             this.rootNameSpace.emit('cacheWorkerMonitor', monitorUtil.getAllStatus(cacheWorkersMonitor));
         }, interval)
     }

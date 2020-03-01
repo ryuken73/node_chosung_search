@@ -1,4 +1,4 @@
-const init = ({searchEvent, clearEvent, masterMonitor}) => {
+const initialize = ({searchEvent, clearEvent, masterMonitor}) => {
     const handlers = {
         'notify-start' : {
             'TIME_OUT' : function(){},
@@ -39,12 +39,19 @@ const init = ({searchEvent, clearEvent, masterMonitor}) => {
             }    
         },
         'reply-clear' : {
-            'TIME_OUT' : function(){},
+            'TIME_OUT' : function(message){
+                // timed out or disappered by unknown action
+                const {clientId, messageKey} = message;
+                global.logger.error(`[${messageKey}][${clientId}] clear reply timed out!`)
+                clearEvent.emit(`fail_${messageKey}`);
+                return
+            },
             'ALL_DONE' : function(message){
                 global.logger.info(`Clearing all worker's data done!`);
                 masterMonitor.setStatus('lastIndexedDate', '');
                 masterMonitor.setStatus('lastIndexedCount', 0);
                 clearEvent.emit(`success_${messageKey}`);
+                return
             }     
         },       
     }
@@ -52,9 +59,6 @@ const init = ({searchEvent, clearEvent, masterMonitor}) => {
     return handlers;
 }
      
-
-
-
 module.exports = {
-    init
+    initialize
 }
