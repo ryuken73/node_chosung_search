@@ -34,12 +34,6 @@ const createSongObj = (data) => {
         return {
             artistName,
             songName,
-            // artistNsong : supportThreeWords ? `${artistName} ${songName}` : '',
-            // songNartist : supportThreeWords ? `${songName} ${artistName}` : '',
-            // artistNsongNoBlank : `${songName.replace(/\s+/g, '')} ${artistName.replace(/\s+/g, '')}`,
-            // songNartistNoBlank : `${artistName.replace(/\s+/g, '')} ${songName.replace(/\s+/g, '')}`,
-            // artistNsongNartist : supportThreeWords ? `${artistName} ${songName} ${artistName}` : '',
-            // artistNsongNartistNoBlank : `${songName.replace(/\s+/g, '')} ${artistName.replace(/\s+/g, '')} ${songName.replace(/\s+/g, '')}`,
             combinedName : `${artistNsongNartist} ${artistNsongNartistNoBlank}`,
             year,
             label
@@ -110,12 +104,6 @@ const msgHandlers = {
             const lineLength = data.line.length + 2;
             songObject.jamoArtist = getJAMO(songObject.artistName);
             songObject.jamoSong = getJAMO(songObject.songName);
-            // songObject.jamoArtistNSong = getJAMO(songObject.artistNsong);
-            // songObject.jamoSongNArtist = getJAMO(songObject.songNartist);
-            // songObject.jamoArtistNSongNoBlank = getJAMO(songObject.artistNsongNoBlank);
-            // songObject.jamoSongNArtistNoBlank = getJAMO(songObject.songNartistNoBlank);
-            // songObject.jamoASongA = getJAMO(songObject.artistNsongNartist);
-            // songObject.jamoASongANoBlank = getJAMO(songObject.artistNsongNartistNoBlank);
             songObject.jamoCombinedName= getJAMO(songObject.combinedName);
 
             songArray.push(songObject);
@@ -128,11 +116,6 @@ const msgHandlers = {
                 lineLength
 
             });
-            if(songArray.length % 100000 === 0){
-                //console.log(`pid[${process.pid}] processed[${songArray.length}]`);
-                //console.log(process.pid, errored.length)
-            }
-
         } catch (err) {
             console.error(err);
             process.exit();
@@ -152,8 +135,6 @@ const msgHandlers = {
         let firstRegExpr,secondRegExpr;
 
         if(searchMode.complex){
-            // const artists = upperCased.split(' ');
-            // const regPattern = `/${artists.join('.+')}/`;
             const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased, WORDSEPARATOR);
             firstRegExpr = mkRegExpr(firstUpperCased, spacing=true);
             secondRegExpr = mkRegExpr(secondUpperCased, spacing=true);     
@@ -242,12 +223,6 @@ const msgHandlers = {
 
 function threeWordsSearch(songArray, keywordExpr, keywordExprCanBeNospacing){
     return songArray.filter(song => {
-        // return song.jamoArtistNSong.toUpperCase().search(keywordExprCanBeNospacing) != -1 
-        //     || song.jamoSongNArtist.toUpperCase().search(keywordExprCanBeNospacing) != -1
-        //     || song.jamoArtistNSongNoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1
-        //     || song.jamoSongNArtistNoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1
-        // return song.jamoASongA.toUpperCase().search(keywordExprCanBeNospacing) != -1 ?
-            // || song.jamoASongANoBlank.toUpperCase().search(keywordExprCanBeNospacing) != -1?
         return song.jamoCombinedName.toUpperCase().search(keywordExprCanBeNospacing) != -1
     })
 }

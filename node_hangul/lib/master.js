@@ -1,76 +1,12 @@
 const child_process = require('child_process');
 const fs = require('fs');
 const readline = require('readline');
-const path = require('path');
 
 const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
 const workerPool = require('./workPool');
-const getMemInfo = require('./getMemInfo');
 
-const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
-const PROGRESS_UNIT = 100000;
-
-const NEED_ORDERING = false;
-
-let clearResults = new Map();
-
-// console.log(SEARCH_TIMEOUT)
-
-// const getCombined = (results) => {
-//     return results.flat();
-// }
-
-// const orderFunc = (results, subType) => {
-//     // need to be written case by case (own ordering logic)
-//     // results looks like
-//     // [[{artistName, songName, ...},{..}],[],[]]
-//     let sortKey;
-//     switch(subType.key){
-//         case 'artist' :
-//             sortKey = 'artistName';
-//             break;
-//         case 'artistJAMO' :
-//             sortKey = 'artistName';
-//             break;  
-//         case 'song' :
-//             sortKey = 'songName';
-//             break;  
-//         case 'songJAMO' :
-//             sortKey = 'songName';
-//             break;
-//         case 'artistNsong' :
-//             sortKey = 'artistName';
-//             break;
-//         case 'songNartist' :
-//             sortKey = 'songName';
-//             break;
-//     }
-
-//     const origResult = [...results].flat();
-//     const flattened = [...origResult];
-//     flattened.sort((a,b) => {
-//         return a[sortKey] > b[sortKey] ? 1 : a[sortKey] < b[sortKey] ? -1 : 0;
-//     })
-//     global.logger.debug(`before sort : %j`, origResult);
-//     global.logger.debug(`after sort : %j`, flattened);
-    
-//     return flattened
-// }
-
-// const getOrdered = (results, subType, orderFunction) => {
-//     return orderFunction(results, subType);
-// }
-
-// const clearWorkerMessages = () => {
-//     return new Map();
-// }
-
-// const restartWorker = (childModule, argv) => {
-//     global.logger.info('start new worker messageKey :', argv)
-//     return child_process.fork(childModule, argv);
-// }
 
 const getFileSize = (srcFile) => {
     return new Promise((resolve, reject) => {
@@ -107,35 +43,9 @@ const indexProgress = {
     }
 }
 
-// function reqplyClearHandler(message) {
-//     const {clientId, messageKey, success} = message;
-//     global.logger.info(`[${messageKey}][${clientId}] clear result[${success}]`);
-//     const results = workerMessages.get(messageKey);  
-//     const TIMED_OUT = !workerMessages.has(messageKey);
-//     if(TIMED_OUT) {
-//         // timed out or disappered by unknown action
-//         console.log(`[${messageKey}] clear reply timed out!`)
-//         clearEvent.emit(`fail_${messageKey}`);
-//         return false;
-//     }
-//     results.push(success);
-//     const ALL_CLEAR_DONE = results.length === NUMBER_OF_WORKER;
-//     if(ALL_CLEAR_DONE){
-//         clearEvent.emit(`success_${messageKey}`);
-//         workerMessages.delete(messageKey)
-//     }
-// }
-
-
 // main
-let totalLineBytes = 0;
-let totalprocessed = 0;
 const sendLine = (workers, keyStore, taskResults, lineMaker) => {
     return line => {
-        // console.log(line)
-        // totalLineBytes += line.length + 5;
-        // totalprocessed += 1
-        // global.logger.info(totalLineBytes - 5, totalprocessed);
      const combinedLine = `${lineMaker.startOfLine}${line}`
     //  console.log(combinedLine)
      if(lineMaker.hasProperColumns(combinedLine)){
@@ -214,7 +124,7 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
         });
         rStream.on('close', () => {
             console.log('read stream closed!');
-            totalProcessed = masterMonitor.getStatus('lastIndexedCount');
+            const totalProcessed = masterMonitor.getStatus('lastIndexedCount');
             resolve(totalProcessed);
         })
     })
@@ -334,18 +244,11 @@ const createCacheWorkers = (maxCache, cacheModule) => {
     return workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit)
 }
 
-// const initCacheWorkers = async (maxCache) => {
-//     const cacheWorkers = workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit);
-//     return cacheWorkers
-// }
- 
 module.exports = {
     createWorkers,
-    // restartWorker,
     createCacheWorkers,
     load,
     search,
     clear,
     clearCache
-    // initCacheWorkers
 }
