@@ -3,7 +3,7 @@ const constants = {
     urls : {
         'load': '/loadSong/useWorkers',
         'clear': '/clearSong',
-        'clearCache': '/clearCacche'
+        'clearCache': '/clearCache'
     }
 }
 
