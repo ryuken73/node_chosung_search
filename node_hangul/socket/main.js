@@ -1,9 +1,11 @@
+const monitorUtil = require('../lib/monitorUtil');
+
 class SocketServer {
     constructor(io){
         global.logger.info('create Socket Server!')
         this.rootNameSpace = io.of('/');
         this.io = io;
-        this.monitorStores = {};
+        this.monitors = {};
       
         this.rootNameSpace.on('connect', (socket) => {
             console.log('connect on root namespace')
@@ -17,7 +19,8 @@ class SocketServer {
         global.logger.debug(message);
         socket.nsp.emit('msg', message); 
         socket.emit('notify-your-socketid', socket.id); 
-        this.monitorStores.logMonitorStore && this.rootNameSpace.emit('logMonitor',this.monitorStores.logMonitorStore.getMonitor().log);
+        this.monitors.logMonitor && this.rootNameSpace.emit('logMonitor',this.monitors.logMonitor.getStatus().log);
+        this.monitors.masterMonitor && this.rootNameSpace.emit('masterMonitor',this.monitors.masterMonitor.getStatus());   
     }
     commonDisconnectHandler(socket){
         return (reason) => {
@@ -28,19 +31,35 @@ class SocketServer {
             socket.nsp.emit('msg', message);
         }
     }
-    setMonitorStores(monitorStores){
-        global.logger.trace(monitorStores.masterMonitorStore.getMonitor())
-        global.logger.trace(monitorStores.workerMonitorStore.getMonitor())
-        this.monitorStores = monitorStores;
+    setMonitorStores(app){
+        this.app = app;
+        const logMonitor = app.get('logMonitor');
+        const masterMonitor = app.get('masterMonitor');
+        const workersMonitor = app.get('workersMonitor');
+        const cacheWorkersMonitor = app.get('cacheWorkersMonitor');
+        this.monitors = {
+            logMonitor,
+            masterMonitor,
+            workersMonitor,
+            cacheWorkersMonitor
+        };
+    }
+    getCurrentMonitor(){
+        const workersMonitor = this.app.get('workersMonitor');
+        const cacheWorkersMonitor = this.app.get('cacheWorkersMonitor');
+        return {workersMonitor, cacheWorkersMonitor};
     }
     startBroadcastLoop(interval = 5000){
         global.logger.info('start broadcast loop!');
-        const {masterMonitorStore, workerMonitorStore, cacheWorkerMonitorStore} = this.monitorStores;
-        // this.rootNameSpace.emit('logMonitor',this.monitorStores.logMonitorStore.getMonitor().log);
+        const {masterMonitor} = this.monitors;
         return setInterval(() => {
-            this.rootNameSpace.emit('masterMonitor', masterMonitorStore.getMonitor());
-            this.rootNameSpace.emit('workerMonitor', workerMonitorStore.getMonitor());
-            this.rootNameSpace.emit('cacheWorkerMonitor', cacheWorkerMonitorStore.getMonitor());
+            const {workersMonitor, cacheWorkersMonitor} = this.getCurrentMonitor();
+            const allStatus = monitorUtil.getAllStatus(workersMonitor);
+            global.logger.trace('allStatus,', allStatus);
+            this.rootNameSpace.emit('masterMonitor', masterMonitor.getStatus());
+            // this.rootNameSpace.emit('workerMonitor', monitorUtil.getAllStatus(workersMonitor));
+            this.rootNameSpace.emit('workerMonitor', allStatus);
+            this.rootNameSpace.emit('cacheWorkerMonitor', monitorUtil.getAllStatus(cacheWorkersMonitor));
         }, interval)
     }
     getInfo(socket){

@@ -9,8 +9,8 @@ module.exports = function(hangulStr){
 	
 	// return hangul.disassemble(hangulStr).join('');	
 	const disassembled = hangul.disassemble(hangulStr).join('');
-	const whitespaceRemoved = disassembled.replace(/\s+/g, ' ');
-	return whitespaceRemoved;
+	// const whitespaceRemoved = disassembled.replace(/\s+/g, ' ');
+	return disassembled;
 
 };
 

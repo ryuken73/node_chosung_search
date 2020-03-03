@@ -9,10 +9,12 @@ const cors = require('cors');
 const routes = require('./routes/index');
 const users = require('./routes/users');
 const config = require('./config.json');
+const heapdump = require('heapdump');
 
 global.SRC_FILE = config.SRC_FILE || 'c:/temp/song_mst.txt';
 global.SEARCH_TIMEOUT = config.SEARCH_TIMEOUT || 10000;
 global.CLEAR_TIMEOUT = config.CLEAR_TIMEOUT || 5000;
+global.MAX_SEARCH_RETURN_COUNT = config.MAX_SEARCH_RETURN_COUNT || 500;
 global.NUMBER_OF_WORKER = config.NUMBER_OF_WORKER === undefined ? 5 : config.NUMBER_OF_WORKER ;
 global.NUMBER_OF_CACHE = config.NUMBER_OF_CACHE === undefined ? 2 : config.NUMBER_OF_CACHE ;
 global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
@@ -71,6 +73,17 @@ app.use('/loadSong', require('./routes/loadSong'));
 app.use('/search', require('./routes/search'));
 app.use('/searchSong', require('./routes/searchSong'));
 app.use('/clearSong', require('./routes/clearSong'));
+app.use('/clearCache', require('./routes/clearCache'));
+
+app.use('/heapdump',function(req,res,next){
+  var filename = '/Users/terry/heapdump' + Date.now() + '.heapsnapshot';
+  heapdump.writeSnapshot(filename);
+  res.send('Heapdump has been generated in '+filename);
+});
+
+
+
+출처: https://bcho.tistory.com/1097 [조대협의 블로그]
 
 
 // catch 404 and forward to error handler

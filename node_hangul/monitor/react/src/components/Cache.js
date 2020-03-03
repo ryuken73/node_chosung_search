@@ -2,7 +2,7 @@ import React from 'react';
 import Box from '@material-ui/core/Box';
 import {brown} from '@material-ui/core/colors';
 
-export default function Cache({gap, caches}) {
+function Cache({gap, caches}) {
   const smallFontSize = `${10 - (caches.length/3)}px`;
   const mediumFontSize = `${13 - (caches.length/3)}px`;
   const bigFontSize = `${22 - (caches.length/3)}px`;
@@ -40,3 +40,5 @@ export default function Cache({gap, caches}) {
     </Box>
   )
 }
+
+export default React.memo(Cache);
