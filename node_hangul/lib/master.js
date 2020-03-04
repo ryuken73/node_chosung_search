@@ -245,11 +245,7 @@ const createWorkers = (maxWorkers, workerModule, app) => {
     })
 
     workers.map(worker => global.logger.info(`[${worker.pid}]worker started!`));
-<<<<<<< HEAD
     console.log(workers[0].channel)
-=======
-    console.log(workers[0].channel);
->>>>>>> 411a1d62285b47b44e953a87e66eb336d6311721
 
     return workers;       
 }
