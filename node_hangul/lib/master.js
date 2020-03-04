@@ -73,6 +73,7 @@ const sendLine = (workers, keyStore, taskResults, lineMaker) => {
          global.logger.info('not proper number of columns : ',combinedLine, lineMaker.hasProperColumns(combinedLine));
          //global.logger.trace(combinedLine)
          lineMaker.startOfLine = combinedLine.replace(lineMaker.lineSep, '');
+	 return true;
      }
  }
 } 
@@ -85,7 +86,7 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
             wordSep  : '"^"',
             lineSep  : '\r\n',
             encoding : 'utf8',
-            highWaterMark : 64 * 1024 * 10,
+            highWaterMark : 64 * 1024,
             end : global.INDEXING_BYTES,
         }
         const combinedOpts = {
@@ -121,8 +122,8 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
             if(!canSendMore){
                 // just pause readstream 1 second!
                 global.logger.info('pause stream!')
-                rStream.emit('pause');
-                setTimeout(() => {global.logger.info('resume stream');rStream.resume()},5000);
+                rStream.pause();
+                setTimeout(() => {global.logger.info('resume stream');rStream.resume()},100);
             }
         });
         
@@ -244,7 +245,11 @@ const createWorkers = (maxWorkers, workerModule, app) => {
     })
 
     workers.map(worker => global.logger.info(`[${worker.pid}]worker started!`));
+<<<<<<< HEAD
     console.log(workers[0].channel)
+=======
+    console.log(workers[0].channel);
+>>>>>>> 411a1d62285b47b44e953a87e66eb336d6311721
 
     return workers;       
 }
