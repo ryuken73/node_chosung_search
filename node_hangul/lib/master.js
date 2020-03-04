@@ -117,7 +117,12 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
             percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
             percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
             parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
-            sendLine(workers, keyStore, taskResults, lineMaker)(data)
+            const canSendMore = sendLine(workers, keyStore, taskResults, lineMaker)(data);
+            if(!canSendMore){
+                // just pause readstream 1 second!
+                rStream.emit('pause');
+                setTimeout(() => {rStream.resume()},1000);
+            }
         });
         
         rl.on('end', () => { 
