@@ -120,8 +120,9 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
             const canSendMore = sendLine(workers, keyStore, taskResults, lineMaker)(data);
             if(!canSendMore){
                 // just pause readstream 1 second!
+                global.logger.info('pause stream!')
                 rStream.emit('pause');
-                setTimeout(() => {rStream.resume()},1000);
+                setTimeout(() => {global.logger.info('resume stream');rStream.resume()},1000);
             }
         });
         
