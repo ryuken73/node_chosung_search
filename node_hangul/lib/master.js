@@ -63,8 +63,10 @@ const sendLine = (workers, keyStore, taskResults, lineMaker) => {
                  supportThreeWords,
              },
          }
-         workers[workerIndex].send(job); 
+         const canSendMore = workers[workerIndex].send(job); 
          lineMaker.startOfLine = '';
+         if(!canSendMore) global.logger.info(`cannot send to child process(send backlog full): ${messageKey}`);
+         return canSendMore;
      } else {
          // to prepend line to next line 
          // this can be occurred, when words contains \r\n.
