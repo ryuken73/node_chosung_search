@@ -122,7 +122,7 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
                 // just pause readstream 1 second!
                 global.logger.info('pause stream!')
                 rStream.emit('pause');
-                setTimeout(() => {global.logger.info('resume stream');rStream.resume()},1000);
+                setTimeout(() => {global.logger.info('resume stream');rStream.resume()},5000);
             }
         });
         
