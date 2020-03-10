@@ -146,20 +146,31 @@ function broadcastSearch(masterMonitorStore, type){
 	masterMonitorStore.broadcast({eventName:'masterMonitor'});	
 }
 
-function sortThreeWords(pattern){
+function sortThreeWords(patternOriginal){
 	return (a, b) => {
+		const pattern = patternOriginal.replace(/\s+$/,'');
+		const sortByKey = sortBy(a,b);
 		const AB = -1;
 		const BA = 1;
 		if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
 		if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
 		if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
 		if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
-		if(a.artistName > b.artistName) return BA;
-		if(a.artistName < b.artistName) return AB;
-		if(a.songName > b.songName) return BA;
-		if(a.songName < b.songName) return AB;
+		const sortByArtistName = sortByKey('artistName');
+		const sortBysongName = sortByKey('songName');
+		return sortByArtistName || sortBysongName || 0;
+	}
+}
 
-		return 0;
+function sortBy(a,b) {
+	return key => {
+		// if key value is empty, push back
+		if(a[key] === '') return 1;
+		if(b[key] === '') return -1;
+		// normal order
+		if(a[key] > b[key]) return 1;
+		if(a[key] < b[key]) return -1;
+		return false
 	}
 }
 
