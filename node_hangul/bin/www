@@ -4,11 +4,28 @@
  * Module dependencies.
  */
 
-var app = require('../app');
-var debug = require('debug')('node_db2:server');
-var http = require('http');
+const app = require('../app');
+const debug = require('debug')('node_db2:server');
+const http = require('http');
+const path = require('path');
+const EventEmitter = require('events');
+class eventEmitter extends EventEmitter {}
 const sockApp = require('../socket/main');
+const keyGen = require('../lib/keyGen');
 const master = require('../lib/master');
+const monitor = require('../lib/monitor.js');
+const monitorUtil = require('../lib/monitorUtil');
+const monitorUpdateLoop = require('../lib/monitorUpdateLoop');
+const getMemInfo = require('../lib/getMemInfo');
+const workerHandlers = require('../lib/workerListener');
+const messageHandlers = require('../lib/workerHandler');
+
+const workerModule = path.join(__dirname, '../', 'lib/worker.js');
+const cacheModule = path.join(__dirname, '../', 'lib/cache.js');
+
+// const childProcessMonitor = require('../lib/workerMonitor');
+
+
 
 /**
  * Get port from environment and store in Express.
@@ -30,42 +47,83 @@ async function main(){
 
   const io = require('socket.io')(server);
 
-  // in the router, can broadcast message using req.app.get('io').sockets.emit()
-  // in the router, can emit message using req.app.get('io').sockets.connected[socketio].emit()
+  // In the router, you can broadcast message using req.app.get('io').sockets.emit()
+  // In the router, you can emit message using req.app.get('io').sockets.connected[socketio].emit()
   app.set('io',io); 
   app.set('sockets', io.sockets);
   const socketServer = sockApp.createServer(io);
-
-  // initialize search workers
-
-  const handleWorkerExit = (app) => {
-    return (oldWorker, newWorker) => {
-      global.logger.info(`replace worker : old[${oldWorker.pid}] new[${newWorker.pid}]`);
-      const workers = app.get('workers');
-      // console.log(workers);
-      const newWorkers = [
-        ...workers.filter(worker => worker.pid !== oldWorker.pid),
-        newWorker
-      ]
-      // console.log(newWorkers);
-      app.set('workers', newWorkers);
-      const monitorStores = app.get('monitorStores');
-      master.attachMessageEventHandler(app)
-      monitorStores.workerMonitorStore.delWorker(oldWorker.pid);
-      monitorStores.workerMonitorStore.addWorker(newWorker.pid);
-    }
+  const defaultNotifcationOption = {
+    enabled: true,
+    bcastIO: io
   }
 
-  const [workers, cacheWorkers, monitorStores] = await master.init(global.NUMBER_OF_WORKER, global.NUMBER_OF_CACHE, io, handleWorkerExit(app));
-  
+  // create log monitor (to broadcast serach history using socket.io)
+  const logMonitorOptions = {
+    initialStatus: {
+      log: []
+    },
+    notification: {...defaultNotifcationOption, ...{bcastDefaultEventName:'logMonitor'}}
+  }
+  const logMonitor = monitor.createMonitor(logMonitorOptions);
+  global.logger.debug(`logMonitor initial status:`, logMonitor.getStatus()['log']);
+
+  const masterMonitorOptions = {
+    initialStatus: {
+      lastIndexedDate : '',
+      lastIndexedCount : 0,
+      pid : process.pid,
+      mem : getMemInfo(),
+      searching : 0
+    },
+    notification: {...defaultNotifcationOption, ...{bcastDefaultEventName:'masterMonitor'}} 
+  }
+  const masterMonitor = monitor.createMonitor(masterMonitorOptions);
+  global.logger.debug(`masterMonitor initial status:`, masterMonitor.getStatus());
+
+  app.set('masterMonitor', masterMonitor);
+  app.set('logMonitor', logMonitor);
+
+  // initialize taskkey and tasks to hold child process message key and tracking job
+  const taskKey = keyGen.createKeyGenerator();
+  const taskResults = new Map();
+  app.set('taskKey', taskKey);
+  app.set('taskResults', taskResults);
+ 
+  // create workers and cacheWorkers
+  const workers = master.createWorkers(global.NUMBER_OF_WORKER, workerModule, app);
+  const cacheWorkers = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule);
   app.set('workers', workers);
   app.set('cacheWorkers', cacheWorkers);
-  app.set('monitorStores', monitorStores);
 
-  socketServer.setMonitorStores(monitorStores);
+  // monitorUtil can can access app (workersMonitor and cacheWorkersMonitor)
+  monitorUtil.initialize(app);
+
+  const workersMonitor = workers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
+  const cacheWorkersMonitor = cacheWorkers.map(worker => monitorUtil.mkCacheWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
+  global.logger.debug(`workersMonitor initial status:`, workersMonitor[0].getStatus());
+
+  app.set('workersMonitor', workersMonitor);
+  app.set('cacheWorkersMonitor', cacheWorkersMonitor);
+
+  // make worker message handler (message from worker emit search done or clear done event)
+  const searchEvent = new eventEmitter();
+  const clearEvent = new eventEmitter();
+  const handlers = messageHandlers.initialize({searchEvent, clearEvent, masterMonitor});
+  app.set('searchEvent', searchEvent);
+  app.set('clearEvent', clearEvent);
+
+  // attach eventListenr on workers (to process reply from workers)
+  workers.map(worker => workerHandlers.attachMessageHanlder({worker, app, taskResults, handlers}));
+  workers.map(worker => workerHandlers.attachExitHandler({worker, app, workerModule, handlers}));
+  workers.map(worker => workerHandlers.attachErrorHandler(worker));
+
+  socketServer.setMonitorStores(app);
   socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
-  master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
-  master.attachMessageEventHandler(app);
+  monitorUpdateLoop.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUpdateLoop.workers(app, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUpdateLoop.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  // master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
+  // master.attachMessageEventHandler(app);
 
   /**
    * Listen on provided port, on all network interfaces.
@@ -137,3 +195,4 @@ async function main(){
 }
 
 main();
+

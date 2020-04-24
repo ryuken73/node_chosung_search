@@ -5,6 +5,10 @@ const master = require('../lib/master');
 router.get('/useWorkers', async (req, res, next) => {
 	const workers = req.app.get('workers');
 	const io = req.app.get('io');
+	const keyStore = req.app.get('taskKey');
+	const masterMonitor = req.app.get('masterMonitor');
+	const taskResults = req.app.get('taskResults');
+	// console.log(masterMonitor)
 	const options = {
 		srcFile : global.SRC_FILE,
 		wordSep  : '^',
@@ -13,7 +17,7 @@ router.get('/useWorkers', async (req, res, next) => {
 		highWaterMark : 64 * 1024 * 10,
 		end : global.INDEXING_BYTES,
 	}
-	const totalLoaded = workers ? await master.load(workers, io, options) : {};
+	const totalLoaded = workers ? await master.load(workers, keyStore, taskResults, masterMonitor, options) : {};
 	global.logger.info(totalLoaded);
 	const result = totalLoaded ? {result:'success', count: totalLoaded} 
 	                           : {result:'failure', count: 0};

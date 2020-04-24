@@ -1,113 +1,12 @@
 const child_process = require('child_process');
 const fs = require('fs');
 const readline = require('readline');
-const EventEmitter = require('events');
-const path = require('path');
-class eventEmitter extends EventEmitter {}
 
 const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
 const workerPool = require('./workPool');
 
-const workerModule = path.join(__dirname, '../', 'lib/worker.js');
-const cacheModule = path.join(__dirname, '../', 'lib/cache.js');
-
-
-const getMemInfo = require('./getMemInfo');
-
-const NUMBER_OF_WORKER = global.NUMBER_OF_WORKER;
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
-const PROGRESS_UNIT = 100000;
-
-const searchEvent = new eventEmitter();
-const clearEvent = new eventEmitter();
-const NEED_ORDERING = false;
-
-const workerMonitorStore = require('./workerMonitorStore');
-const masterMonitorStore = require('./masterMonitorStore');
-const logMonitorStore = require('./logMonitorStore');
-const cacheWorkerMonitorStore = require('./cacheWorkerMonitorStore');
-
-global.workerMessages = new Map();
-let clearResults = new Map();
-
-console.log(SEARCH_TIMEOUT)
-
-const getCombined = (results) => {
-    return results.flat();
-}
-
-const orderFunc = (results, subType) => {
-    // need to be written case by case (own ordering logic)
-    // results looks like
-    // [[{artistName, songName, ...},{..}],[],[]]
-    let sortKey;
-    switch(subType.key){
-        case 'artist' :
-            sortKey = 'artistName';
-            break;
-        case 'artistJAMO' :
-            sortKey = 'artistName';
-            break;  
-        case 'song' :
-            sortKey = 'songName';
-            break;  
-        case 'songJAMO' :
-            sortKey = 'songName';
-            break;
-        case 'artistNsong' :
-            sortKey = 'artistName';
-            break;
-        case 'songNartist' :
-            sortKey = 'songName';
-            break;
-    }
-
-    const origResult = [...results].flat();
-    const flattened = [...origResult];
-    flattened.sort((a,b) => {
-        return a[sortKey] > b[sortKey] ? 1 : a[sortKey] < b[sortKey] ? -1 : 0;
-    })
-    global.logger.debug(`before sort : %j`, origResult);
-    global.logger.debug(`after sort : %j`, flattened);
-    
-    return flattened
-}
-
-const getOrdered = (results, subType, orderFunction) => {
-    return orderFunction(results, subType);
-}
-
-const clearWorkerMessages = () => {
-    return new Map();
-}
-
-const restartWorkder = (childModule, argv) => {
-    global.logger.info('start new worker messageKey :', argv)
-    return child_process.fork(childModule, argv);
-}
-
-const checkJobStatus = (message) => {
-    // console.time('checkJobStatus')
-    const {clientId, messageKey, subType={}, result} = message;
-    const keyLocal = subType.key ? subType.key : subType;
-    const resultLocal = result.map ? result.length : result;
-    global.logger.debug(`[${messageKey}][${clientId}][${keyLocal}]worker done[result:${resultLocal}]. check Job Status`);
-    const TIMED_OUT = !global.workerMessages.has(messageKey);
-    if(TIMED_OUT) return 'TIME_OUT';
-
-    const resultsBefore = global.workerMessages.get(messageKey);  
-    const results = [...resultsBefore, result];
-    global.workerMessages.set(messageKey, results);  
-    const ALL_DONE = results.length === NUMBER_OF_WORKER;  
-    // console.timeEnd('checkJobStatus')  
-    if(ALL_DONE) return 'DONE';
-    if(subType === 'not-distributed') {
-        messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
-        return 'DONE';
-    }
-
-}
 
 const getFileSize = (srcFile) => {
     return new Promise((resolve, reject) => {
@@ -122,144 +21,37 @@ const getFileSize = (srcFile) => {
 }
 
 const indexProgress = {
-    processed : 0,
+    processed : 0, 
     oldProcessed : 0,
     async setSrcFile(srcFile){
         this.srcFile = srcFile;
         const srcFileSize = await getFileSize(srcFile);
         this.srcFileSize = srcFileSize;
     },
-    update(length){
-        const oldProcessed = ((this.processed / this.srcFileSize)*100).toFixed(0);
-        const newProcessed = (((this.processed + length) / this.srcFileSize)*100).toFixed(0) ;
-        this.processed += length;
-        oldProcessed !== newProcessed && global.logger.info(`processed ${newProcessed}%`);
-    }
-}
-
-const handler = {
-    'notify-start' : {
-        'TIME_OUT' : function(){},
-        'ALL_DONE' : function(message){
-            const {messageKey, subType} = message;
-            global.workerMessages.delete(messageKey);
-            global.logger.info('all worker started!');
-        }    
-    },
-    'reply-index' : {
-        'TIME_OUT' : function(){},
-        'ALL_DONE' : function(message){
-            const {messageKey, subType, lineLength} = message;
-            global.workerMessages.delete(messageKey);
-            indexProgress.update(lineLength);
-            global.logger.debug('indexing done!');
-        }    
-    },
-    'reply-search' : {
-        'TIME_OUT' : function(message){
-            const {messageKey} = message;
-            let currentSearching = masterMonitorStore.getMonitor()['searching'];
-            masterMonitorStore.setMonitor('searching', currentSearching-1);
-            searchEvent.emit(`fail_${messageKey}`);
-        },
-        'ALL_DONE' : function(message){
-            // all search results are replied!
-            // 0. if ordering needed, execute ordering
-            // 1. concat all result into one array
-            // 2. emit sucess_messageKey 
-            // 3. delete message in the temporay Map
-            const {messageKey, subType} = message;
-            const results = global.workerMessages.get(messageKey);
-            let ordered = NEED_ORDERING ? getOrdered(results, subType, orderFunc) : getCombined(results);
-            global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${ordered.length}`);
-            
-            searchEvent.emit(`success_${messageKey}`, ordered);
-            global.workerMessages.delete(messageKey);
-        }    
-    },
-    'reply-clear' : {
-        'TIME_OUT' : function(){},
-        'ALL_DONE' : function(message){
-            global.logger.info(`Clearing all worker's data done!`);
-            masterMonitorStore.setMonitor('lastIndexedDate', '');
-            masterMonitorStore.setMonitor('lastIndexedCount', 0);
-            clearEvent.emit(`success_${messageKey}`);
-        }     
-    },    
-}
-
-const addListeners = (workers, worker, handleWokerExit) => {
-    worker.on('message', (message) => {
-
-        if(message.type === 'responseMonitor') return;
-        const {type, clientId, subType = {}, messageKey, result} = message;
-        message.messageKey = parseInt(messageKey);
-        const keyLocal = subType.key ? subType.key : subType;
-        const resultLocal = result.map ? result.length : result;
-        const jobStatus = checkJobStatus(message);
-
-        if(jobStatus === 'TIME_OUT'){
-            global.logger.error(`[${messageKey}][${keyLocal}][${clientId}]TIMED-OUT`);
-            handler[type]['TIME_OUT'](message);
-            return false
+    update({bytesRead, digit=0}){
+        // console.log(this.processed, this.srcFileSize, bytesRead)
+        const oldProcessed = ((this.processed / this.srcFileSize)*100).toFixed(digit);
+        const newProcessed = ((bytesRead / this.srcFileSize)*100).toFixed(digit);
+        this.processed = bytesRead;
+        // global.logger.info(oldProcessed, newProcessed)
+        const diff = this.srcFileSize - bytesRead;
+        if(diff <= 0){
+            global.logger.info(this.srcFileSize, bytesRead);
         }
-        if(jobStatus === 'DONE'){
-            global.logger.debug(`[${messageKey}][${keyLocal}][${resultLocal}]ALL-DONE`);
-            handler[type]['ALL_DONE'](message);
-        }
-        type === 'reqly-clear' && reqplyClearHandler(message);
-    })
-    worker.on('exit', (code,signal) => {
-        console.log(`*********** worker exit : [${worker}][${code}][${signal}]`);
-        searchEvent.emit('worker_exit');
-        // global.workerMessages = clearWorkerMessages();
-        const messageKey = keyStore.getNextKey();
-        global.workerMessages.set(messageKey,[]);
-        const oldWorker = worker;
-        const newWorker = restartWorkder(workerModule, [messageKey]);
-        addListeners(workers, newWorker, handleWokerExit);
-        handleWokerExit(oldWorker, newWorker);
-        masterMonitorStore.setMonitor('searching', 0);
-    })
-    worker.on('error', (err) => {
-        console.log(`*********** worker error : [${worker}]`, err);
-    })
-}
-
-function reqplyClearHandler(message) {
-    const {clientId, messageKey, success} = message;
-    global.logger.info(`[${messageKey}][${clientId}] clear result[${success}]`);
-    const results = workerMessages.get(messageKey);  
-    const TIMED_OUT = !workerMessages.has(messageKey);
-    if(TIMED_OUT) {
-        // timed out or disappered by unknown action
-        console.log(`[${messageKey}] clear reply timed out!`)
-        clearEvent.emit(`fail_${messageKey}`);
-        return false;
-    }
-    results.push(success);
-    const ALL_CLEAR_DONE = results.length === NUMBER_OF_WORKER;
-    if(ALL_CLEAR_DONE){
-        clearEvent.emit(`success_${messageKey}`);
-        workerMessages.delete(messageKey)
+        if(oldProcessed !== newProcessed) return newProcessed;
+        return null;
     }
 }
-
 
 // main
-let totalLineBytes = 0;
-let totalprocessed = 0;
-const sendLine = (workers, keyStore, lineMaker) => {
+const sendLine = (workers, keyStore, taskResults, lineMaker) => {
     return line => {
-        console.log(line)
-        totalLineBytes += line.length + 5;
-        totalprocessed += 1
-        global.logger.info(totalLineBytes - 5, totalprocessed);
      const combinedLine = `${lineMaker.startOfLine}${line}`
     //  console.log(combinedLine)
      if(lineMaker.hasProperColumns(combinedLine)){
          const messageKey = keyStore.getNextKey();
-         global.workerMessages.set(messageKey,[]);
+         //global.workerMessages.set(messageKey,[]);
+         taskResults.set(messageKey,[]);
          const workerIndex = messageKey % workers.length;
          const supportThreeWords = true;
          const job = {
@@ -271,19 +63,22 @@ const sendLine = (workers, keyStore, lineMaker) => {
                  supportThreeWords,
              },
          }
-         workers[workerIndex].send(job); 
+         const canSendMore = workers[workerIndex].send(job); 
          lineMaker.startOfLine = '';
+         if(!canSendMore) global.logger.info(`cannot send to child process(send backlog full): ${messageKey}`);
+         return canSendMore;
      } else {
          // to prepend line to next line 
          // this can be occurred, when words contains \r\n.
          global.logger.info('not proper number of columns : ',combinedLine, lineMaker.hasProperColumns(combinedLine));
          //global.logger.trace(combinedLine)
          lineMaker.startOfLine = combinedLine.replace(lineMaker.lineSep, '');
+	 return true;
      }
  }
 } 
 
-const load =  async (workers, io, options = {}) => {
+const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
 
     //await clear(workers);
     return new Promise((resolve, reject) => {
@@ -291,7 +86,7 @@ const load =  async (workers, io, options = {}) => {
             wordSep  : '"^"',
             lineSep  : '\r\n',
             encoding : 'utf8',
-            highWaterMark : 64 * 1024 * 10,
+            highWaterMark : 64 * 1024,
             end : global.INDEXING_BYTES,
         }
         const combinedOpts = {
@@ -316,8 +111,20 @@ const load =  async (workers, io, options = {}) => {
 
         global.logger.info('start indexing...');
         rl.on('line', (data) => {
-            console.log(rl.input.bytesRead)
-            sendLine(workers, keyStore, lineMaker)(data)
+            // console.log(rl.input.bytesRead)
+            const bytesRead = rl.input.bytesRead;
+            const digit = 0;
+            const percentProcessed = indexProgress.update({bytesRead, digit});
+            percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
+            percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
+            parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
+            const canSendMore = sendLine(workers, keyStore, taskResults, lineMaker)(data);
+            if(!canSendMore){
+                // just pause readstream 1 second!
+                global.logger.info('pause stream!')
+                rStream.pause();
+                setTimeout(() => {global.logger.info('resume stream');rStream.resume()},100);
+            }
         });
         
         rl.on('end', () => { 
@@ -326,27 +133,24 @@ const load =  async (workers, io, options = {}) => {
         });
         rStream.on('close', () => {
             console.log('read stream closed!');
-            const totalProcessed = keyStore.getKey();
-            masterMonitorStore.setMonitor('mem', getMemInfo());
-            masterMonitorStore.setMonitor('lastIndexedCount', totalProcessed);
-            masterMonitorStore.setMonitor('lastIndexedDate', (new Date()).toLocaleString());
+            const totalProcessed = masterMonitor.getStatus('lastIndexedCount');
             resolve(totalProcessed);
         })
     })
 
 }
 
-const clear = async (workers) => {
+const clear = async ({workers, keyStore, taskResults, clearEvent}) => {
     try {
         // set uniq key (messageKey) and initialize empty result array
         global.logger.info(`clear search array start!`);
         // keyStore.init();
         const messageKey = keyStore.getNextKey();
-        workerMessages.set(messageKey, []);
+        taskResults.set(messageKey, []);
 
         const timer = setTimeout(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
-            workerMessages.delete(messageKey);
+            taskResults.delete(messageKey);
         }, CLEAR_TIMEOUT);
 
         workers.map(worker => {
@@ -362,19 +166,26 @@ const clear = async (workers) => {
     } catch (err) {
         global.logger.error(err);
     }
-
 }
 
-const search = async (workers, cacheWorkers, {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords}) => {
+const clearCache = async (cacheWorkers) => {
+    const clearJobs = cacheWorkers.map(async cacheWorker => {
+        const job = {cmd : 'clear'};
+        return await cacheWorker.runJob(job);
+    })
+    return Promise.all(clearJobs);
+}
+
+const search = async ({workers, keyStore, taskResults, searchEvent, params}) => {
     try {
-     
+        const {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords} = params;
         const messageKey = keyStore.getNextKey();        
-        global.workerMessages.set(messageKey, []);
+        taskResults.set(messageKey, []);
   
         // if any of worker exeed timeout, delete temporary search result.
         const timer = setTimeout(() => {
             global.logger.error(`[${messageKey}] timed out! delete form Map`);
-            global.workerMessages.delete(messageKey);
+            taskResults.delete(messageKey);
         }, SEARCH_TIMEOUT);
 
         
@@ -421,112 +232,33 @@ function waitResult(messageKey, timer, event){
     })
 }
 
-const keyStore = {
-    init() {this.messageKey = 0},
-    getKey() {return this.messageKey},
-    getNextKey() {return ++this.messageKey},
-    increaseKey() {this.messageKey ++}
-}
+const createWorkers = (maxWorkers, workerModule, app) => {
+    const key = app.get('taskKey').getKey();
+    app.get('taskResults').set(key, []);
 
-const init = async (maxWorkers, maxCache, io, handleWokerExit) => {
-    keyStore.init();
-
-    // global.logger.info(masterMonitorStore.getMonitor())
-    const messageKey = keyStore.getKey();
-    global.workerMessages.set(messageKey, []);
     const workerInit= new Array(maxWorkers);
     workerInit.fill(0); 
 
     const workers = workerInit.map( worker => {
-        global.logger.info('start subprocess!')
-        return child_process.fork(workerModule, [messageKey]);
+        global.logger.info('starting subprocess!')
+        return child_process.fork(workerModule, [key]);
     })
 
-    const cacheWorkers = await initCacheWorkers(maxCache);
-    
-    // initialize monitorStore
-    masterMonitorStore.init(io);
-    workerMonitorStore.init(io, workers);
-    cacheWorkerMonitorStore.init(io, cacheWorkers);
-    logMonitorStore.init(io);
+    workers.map(worker => global.logger.info(`[${worker.pid}]worker started!`));
+    console.log(workers[0].channel)
 
-    const monitorStores = {
-        masterMonitorStore,
-        workerMonitorStore,
-        cacheWorkerMonitorStore,
-        logMonitorStore
-    }
-
-    workers.map(worker => addListeners(workers, worker, handleWokerExit));
-    return [workers, cacheWorkers, monitorStores];   
+    return workers;       
 }
 
-const initGatherMonitorLoop = (app, interval) => {
-    const monitorStores= app.get('monitorStores');
-    const {masterMonitorStore} = monitorStores;
-    const {cacheWorkerMonitorStore} = monitorStores;
-    
-    setInterval(async () => {
-        requestUpdateMonitorWorker();
-        requestUpdateMonitorMaster();
-        await requestUpdateMonitorCache();
-    }, interval);
-
-    function requestUpdateMonitorWorker() {
-        const workers = app.get('workers');
-        workers.map(worker => worker.send('requestMonitor'));
-    }
-    function requestUpdateMonitorMaster() {
-        masterMonitorStore.setMonitor('mem', getMemInfo());
-    }
-
-    async function requestUpdateMonitorCache(){
-        const cacheWorkers = app.get('cacheWorkers');
-        const requestMonitorJob = {
-            cmd: 'requestMonitor'
-        }
-        const reqPromises = cacheWorkers.map(async worker => await worker.runJob(requestMonitorJob));
-        const monitorValues = await Promise.all(reqPromises);
-        monitorValues.map(value => {
-            const {pid, cacheCount, cacheHit, mem} = value;
-            cacheWorkerMonitorStore.setMonitor(pid, 'mem', mem);
-            cacheWorkerMonitorStore.setMonitor(pid, 'cacheCount', cacheCount);
-            cacheWorkerMonitorStore.setMonitor(pid, 'cacheHit', cacheHit);
-        })        
-    }
+const createCacheWorkers = (maxCache, cacheModule) => { 
+    return workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit)
 }
 
-const attachMessageEventHandler = (app) => {
-    const monitorStores = app.get('monitorStores');
-    const {workerMonitorStore} = monitorStores;
-
-    const workers = app.get('workers');
-    workers.map(worker => {
-        worker.on('message', (message) => {
-            const {type} = message;
-            if(type === 'responseMonitor'){
-                const {monitor} = message;
-                // console.log(monitor)
-                const {pid} = worker;
-                workerMonitorStore.setMonitor(pid, 'mem', monitor.mem);
-                workerMonitorStore.setMonitor(pid, 'words', monitor.words);
-                workerMonitorStore.setMonitor(pid, 'searching', monitor.searching);
-            }
-        })
-    })
-}
-
-const initCacheWorkers = async (maxCache) => {
-    const cacheWorkers = workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit);
-    return cacheWorkers
-}
- 
 module.exports = {
-    init,
+    createWorkers,
+    createCacheWorkers,
     load,
     search,
     clear,
-    initGatherMonitorLoop,
-    attachMessageEventHandler,
-    initCacheWorkers
+    clearCache
 }

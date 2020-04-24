@@ -23,6 +23,11 @@ const cache = {
     delete : (pattern) => {
         this.cache.delete(pattern);
         return true;
+    },
+    clear : () => {
+        this.cache = new Map();
+        this.cacheCount = 0;
+        return true;
     }
 }
 
@@ -41,6 +46,9 @@ const cache = {
             break;
         case 'delete' :
             result = cache.delete(pattern, results);
+            break;
+        case 'clear' :
+            result = cache.clear();
             break;
         case 'requestMonitor' :
             const {pid, cacheCount, cacheHit} = this;
