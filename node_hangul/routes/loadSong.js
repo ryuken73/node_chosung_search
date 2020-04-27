@@ -3,6 +3,7 @@ const router = express.Router();
 const master = require('../lib/master');
  
 router.get('/useWorkers', async (req, res, next) => {
+	const {input} = req.query;
 	const workers = req.app.get('workers');
 	const io = req.app.get('io');
 	const keyStore = req.app.get('taskKey');
