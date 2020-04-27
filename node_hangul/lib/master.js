@@ -44,42 +44,33 @@ const indexProgress = {
 }
 
 // main
-const sendLine = (workers, keyStore, taskResults, lineMaker) => {
-    return line => {
-     const combinedLine = `${lineMaker.startOfLine}${line}`
-    //  console.log(combinedLine)
-     if(lineMaker.hasProperColumns(combinedLine)){
-         const messageKey = keyStore.getNextKey();
-         //global.workerMessages.set(messageKey,[]);
-         taskResults.set(messageKey,[]);
-         const workerIndex = messageKey % workers.length;
-         const supportThreeWords = true;
-         const job = {
-             type : 'index',
-             messageKey,
-             data : {
-                 wordSep: lineMaker.wordSep,
-                 line: combinedLine,
-                 supportThreeWords,
-             },
-         }
-         const canSendMore = workers[workerIndex].send(job); 
-         lineMaker.startOfLine = '';
-         if(!canSendMore) global.logger.info(`cannot send to child process(send backlog full): ${messageKey}`);
-         return canSendMore;
-     } else {
-         // to prepend line to next line 
-         // this can be occurred, when words contains \r\n.
-         global.logger.info('not proper number of columns : ',combinedLine, lineMaker.hasProperColumns(combinedLine));
-         //global.logger.trace(combinedLine)
-         lineMaker.startOfLine = combinedLine.replace(lineMaker.lineSep, '');
-	 return true;
-     }
- }
+
+const sendLine = (workers, keyStore, taskResults, wordArray) => {
+    try {
+        const messageKey = keyStore.getNextKey();
+        //global.workerMessages.set(messageKey,[]);
+        taskResults.set(messageKey,[]);
+        const workerIndex = messageKey % workers.length;
+        const job = {
+            type : 'index',
+            messageKey,
+            data : wordArray
+        }        
+        const canSendMore = workers[workerIndex].send(job); 
+        if(!canSendMore) global.logger.info(`cannot send to child process(send backlog full): ${messageKey}`);
+        return canSendMore;
+    } catch (err) {
+            global.logger.error(err);
+    }       
 } 
 
-const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
+const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
+    return new Promise((resolve, reject) => {        
+        resolve(totalProcessed)
+    })
+}
 
+const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
     //await clear(workers);
     return new Promise((resolve, reject) => {
         const opts = {
@@ -110,7 +101,7 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
         }
 
         global.logger.info('start indexing...');
-        rl.on('line', (data) => {
+        rl.on('line', (line) => {
             // console.log(rl.input.bytesRead)
             const bytesRead = rl.input.bytesRead;
             const digit = 0;
@@ -118,15 +109,26 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
             percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
             percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
             parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
-            const canSendMore = sendLine(workers, keyStore, taskResults, lineMaker)(data);
-            if(!canSendMore){
-                // just pause readstream 1 second!
-                global.logger.info('pause stream!')
-                rStream.pause();
-                setTimeout(() => {global.logger.info('resume stream');rStream.resume()},100);
+            
+            const combinedLine = `${lineMaker.startOfLine}${line}`;
+            if(lineMaker.hasProperColumns(combinedLine)){
+                lineMaker.startOfLine = '';
+                const wordArray = combinedLine.split(lineMaker.wordSep);
+                const canSendMore = sendLine(workers, keyStore, taskResults, wordArray);
+                if(!canSendMore){
+                    // just pause readstream 1 second!
+                    global.logger.info('pause stream!')
+                    rStream.pause();
+                    setTimeout(() => {global.logger.info('resume stream');rStream.resume()},100);
+                }
+            } else {
+                // to prepend line to next line 
+                // this can be occurred, when words contains \r\n.
+                global.logger.info('not proper number of columns : ',combinedLine, lineMaker.hasProperColumns(combinedLine));
+                lineMaker.startOfLine = combinedLine.replace(lineMaker.lineSep, '');
+                // return true;
             }
-        });
-        
+        });        
         rl.on('end', () => { 
             console.log('end: ',keyStore.getKey());
     
@@ -137,7 +139,6 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
             resolve(totalProcessed);
         })
     })
-
 }
 
 const clear = async ({workers, keyStore, taskResults, clearEvent}) => {

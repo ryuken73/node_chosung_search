@@ -19,12 +19,13 @@ const clearWord = (word) => {
 
 const createSongObj = (data) => {
     try {
-        const {wordSep, line, supportThreeWords} = data;
-        const wordArray = line.split(wordSep);
+        // const {wordSep, line, supportThreeWords} = data;
+        // const wordArray = line.split(wordSep);
+        const wordArray = data;
         if(wordArray.length < MIN_KEY_LENGTH){
             console.error(`wordArray is too short[MIN_KEY_LENGTH = 2] but current Data :`, wordArray);
             errored.push(wordArray);
-            return {artistName:'', songName:'',artistNsong, songNartist};
+            return {artistName:'', songName:'',combinedName:''};
         }
 
         const [artistName, songName, year, label] = wordArray.map(word => clearWord(word));
@@ -100,8 +101,8 @@ const msgHandlers = {
     },
     'index' : (subType = null, messageKey, data) => {
         try {
+            // data === [artistName, songName, year, label] 
             const songObject = createSongObj(data);
-            const lineLength = data.line.length + 2;
             songObject.jamoArtist = getJAMO(songObject.artistName);
             songObject.jamoSong = getJAMO(songObject.songName);
             songObject.jamoCombinedName= getJAMO(songObject.combinedName);
@@ -109,12 +110,9 @@ const msgHandlers = {
             songArray.push(songObject);
             process.send({
                 type: 'reply-index',
-                subType: 'replay-index',
                 clientId: process.pid,
                 messageKey, 
                 result: 'success', 
-                lineLength
-
             });
         } catch (err) {
             console.error(err);
