@@ -13,6 +13,7 @@ import PrettoSlide from './components/PrettoSlide';
 import {brown} from '@material-ui/core/colors';
 import {withStyles} from '@material-ui/core/styles';
 import axiosRequest from './lib/axiosRequest';
+import Tooltip from '@material-ui/core/Tooltip';
 import './App.css';
 
 const BrownButton = withStyles({
@@ -35,7 +36,13 @@ export default class App extends Component {
       workers : [],
       cacheWorkers : [],
       currentLog : [],
-      progress: 0
+      progress: 0,
+      disableLoadDBBtn: false,
+      disableLoadFileBtn: false,
+      disalbeClearIndexBtn: true,
+      disalbeClearCacheBtn: true,
+      onIndexing: false
+
     }
   }  
   
@@ -88,10 +95,14 @@ export default class App extends Component {
   }
 
   updateProgress(progress){
-    // console.log('update progress: ',progress);
+    const indexDone = (progress > 99.9);
+    console.log('update progress: ',progress, indexDone);
     this.setState({
       ...this.state,
-      progress
+      progress,
+      disalbeClearIndexBtn: !indexDone,
+      disalbeClearCacheBtn: !indexDone,
+      onIndexing: !indexDone
     })
   }
 
@@ -104,18 +115,39 @@ export default class App extends Component {
     })
   }
 
-  async onClickLoad(){
+  onClickLoad =  async () => {
+    this.setState({
+      ...this.state,
+      disableLoadDBBtn: true,
+      disableLoadFileBtn: true,
+      disalbeClearCacheBtn: true,
+      disalbeClearIndexBtn: true,
+      onIndexing: true,
+    })
     const result = await axiosRequest.get('load');
     console.log(result);
   }
 
-  async onClickLoadFromDB(){
+  onClickLoadFromDB = async () => {
+    this.setState({
+      ...this.state,
+      disableLoadDBBtn: true,
+      disableLoadFileBtn: true,
+      disalbeClearCacheBtn: true,
+      disalbeClearIndexBtn: true,
+      onIndexing: true
+    })
     const result = await axiosRequest.get('loadFromDB');
     console.log(result);  
   }
 
-  async onClickClear(){
+  onClickClear = async () => {    
     const result = await axiosRequest.get('clear');
+    this.setState({
+      ...this.state,
+      disableLoadDBBtn: false,
+      disableLoadFileBtn: false
+    })
     console.log(result);
   }
 
@@ -130,6 +162,8 @@ export default class App extends Component {
 
   render() {
     const {workers, master, currentLog, cacheWorkers, progress} = this.state;
+    const {disableLoadDBBtn, disableLoadFileBtn, onIndexing} = this.state;
+    const {disalbeClearCacheBtn, disalbeClearIndexBtn} = this.state;
     const gap = 0.3;
     return (
       <Box display="flex" flexDirection="column" height="100vh" className="App">
@@ -149,10 +183,16 @@ export default class App extends Component {
         </Box>
         <PrettoSlide value={progress} onChange={this.handleSliderChange} aria-labelledby="continuous-slider" />
         <Box display="flex" flexDirection="row" justifyContent="space-around" alignItems="center" flexGrow="1" mx={gap} mb={gap} bgcolor={brown[900]}>
-            <BrownButton onClick={this.onClickLoadFromDB} variant="contained" color="primary"  size="medium">load from DB</BrownButton>         
-            <BrownButton onClick={this.onClickLoad} variant="contained" color="primary"  size="medium">load from file</BrownButton> 
-            <BrownButton onClick={this.onClickClear} variant="contained" color="primary"  size="medium">clear index</BrownButton>
-            <BrownButton onClick={this.onClickCacheClear} variant="contained" color="primary"  size="medium">clear cache</BrownButton>
+          <Tooltip open={disableLoadDBBtn} title={onIndexing ? "Wait indexing" : "Clear Index first!"} placement="right-end">
+            <BrownButton disabled={disableLoadDBBtn} onClick={this.onClickLoadFromDB} variant="contained" color="primary"  size="medium">load from DB</BrownButton>         
+          </Tooltip>  
+          <Tooltip open={disableLoadFileBtn} title={onIndexing ? "Wait indexing" : "Clear Index first!"} placement="right-end">
+            <BrownButton disabled={disableLoadFileBtn} onClick={this.onClickLoad} variant="contained" color="primary"  size="medium">load from file</BrownButton> 
+          </Tooltip> 
+          <Tooltip open={onIndexing} title="Wait indexing..." placement="right-end">
+            <BrownButton disabled={disalbeClearIndexBtn} onClick={this.onClickClear} variant="contained" color="primary"  size="medium">clear index</BrownButton>
+          </Tooltip> 
+            <BrownButton disabled={disalbeClearCacheBtn} onClick={this.onClickCacheClear} variant="contained" color="primary"  size="medium">clear cache</BrownButton>
           </Box>
       </Box>
     )
