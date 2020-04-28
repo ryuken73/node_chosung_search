@@ -1,4 +1,3 @@
-node_modules
-config.json
-build
+node_hangul/config.json
+node_hangul/dbconfig.json
 mbk.log
