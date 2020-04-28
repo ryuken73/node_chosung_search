@@ -9,8 +9,11 @@ const cors = require('cors');
 const routes = require('./routes/index');
 const users = require('./routes/users');
 const config = require('./config.json');
+const ibmdb = require('./lib/ibm_db');
+const dbconfig = require('./dbconfig.json');
 //const heapdump = require('heapdump');
 
+const MUSICDB_CONNECTION_STRING = dbconfig.DB2['MUSICDB'];
 global.SRC_FILE = config.SRC_FILE || 'c:/temp/song_mst.txt';
 global.SEARCH_TIMEOUT = config.SEARCH_TIMEOUT || 10000;
 global.CLEAR_TIMEOUT = config.CLEAR_TIMEOUT || 5000;
@@ -58,6 +61,10 @@ global.logger = require('./lib/logger')(loggerOptions);
 // 		);
 // }
 ////
+
+// set db config
+const musicdb = ibmdb.connectDB(MUSICDB_CONNECTION_STRING);
+app.set('musicdb', musicdb);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));

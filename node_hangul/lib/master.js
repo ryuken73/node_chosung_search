@@ -65,8 +65,34 @@ const sendLine = (workers, keyStore, taskResults, wordArray) => {
 } 
 
 const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
-    return new Promise((resolve, reject) => {        
-        resolve(totalProcessed)
+    return new Promise(async(resolve, reject) => {      
+        try {
+            const {db} = options;
+            // const sql = 'select artist, song_name from smsinst.song_mst fetch first 100 rows only';           
+            const sql = "select artist, song_name from music.song_mst";
+            const params = [];
+            const rStream = await db.queryStream(sql, params);
+            let selected = 0;
+            rStream.on('data', result => {
+                selected ++;
+                selected % 1000 === 0 && console.log(selected);
+                const wordArray = [result.ARTIST, result.SONG_NAME];
+                // console.log(wordArray);  
+                const canSendMore = sendLine(workers, keyStore, taskResults, wordArray);
+                if(!canSendMore){
+                    // just pause readstream 1 second!
+                    global.logger.info('pause stream!')
+                    rStream.pause();
+                    setTimeout(() => {global.logger.info('resume stream');rStream.resume()},100);
+                }
+            })
+            rStream.on('end', () => {
+                resolve(selected);
+            })
+        } catch (err) {
+            reject(err);
+            global.logger.error(err);
+        }
     })
 }
 
@@ -259,6 +285,7 @@ module.exports = {
     createWorkers,
     createCacheWorkers,
     load,
+    loadFromDB,
     search,
     clear,
     clearCache
