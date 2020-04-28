@@ -20,26 +20,43 @@ const getFileSize = (srcFile) => {
     })
 }
 
-const indexProgress = {
-    processed : 0, 
-    oldProcessed : 0,
-    async setSrcFile(srcFile){
-        this.srcFile = srcFile;
-        const srcFileSize = await getFileSize(srcFile);
-        this.srcFileSize = srcFileSize;
-    },
-    update({bytesRead, digit=0}){
-        // console.log(this.processed, this.srcFileSize, bytesRead)
-        const oldProcessed = ((this.processed / this.srcFileSize)*100).toFixed(digit);
-        const newProcessed = ((bytesRead / this.srcFileSize)*100).toFixed(digit);
-        this.processed = bytesRead;
-        // global.logger.info(oldProcessed, newProcessed)
-        const diff = this.srcFileSize - bytesRead;
-        if(diff <= 0){
-            global.logger.info(this.srcFileSize, bytesRead);
+// const indexProgress = {
+//     processed : 0, 
+//     oldProcessed : 0,
+//     async setSrcFile(srcFile){
+//         this.srcFile = srcFile;
+//         const srcFileSize = await getFileSize(srcFile);
+//         this.srcFileSize = srcFileSize;
+//     },
+//     update({bytesRead, digit=0}){
+//         // console.log(this.processed, this.srcFileSize, bytesRead)
+//         const oldProcessed = ((this.processed / this.srcFileSize)*100).toFixed(digit);
+//         const newProcessed = ((bytesRead / this.srcFileSize)*100).toFixed(digit);
+//         this.processed = bytesRead;
+//         // global.logger.info(oldProcessed, newProcessed)
+//         const diff = this.srcFileSize - bytesRead;
+//         if(diff <= 0){
+//             global.logger.info(this.srcFileSize, bytesRead);
+//         }
+//         if(oldProcessed !== newProcessed) return newProcessed;
+//         return null;
+//     }
+// }
+
+
+const progressor = total => (processed, digit=0) => {
+    return ((processed / total) * 100).toFixed(digit);   
+}
+
+// FP : return value only when value changed 
+const valueChanged = (startValue) => {
+    let oldValue = startValue;
+    return (newValue) => {
+        if(newValue !== oldValue){
+            oldValue = newValue;
+            return newValue;
         }
-        if(oldProcessed !== newProcessed) return newProcessed;
-        return null;
+        return false;
     }
 }
 
@@ -98,7 +115,7 @@ const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options
 
 const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
     //await clear(workers);
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         const opts = {
             wordSep  : '"^"',
             lineSep  : '\r\n',
@@ -112,7 +129,9 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
         };
         global.logger.debug(combinedOpts);
         const {srcFile, encoding, end, wordSep, lineSep} = combinedOpts;
-        indexProgress.setSrcFile(srcFile);
+        const inputFileSize = await getFileSize(srcFile);
+        const getProgress = progressor(inputFileSize);
+        const emitChangedValue = valueChanged(0);
         const rStream = fs.createReadStream(srcFile, {encoding, start:0, end});
         const rl = readline.createInterface({input:rStream});
         const lineMaker = {
@@ -131,7 +150,7 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
             // console.log(rl.input.bytesRead)
             const bytesRead = rl.input.bytesRead;
             const digit = 0;
-            const percentProcessed = indexProgress.update({bytesRead, digit});
+            const percentProcessed = emitChangedValue(getProgress(bytesRead, digit));
             percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
             percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
             parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
