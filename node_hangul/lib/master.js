@@ -99,11 +99,10 @@ const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options
             let selected = 0;
             rStream.on('data', result => {
                 selected ++;
-                selected % 1000 === 0 && console.log(selected);
-
+                // selected % 1000 === 0 && console.log(selected);
                 const digit = 1;
                 const percentProcessed = emitChangedValue(getProgress(selected, digit));
-                percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
+                percentProcessed && global.logger.info(`processed... ${percentProcessed}% [${selected}/${totalRecordsCount}]`);
                 percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
                 parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
 

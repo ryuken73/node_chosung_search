@@ -88,7 +88,7 @@ export default class App extends Component {
   }
 
   updateProgress(progress){
-    console.log('update progress: ',progress);
+    // console.log('update progress: ',progress);
     this.setState({
       ...this.state,
       progress
@@ -107,6 +107,11 @@ export default class App extends Component {
   async onClickLoad(){
     const result = await axiosRequest.get('load');
     console.log(result);
+  }
+
+  async onClickLoadFromDB(){
+    const result = await axiosRequest.get('loadFromDB');
+    console.log(result);  
   }
 
   async onClickClear(){
@@ -144,9 +149,10 @@ export default class App extends Component {
         </Box>
         <PrettoSlide value={progress} onChange={this.handleSliderChange} aria-labelledby="continuous-slider" />
         <Box display="flex" flexDirection="row" justifyContent="space-around" alignItems="center" flexGrow="1" mx={gap} mb={gap} bgcolor={brown[900]}>
-            <BrownButton onClick={this.onClickLoad} variant="contained" color="primary"  size="medium">load</BrownButton> 
+            <BrownButton onClick={this.onClickLoadFromDB} variant="contained" color="primary"  size="medium">load from DB</BrownButton>         
+            <BrownButton onClick={this.onClickLoad} variant="contained" color="primary"  size="medium">load from file</BrownButton> 
+            <BrownButton onClick={this.onClickClear} variant="contained" color="primary"  size="medium">clear index</BrownButton>
             <BrownButton onClick={this.onClickCacheClear} variant="contained" color="primary"  size="medium">clear cache</BrownButton>
-            <BrownButton onClick={this.onClickClear} variant="contained" color="primary"  size="medium">clear</BrownButton>
           </Box>
       </Box>
     )

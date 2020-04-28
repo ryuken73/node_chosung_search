@@ -9,17 +9,17 @@ router.get('/useWorkers', async (req, res, next) => {
 	const keyStore = req.app.get('taskKey');
 	const masterMonitor = req.app.get('masterMonitor');
 	const taskResults = req.app.get('taskResults');
-	// console.log(masterMonitor)
 
 	if(from === 'db'){
 		const musicdb = req.app.get('musicdb');  
 		const options = {db: musicdb};
+		global.logger.info('request accepted');
+		res.send({result:'success', msg:'request accepted'});
 		const totalLoaded = workers ? await master.loadFromDB(workers, keyStore, taskResults, masterMonitor, options) : {};	
-		global.logger.info(totalLoaded);
 		const result = totalLoaded ? {result:'success', count: totalLoaded} 
 								   : {result:'failure', count: 0};
-		res.send(result);
-		return;
+		global.logger.info(result);
+		return; 
 	}
 
 	const options = {
@@ -30,11 +30,14 @@ router.get('/useWorkers', async (req, res, next) => {
 		highWaterMark : 64 * 1024 * 10,
 		end : global.INDEXING_BYTES,
 	}
+	global.logger.info('request accepted');
+	res.send({result:'success', msg:'request accepted'});
 	const totalLoaded = workers ? await master.load(workers, keyStore, taskResults, masterMonitor, options) : {};
-	global.logger.info(totalLoaded);
 	const result = totalLoaded ? {result:'success', count: totalLoaded} 
-	                           : {result:'failure', count: 0};
-	res.send(result);
+							   : {result:'failure', count: 0};
+	global.logger.info(result);
+	return						   
+	// res.send(result);
 })
 
 

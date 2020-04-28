@@ -26,6 +26,7 @@ global.INDEXING_BYTES = (config.INDEXING_BYTES === undefined || config.INDEXING_
                         : config.INDEXING_BYTES;
 // global.LOG_LEVEL = config.LOG_LEVEL || 'info';
 global.MONITOR_BROADCAST_INTERVAL = config.MONITOR_BROADCAST_INTERVAL || 500;
+global.EXPRESS_REQ_TIMEOUT = config.EXPRESS_REQ_TIMEOUT || 300000;
 global.messageKey = 0;
 
 const app = express();
