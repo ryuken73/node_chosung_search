@@ -85,14 +85,28 @@ const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options
     return new Promise(async(resolve, reject) => {      
         try {
             const {db} = options;
+            // get total records
+            const getCountSQL = 'select count(*) as total from music.song_mst';
+            const result = await db.query(getCountSQL, []);
+            const totalRecordsCount = result.shift().TOTAL;
+            const getProgress = progressor(totalRecordsCount);
+            const emitChangedValue = valueChanged(0);
             // const sql = 'select artist, song_name from smsinst.song_mst fetch first 100 rows only';           
-            const sql = "select artist, song_name from music.song_mst";
+            // const sql = 'select artist, song_name from music.song_mst fetch first 10 rows only';
+            const sql = 'select artist, song_name from music.song_mst';
             const params = [];
             const rStream = await db.queryStream(sql, params);
             let selected = 0;
             rStream.on('data', result => {
                 selected ++;
                 selected % 1000 === 0 && console.log(selected);
+
+                const digit = 1;
+                const percentProcessed = emitChangedValue(getProgress(selected, digit));
+                percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
+                percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
+                parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
+
                 const wordArray = [result.ARTIST, result.SONG_NAME];
                 // console.log(wordArray);  
                 const canSendMore = sendLine(workers, keyStore, taskResults, wordArray);
@@ -129,9 +143,11 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
         };
         global.logger.debug(combinedOpts);
         const {srcFile, encoding, end, wordSep, lineSep} = combinedOpts;
+
         const inputFileSize = await getFileSize(srcFile);
         const getProgress = progressor(inputFileSize);
         const emitChangedValue = valueChanged(0);
+        
         const rStream = fs.createReadStream(srcFile, {encoding, start:0, end});
         const rl = readline.createInterface({input:rStream});
         const lineMaker = {
