@@ -293,20 +293,20 @@ function waitResult(messageKey, timer, event){
     })
 }
 
-const createWorkers = (maxWorkers, workerModule, app) => {
-    const key = app.get('taskKey').getKey();
-    app.get('taskResults').set(key, []);
+const createWorkers = (maxWorkers, workerModule, startWorkerMessageKey) => {
+    // const key = app.get('taskKey').getKey();
+    // app.get('taskResults').set(key, []); 
 
     const workerInit= new Array(maxWorkers);
     workerInit.fill(0); 
 
     const workers = workerInit.map( worker => {
         global.logger.info('starting subprocess!')
-        return child_process.fork(workerModule, [key]);
+        return child_process.fork(workerModule, [startWorkerMessageKey]);
     })
 
     workers.map(worker => global.logger.info(`[${worker.pid}]worker started!`));
-    console.log(workers[0].channel)
+    // console.log(workers[0].channel)
 
     return workers;       
 }

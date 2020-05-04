@@ -1,9 +1,6 @@
 const monitor = require('./monitor');
 const getMemInfo = require('./getMemInfo');
 
-let app ;
-const initialize = (appRef) => {app = appRef;}
-
 const mkWorkerMonitor = ({pid, defaultNotifcationOption}) => {
     // global.logger.trace('called mkWorkerMonitor,',defaultNotifcationOption);
     const initialStatus = {
@@ -43,20 +40,16 @@ const getAllStatus = (workersMonitor) => {
     return allStatus.flat();
 }
 
-const setCacheStatus = (pid, key, value) => {
-    const cacheWorkersMonitor = app.get('cacheWorkersMonitor');
-    const cacheWorker = cacheWorkersMonitor.find(monitor => monitor.getStatus('pid') === pid);
+const setCacheStatus = (cacheWorker, key, value) => {
     cacheWorker.setStatus(key, value);
 }
 
-const setWorkerStatus = (pid, key, value) => {
-    const workersMonitor = app.get('workersMonitor');
-    const workerMonitor = workersMonitor.find(monitor => monitor.getStatus('pid') === pid);
+const setWorkerStatus = (workerMonitor, key, value) => {
     workerMonitor.setStatus(key, value)
 }
 
 module.exports = {
-    initialize,
+    // initialize,
     mkWorkerMonitor,
     mkCacheWorkerMonitor,
     getAllStatus,

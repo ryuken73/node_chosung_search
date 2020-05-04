@@ -7,11 +7,12 @@ const restartWorker = (childModule, argv) => {
     return child_process.fork(childModule, argv);
 }
 
-const replyMonitorHandler = (message, pid) => {
+const replyMonitorHandler = (workersMonitor, message, pid) => {
     const {monitor} = message;
-    monitorUtil.setWorkerStatus(pid, 'mem', monitor.mem);
-    monitorUtil.setWorkerStatus(pid, 'words', monitor.words);
-    monitorUtil.setWorkerStatus(pid, 'searching', monitor.searching);
+    const workerMonitor = workersMonitor.find(monitor => monitor.getStatus('pid') === pid);
+    monitorUtil.setWorkerStatus(workerMonitor, 'mem', monitor.mem);
+    monitorUtil.setWorkerStatus(workerMonitor, 'words', monitor.words);
+    monitorUtil.setWorkerStatus(workerMonitor, 'searching', monitor.searching);
     return;
 };
 
@@ -28,14 +29,16 @@ const attachMessageHanlder = ({worker, app, taskResults, handlers}) => {
         const taskType = subType.key ? subType.key : 'none';
         const resultForDebug = result.map ? result.length : result;
         const masterMonitor = app.get('masterMonitor');
+        const workersMonitor = app.get('workersMonitor');
           
         // type === 'reply-index' && messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
         type === 'reply-index' && replyIndexHandler(message, masterMonitor);
-        type === 'reply-monitor' && replyMonitorHandler(message, worker.pid);
+        type === 'reply-monitor' && replyMonitorHandler(workersMonitor, message, worker.pid);
         global.logger.debug(type, notGatherableJob.includes(type));
         if(notGatherableJob.includes(type)) return; 
 
         global.logger.debug(`[${messageKey}][${clientId}][${type}][${taskType}]worker done[result:${resultForDebug}]. check Job Status`);
+        
         const TIMED_OUT = ! taskResults.has(messageKey);
         if(TIMED_OUT) {
             global.logger.error(`[${messageKey}][${clientId}][${type}][${taskType}]TIMED-OUT`);
@@ -46,7 +49,7 @@ const attachMessageHanlder = ({worker, app, taskResults, handlers}) => {
         const resultsBefore = taskResults.get(messageKey);  
         const resultsGathered = [...resultsBefore, result];
         taskResults.set(messageKey, resultsGathered);
-
+        
         const ALL_DONE = resultsGathered.length === global.NUMBER_OF_WORKER;  
         if(ALL_DONE) {
             global.logger.info(`[${messageKey}][${taskType}][${resultForDebug}]ALL-DONE`);

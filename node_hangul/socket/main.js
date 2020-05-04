@@ -31,22 +31,17 @@ class SocketServer {
             socket.nsp.emit('msg', message);
         }
     }
-    setMonitorStores(app){
-        this.app = app;
-        const logMonitor = app.get('logMonitor');
-        const masterMonitor = app.get('masterMonitor');
-        const workersMonitor = app.get('workersMonitor');
-        const cacheWorkersMonitor = app.get('cacheWorkersMonitor');
-        this.monitors = {
-            logMonitor,
-            masterMonitor,
-            workersMonitor,
-            cacheWorkersMonitor
-        };
+    setMonitorStores(monitors){
+        // this.app = app;
+        // const logMonitor = app.get('logMonitor');
+        // const masterMonitor = app.get('masterMonitor');
+        // const workersMonitor = app.get('workersMonitor');
+        // const cacheWorkersMonitor = app.get('cacheWorkersMonitor');
+        this.monitors = monitors
     }
     getCurrentMonitor(){
-        const workersMonitor = this.app.get('workersMonitor');
-        const cacheWorkersMonitor = this.app.get('cacheWorkersMonitor');
+        const workersMonitor = this.monitors.workersMonitor;
+        const cacheWorkersMonitor = this.monitors.cacheWorkersMonitor;
         return {workersMonitor, cacheWorkersMonitor};
     }
     startBroadcastLoop(interval = 5000){

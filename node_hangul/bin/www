@@ -48,7 +48,7 @@ async function main(){
   const io = require('socket.io')(server);
 
   // In the router, you can broadcast message using req.app.get('io').sockets.emit()
-  // In the router, you can emit message using req.app.get('io').sockets.connected[socketio].emit()
+  // In the router, you can emit message to specific client using req.app.get('io').sockets.connected[socketid].emit()
   app.set('io',io); 
   app.set('sockets', io.sockets);
   const socketServer = sockApp.createServer(io);
@@ -57,13 +57,17 @@ async function main(){
     bcastIO: io
   }
 
-  // create log monitor (to broadcast serach history using socket.io)
+  // create log monitor (to broadcast serach and cache hit history using socket.io)
   const logMonitorOptions = {
     initialStatus: {
       log: []
     },
-    notification: {...defaultNotifcationOption, ...{bcastDefaultEventName:'logMonitor'}}
+    notification: {
+      ...defaultNotifcationOption, 
+      bcastDefaultEventName:'logMonitor'
+    }
   }
+
   const logMonitor = monitor.createMonitor(logMonitorOptions);
   global.logger.debug(`logMonitor initial status:`, logMonitor.getStatus()['log']);
 
@@ -75,7 +79,10 @@ async function main(){
       mem : getMemInfo(),
       searching : 0
     },
-    notification: {...defaultNotifcationOption, ...{bcastDefaultEventName:'masterMonitor'}} 
+    notification: {
+      ...defaultNotifcationOption, 
+      bcastDefaultEventName:'masterMonitor'
+    } 
   }
   const masterMonitor = monitor.createMonitor(masterMonitorOptions);
   global.logger.debug(`masterMonitor initial status:`, masterMonitor.getStatus());
@@ -83,29 +90,31 @@ async function main(){
   app.set('masterMonitor', masterMonitor);
   app.set('logMonitor', logMonitor);
 
-  // initialize taskkey and tasks to hold child process message key and tracking job
+  // create uniq key generator to use assigning taskkey 
   const taskKey = keyGen.createKeyGenerator();
+  // create task Results Map to hold child process's job result
   const taskResults = new Map();
+
   app.set('taskKey', taskKey);
   app.set('taskResults', taskResults);
  
-  // create workers and cacheWorkers
-  const workers = master.createWorkers(global.NUMBER_OF_WORKER, workerModule, app);
+  // create workers and cacheWorkers processes
+  const startWorkerMessageKey = taskKey.getKey();
+  taskResults.set(startWorkerMessageKey, []);
+  const workers = master.createWorkers(global.NUMBER_OF_WORKER, workerModule, startWorkerMessageKey);
   const cacheWorkers = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule);
   app.set('workers', workers);
   app.set('cacheWorkers', cacheWorkers);
 
-  // monitorUtil can can access app (workersMonitor and cacheWorkersMonitor)
-  monitorUtil.initialize(app);
-
+  // make monitor instance for worker to get/set monitor status and broadcast status
   const workersMonitor = workers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
   const cacheWorkersMonitor = cacheWorkers.map(worker => monitorUtil.mkCacheWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
   global.logger.debug(`workersMonitor initial status:`, workersMonitor[0].getStatus());
-
   app.set('workersMonitor', workersMonitor);
   app.set('cacheWorkersMonitor', cacheWorkersMonitor);
 
-  // make worker message handler (message from worker emit search done or clear done event)
+  // make handler for worker's messages (TIMEOUT or ALL-DONE handler)
+  // when worker replied job result with message type, emit appropriate event (eg: search.success_messageKey) 
   const searchEvent = new eventEmitter();
   const clearEvent = new eventEmitter();
   const handlers = messageHandlers.initialize({searchEvent, clearEvent, masterMonitor});
@@ -117,11 +126,11 @@ async function main(){
   workers.map(worker => workerHandlers.attachExitHandler({worker, app, workerModule, handlers}));
   workers.map(worker => workerHandlers.attachErrorHandler(worker));
 
-  socketServer.setMonitorStores(app);
+  socketServer.setMonitorStores({logMonitor, masterMonitor, workersMonitor, cacheWorkersMonitor});
   socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.workers(app, global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUpdateLoop.start.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUpdateLoop.start.workers(app, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUpdateLoop.start.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
   // master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
   // master.attachMessageEventHandler(app);
 
