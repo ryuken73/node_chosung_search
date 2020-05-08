@@ -37,11 +37,12 @@ export default class App extends Component {
       cacheWorkers : [],
       currentLog : [],
       progress: 0,
-      disableLoadDBBtn: false,
-      disableLoadFileBtn: false,
-      disalbeClearIndexBtn: true,
-      disalbeClearCacheBtn: true,
-      onIndexing: false
+      // disableLoadDBBtn: false,
+      // disableLoadFileBtn: false,
+      // disalbeClearIndexBtn: true,
+      // disalbeClearCacheBtn: true,
+      onIndexing: false,
+      indexDone: true
 
     }
   }  
@@ -64,10 +65,15 @@ export default class App extends Component {
   }
 
   updateMasterMonitor(masterMonitor){
-    // console.log('update master:',masterMonitor)
+    console.log('update master:',masterMonitor)
+    const {indexingStatus} = masterMonitor;
+    const onIndexing = (indexingStatus === 'INDEXING');
+    const indexDone = (indexingStatus === 'INDEX_DONE');
     this.setState({
       ...this.state,
-      master: masterMonitor
+      master: masterMonitor,
+      onIndexing,
+      indexDone
     })
   }
 
@@ -118,10 +124,10 @@ export default class App extends Component {
   onClickLoad =  async () => {
     this.setState({
       ...this.state,
-      disableLoadDBBtn: true,
-      disableLoadFileBtn: true,
-      disalbeClearCacheBtn: true,
-      disalbeClearIndexBtn: true,
+      // disableLoadDBBtn: true,
+      // disableLoadFileBtn: true,
+      // disalbeClearCacheBtn: true,
+      // disalbeClearIndexBtn: true,
       onIndexing: true,
     })
     const result = await axiosRequest.get('load');
@@ -131,10 +137,10 @@ export default class App extends Component {
   onClickLoadFromDB = async () => {
     this.setState({
       ...this.state,
-      disableLoadDBBtn: true,
-      disableLoadFileBtn: true,
-      disalbeClearCacheBtn: true,
-      disalbeClearIndexBtn: true,
+      // disableLoadDBBtn: true,
+      // disableLoadFileBtn: true,
+      // disalbeClearCacheBtn: true,
+      // disalbeClearIndexBtn: true,
       onIndexing: true
     })
     const result = await axiosRequest.get('loadFromDB');
@@ -145,8 +151,9 @@ export default class App extends Component {
     const result = await axiosRequest.get('clear');
     this.setState({
       ...this.state,
-      disableLoadDBBtn: false,
-      disableLoadFileBtn: false
+      // disableLoadDBBtn: false,
+      // disableLoadFileBtn: false
+      indexDone: false
     })
     console.log(result);
   }
@@ -162,8 +169,12 @@ export default class App extends Component {
 
   render() {
     const {workers, master, currentLog, cacheWorkers, progress} = this.state;
-    const {disableLoadDBBtn, disableLoadFileBtn, onIndexing} = this.state;
-    const {disalbeClearCacheBtn, disalbeClearIndexBtn} = this.state;
+    const {onIndexing, indexDone} = this.state;
+    // const {disalbeClearCacheBtn, disalbeClearIndexBtn} = this.state;
+    const disableLoadDBBtn = onIndexing || indexDone;
+    const disableLoadFileBtn = onIndexing || indexDone;
+    const disalbeClearIndexBtn = onIndexing || !indexDone;
+    const disalbeClearCacheBtn = onIndexing || !indexDone;
     const gap = 0.3;
     return (
       <Box display="flex" flexDirection="column" height="100vh" className="App">
@@ -183,10 +194,10 @@ export default class App extends Component {
         </Box>
         <PrettoSlide value={progress} onChange={this.handleSliderChange} aria-labelledby="continuous-slider" />
         <Box display="flex" flexDirection="row" justifyContent="space-around" alignItems="center" flexGrow="1" mx={gap} mb={gap} bgcolor={brown[900]}>
-          <Tooltip open={disableLoadDBBtn} title={onIndexing ? "Wait indexing" : "Clear Index first!"} placement="right-end">
+          <Tooltip open={disableLoadDBBtn} title={onIndexing ? "Wait indexing..." : "Clear Index first!"} placement="right-end">
             <BrownButton disabled={disableLoadDBBtn} onClick={this.onClickLoadFromDB} variant="contained" color="primary"  size="medium">load from DB</BrownButton>         
           </Tooltip>  
-          <Tooltip open={disableLoadFileBtn} title={onIndexing ? "Wait indexing" : "Clear Index first!"} placement="right-end">
+          <Tooltip open={disableLoadFileBtn} title={onIndexing ? "Wait indexing..." : "Clear Index first!"} placement="right-end">
             <BrownButton disabled={disableLoadFileBtn} onClick={this.onClickLoad} variant="contained" color="primary"  size="medium">load from file</BrownButton> 
           </Tooltip> 
           <Tooltip open={onIndexing} title="Wait indexing..." placement="right-end">

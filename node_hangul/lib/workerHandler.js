@@ -51,6 +51,7 @@ const initialize = ({searchEvent, clearEvent, masterMonitor}) => {
                 global.logger.info(`clearing all worker's data done!`);
                 masterMonitor.setStatus('lastIndexedDate', '');
                 masterMonitor.setStatus('lastIndexedCount', 0);
+                masterMonitor.setStatus('indexingStatus', 'NOT_INDEXED')
                 clearEvent.emit(`success_${messageKey}`);
                 return
             }     
