@@ -263,7 +263,7 @@ const search = async ({workers, keyStore, taskResults, searchEvent, params}) => 
         // result limit per worker
         const limit = RESULT_LIMIT_WORKER;
 
-        // send search jot to each workers
+        // send search jot to each workers 
         workers.map(async worker => {
             const job = {
                 type : 'search',
