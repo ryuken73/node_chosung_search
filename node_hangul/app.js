@@ -8,9 +8,14 @@ const compression = require('compression');
 const cors = require('cors');
 const routes = require('./routes/index');
 const users = require('./routes/users');
-const config = require('./config.json');
+
 const ibmdb = require('./lib/ibm_db');
-const dbconfig = require('./dbconfig.json');
+
+const configAbsolutePath = path.resolve('./config.json');
+const dbConfigAbsolutePath = path.resolve('./dbconfig.json');
+const pkgConfigResolver = require('./util/pkgConfigResolver');
+const config = pkgConfigResolver.getConfig(configAbsolutePath);
+const dbconfig = pkgConfigResolver.getConfig(dbConfigAbsolutePath);
 //const heapdump = require('heapdump');
 
 const MUSICDB_CONNECTION_STRING = dbconfig.DB2['MUSICDB'];
