@@ -17,6 +17,7 @@ function Worker({gap, workers}) {
           flexWrap="wrap" 
           flexGrow="1" 
           mx={gap} 
+          overflow="hidden"
           // mb={gap} 
           bgcolor={brown[700]}
         >

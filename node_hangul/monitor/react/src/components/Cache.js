@@ -17,6 +17,7 @@ function Cache({gap, caches}) {
      height="20vh"
      mx={gap} 
      bgcolor={brown[700]}
+     overflow="hidden"
     >
       {caches.map(cache => 
         <Box 
