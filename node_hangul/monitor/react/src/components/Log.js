@@ -4,7 +4,7 @@ import {brown} from '@material-ui/core/colors';
 import Tooltip from '@material-ui/core/Tooltip';
 
 function Log({gap, currentLog}) {
-  console.log('rerendering Log');
+  console.log('rerendering Log : ', currentLog);
   const logStyle = {display:'flex', flexGrow:0, flexShrink:0, flexBasis:"130px", overflow:'hidden'};
   const ConditionalTooltip = ({keyword, children}) => {
     if(keyword.length > 50){
@@ -13,26 +13,30 @@ function Log({gap, currentLog}) {
       return <div>{children}</div>
     }
   }
+  const ColorBox = (props) => {
+    const {cacheHit, children} = props;
+    return <Box color={cacheHit && 'cyan'}>{children}</Box>
+  }
   const defaultStyle = {flexGrow:1, flexShrink:5, margin:'3px', minWidth:'120px', flexBasis:'120px'};
   return (
     <Box display="flex" flexDirection="row" justifyContent="flex-start" alignItems="stretch" flexGrow={3} mx={gap} overflow="auto" textOverflow="ellipsis" fontSize="12px" bgcolor={brown[700]}>
       <Box style={{...defaultStyle, minWidth:'120px'}}>
-        {currentLog.map(log => <Box>{log.eventTime}</Box>)}
+        {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.eventTime}</ColorBox>)}
       </Box>
       <Box style={{...defaultStyle, flexBasis:'80', minWidth:'60px'}}>
-        {currentLog.map(log => <Box>{log.userId}</Box>)}
+        {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.userId}</ColorBox>)}
       </Box>
       <Box style={{...defaultStyle, flexBasis:'80', minWidth:'60px'}}>
-        {currentLog.map(log => <Box>{log.ip.replace('::ffff:','')}</Box>)}
+        {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.ip.replace('::ffff:','')}</ColorBox>)}
       </Box>
       <Box style={{...defaultStyle, flexBasis:'80', minWidth:'60px'}}>
-        {currentLog.map(log => <Box>{log.elapsed}초</Box>)}
+        {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.elapsed}초</ColorBox>)}
       </Box>
       <Box style={{...defaultStyle, flexBasis:'80', minWidth:'60px'}}>
-        {currentLog.map(log => <Box>{log.resultCount}건</Box>)}
+        {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.resultCount}건</ColorBox>)}
       </Box>
       <Box style={{...defaultStyle, flexGrow:5, flexShrink:1, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis'}}>
-        {currentLog.map(log => <Box style={{}} >{log.keyword}</Box>)}
+        {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.keyword}</ColorBox>)}
       </Box>
       {/* {currentLog.map(log => (
         <div style={{display:"flex", marginLeft:"10px", marginTop:'3px', flexDirection:"row", justifyContent:"flex-start", height:"1.2em", color: log.cacheHit && 'cyan'}}>
