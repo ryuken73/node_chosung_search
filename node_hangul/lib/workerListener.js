@@ -21,6 +21,9 @@ const replyIndexHandler = (message, masterMonitor) =>{
     masterMonitor.setStatus('lastIndexedCount', lastIndexedCount)
 }
 
+
+const clearTaskResultsAnyWay = (taskResult,messageKey) => taskResult.delete(messageKey);
+
 const attachMessageHanlder = ({worker, app, taskResults, handlers}) => {
     worker.on('message', message => {         
         const notGatherableJob = ['notify-start','reply-monitor', 'reply-index'];
@@ -35,7 +38,10 @@ const attachMessageHanlder = ({worker, app, taskResults, handlers}) => {
         type === 'reply-index' && replyIndexHandler(message, masterMonitor);
         type === 'reply-monitor' && replyMonitorHandler(workersMonitor, message, worker.pid);
         global.logger.debug(type, notGatherableJob.includes(type));
-        if(notGatherableJob.includes(type)) return; 
+        if(notGatherableJob.includes(type)) {
+            clearTaskResultsAnyWay(taskResults, messageKey);
+            return; 
+        } 
 
         global.logger.debug(`[${messageKey}][${clientId}][${type}][${taskType}]worker done[result:${resultForDebug}]. check Job Status`);
         
