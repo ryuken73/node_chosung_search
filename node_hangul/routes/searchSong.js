@@ -60,16 +60,17 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		global.logger.info(`[${ip}][${userId}] result per weight : [%s] : %j`, pattern, resultCountPerWeight);
 		// remove duplicate results
 		const resultsUnique = removeDuplicate(resultsWithoutWeight);
-		const resultCount = resultsUnique.length;
+		const resultsSizeReduced = getOnlyKeys(resultsUnique, ['artistName', 'songName']);
+		const resultCount = resultsSizeReduced.length;
 		
-		global.logger.trace(resultsUnique)
+		global.logger.trace(resultsSizeReduced)
 		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, pattern, resultCount);
 		const elapsed = stopWatch.end();
 		broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern, resultCount});
 		broadcastSearch(masterMonitorStore, 'end');
 
-		cacheWorkers.length > 0 && updateCache(cacheWorkers, patternJAMO, resultsUnique);
-		res.send({result: resultsUnique.slice(0,maxReturnCount), count:resultsUnique.length});
+		cacheWorkers.length > 0 && updateCache(cacheWorkers, patternJAMO, resultsSizeReduced);
+		res.send({result: resultsSizeReduced.slice(0,maxReturnCount), count:resultsUnique.length});
 		
 	} catch (err) {
 		console.error(err);
@@ -229,6 +230,18 @@ const removeDuplicate = (resultsWithoutWeight) => {
 	const resultsUniqueString = Array.from(new Set(resultsStringified));
 	const resultsUnique = resultsUniqueString.map(JSON.parse);
 	return resultsUnique;
+}
+
+const getOnlyKeys = (resultsUnique, requiredKeys=[]) => {
+	const resultUniqueClone = [...resultsUnique];
+	const emptyResults = new Array(resultUniqueClone.length);
+	emptyResults.fill({});
+	const reducedResults = emptyResults.map((result, index) => {
+		return requiredKeys.reduce((acct, key) => {
+			return {...acct, [key]:resultUniqueClone[index][key]}
+		}, {});
+	})
+	return reducedResults;
 }
 
 const doNothing = () => {};
