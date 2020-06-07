@@ -16,7 +16,7 @@ const dbConfigAbsolutePath = path.resolve('./dbconfig.json');
 const pkgConfigResolver = require('./util/pkgConfigResolver');
 const config = pkgConfigResolver.getConfig(configAbsolutePath);
 const dbconfig = pkgConfigResolver.getConfig(dbConfigAbsolutePath);
-// const heapdump = require('heapdump');
+const heapdump = require('heapdump');
 
 const MUSICDB_CONNECTION_STRING = dbconfig.DB2['MUSICDB'];
 global.SRC_FILE = config.SRC_FILE || 'c:/temp/song_mst.txt';
@@ -89,11 +89,11 @@ app.use('/clearSong', require('./routes/clearSong'));
 app.use('/clearCache', require('./routes/clearCache'));
 
 
-// app.use('/heapdump',function(req,res,next){
-//   var filename = 'd:/temp/' + Date.now() + '.heapsnapshot';
-//   heapdump.writeSnapshot(filename);
-//   res.send('Heapdump has been generated in '+filename);
-// });
+app.use('/heapdump',function(req,res,next){
+  var filename = 'd:/temp/' + Date.now() + '.heapsnapshot';
+  heapdump.writeSnapshot(filename);
+  res.send('Heapdump has been generated in '+filename);
+});
 
 
 // catch 404 and forward to error handler
