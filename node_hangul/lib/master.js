@@ -285,21 +285,34 @@ const search = async ({workers, keyStore, taskResults, searchEvent, params}) => 
 }
 
 function waitResult(messageKey, timer, event){
+
     return new Promise((resolve, reject) => {
         //searchEvent emitted when all worker's reply received
-        event.once(`success_${messageKey}`, (results) => {
+        const removeEventListeners = (messageKey) => {
+            event.removeListener(`success_${messageKey}`,  successHandler);
+            event.removeListener(`fail_${messageKey}`,  failureHandler);
+            event.removeListener('worker_exit', exitHandler); 
+        }
+    
+        const successHandler = results => {
             global.logger.debug(`emitted success_${messageKey}`);
-            clearTimeout(timer);
+            clearTimeout(timer);     
             resolve(results);
-        });
-        event.once(`fail_${messageKey}`,  () => {
+            removeEventListeners(messageKey);
+        }
+        const failureHandler = () => {
             clearTimeout(timer);
-            reject('search failed');
-        });
-        event.once('worker_exit', () => {
+            reject('search failed');    
+            removeEventListeners(messageKey);
+        }
+        const exitHandler = () => {
             clearTimeout(timer);
             reject('worker down');
-        })
+            removeEventListeners(messageKey);        
+        }
+        event.once(`success_${messageKey}`, successHandler);
+        event.once(`fail_${messageKey}`,  failureHandler);
+        event.once('worker_exit', exitHandler);              
     })
 }
 
