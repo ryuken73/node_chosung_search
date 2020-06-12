@@ -19,7 +19,7 @@ function Log({gap, currentLog}) {
   }
   const defaultStyle = {flexGrow:1, flexShrink:5, margin:'3px', minWidth:'120px', flexBasis:'120px'};
   return (
-    <Box display="flex" flexDirection="row" justifyContent="flex-start" alignItems="stretch" flexGrow={3} mx={gap} overflow="auto" textOverflow="ellipsis" fontSize="12px" bgcolor={brown[700]}>
+    <Box display="flex" flexDirection="row" justifyContent="flex-start" alignItems="stretch" flexGrow={3} mx={gap} overflow="auto" overflowX="hidden" textOverflow="ellipsis" fontSize="12px" bgcolor={brown[700]}>
       <Box style={{...defaultStyle, minWidth:'120px'}}>
         {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.eventTime}</ColorBox>)}
       </Box>
@@ -35,7 +35,7 @@ function Log({gap, currentLog}) {
       <Box style={{...defaultStyle, flexBasis:'80', minWidth:'60px'}}>
         {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.resultCount}건</ColorBox>)}
       </Box>
-      <Box style={{...defaultStyle, flexGrow:5, flexShrink:1, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis'}}>
+      <Box style={{...defaultStyle, flexGrow:5, flexShrink:1, whiteSpace:'nowrap', textOverflow:'ellipsis'}}>
         {currentLog.map(log => <ColorBox cacheHit={log.cacheHit}>{log.keyword}</ColorBox>)}
       </Box>
       {/* {currentLog.map(log => (
