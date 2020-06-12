@@ -1,10 +1,11 @@
 const hangul = require('hangul-js');
 const fs = require('fs');
 const getMemInfo = require('./getMemInfo');
+const orderSong = require('./orderSong');
 
 let songArray = [];
 const errored = [];
-const WORDSEPARATOR = '^';
+const WORDSEPARATOR = '^'; 
 const MIN_KEY_LENGTH = 2;
 let searchCount = 0;
 
@@ -201,6 +202,15 @@ const msgHandlers = {
         }
 
         // console.time('start3')
+		const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
+        const orderedResults =
+        result
+        .sort(orderyByKey(pattern)) 
+		.sort(artistNameIncludesFirst(pattern))
+        .sort(artistNameStartsFirst(pattern)) 
+        
+        result = orderedResults;
+
         limit && result.splice(limit);
         result.map(obj => obj.weight = subType.weight)
         searchCount -= 1;

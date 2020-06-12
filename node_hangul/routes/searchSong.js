@@ -4,6 +4,8 @@ var extractJAMO = require('../util/extractJAMO');
 const master = require('../lib/master');
 const timer = require('../lib/timer.js');
 const searchType = require('../config/searchType');
+const orderSong = require('../lib/orderSong');
+
 const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
 
 // search by distributed worker
@@ -53,7 +55,16 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 
 		const searchResults = await searchRequest({workers, keyStore, taskResults, searchGroup, searchEvent, searchParams});
 		
-		supportThreeWords ?  searchResults.sort(sortThreeWords(pattern)) : searchResults.sort(sortMultiFields)
+		// supportThreeWords ?  searchResults.sort(sortThreeWords(pattern)) : searchResults.sort(sortMultiFields)
+		const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
+
+		supportThreeWords 
+		? searchResults
+		.sort(orderyByKey(pattern)) 
+		.sort(artistNameIncludesFirst(pattern))
+		.sort(artistNameStartsFirst(pattern)) 
+		: searchResults.sort(sortMultiFields)
+
 		global.logger.trace(searchResults);
 		// get result count per weight and remove weight ftom results
 		const [resultCountPerWeight, resultsWithoutWeight] = getResultCountPerWeight(searchResults);
@@ -77,6 +88,52 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		res.send({result:null, count:null});
 	}
 }); 
+
+
+// function artistNameStartsFirst(patternOriginal){
+// 	return (a, b) => {
+// 		const pattern = patternOriginal.replace(/\s+$/,'');
+// 		const AB = -1;
+// 		const BA = 1;
+// 		// one of two records' artistName start with exact pattern, move forward
+// 		if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
+// 		if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
+// 		return 0;
+// 	}
+// }
+
+// function artistNameIncludesFirst(patternOriginal){
+// 	return (a, b) => {
+// 		const pattern = patternOriginal.replace(/\s+$/,'');
+// 		const AB = -1;
+// 		const BA = 1;
+// 		// one of two records' artistName start with exact pattern, move forward
+// 		if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
+// 		if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
+// 		return 0;
+// 	}
+// }
+
+// function orderyByKey(patternOriginal){
+// 	return (a, b) => {
+// 		const sortByKey = sortBy(a,b);
+// 		const sortByArtistName = sortByKey('artistName');
+// 		const sortBysongName = sortByKey('songName');
+// 		return sortByArtistName || sortBysongName || 0;
+// 	}
+// }
+
+// function sortBy(a,b) {
+// 	return key => {
+// 		// if key value is empty, push back
+// 		if(a[key] === '') return 1;
+// 		if(b[key] === '') return -1;
+// 		// normal order
+// 		if(a[key] > b[key]) return 1;
+// 		if(a[key] < b[key]) return -1;
+// 		return false
+// 	}
+// }
 
 async function lookupCache({cacheWorkers, patternJAMO, userFrom}){
 	const {ip, userId} = userFrom;
@@ -147,33 +204,26 @@ function broadcastSearch(masterMonitorStore, type){
 	masterMonitorStore.broadcast({eventName:'masterMonitor'});	
 }
 
-function sortThreeWords(patternOriginal){
-	return (a, b) => {
-		const pattern = patternOriginal.replace(/\s+$/,'');
-		const sortByKey = sortBy(a,b);
-		const AB = -1;
-		const BA = 1;
-		if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
-		if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
-		if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
-		if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
-		const sortByArtistName = sortByKey('artistName');
-		const sortBysongName = sortByKey('songName');
-		return sortByArtistName || sortBysongName || 0;
-	}
-}
-
-function sortBy(a,b) {
-	return key => {
-		// if key value is empty, push back
-		if(a[key] === '') return 1;
-		if(b[key] === '') return -1;
-		// normal order
-		if(a[key] > b[key]) return 1;
-		if(a[key] < b[key]) return -1;
-		return false
-	}
-}
+// function sortThreeWords(patternOriginal){
+// 	return (a, b) => {
+// 		const pattern = patternOriginal.replace(/\s+$/,'');
+// 		const AB = -1;
+// 		const BA = 1;
+// 		// one of two records' artistName start with exact pattern, move forward
+// 		if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
+// 		if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
+// 		// if two records starts or not starts with exact pattern,
+// 		// one of two records' artistName includes exact pattern, move forward
+// 		if(a.artistName.includes(pattern) && !b.artistName.includes(pattern)) return AB;
+// 		if(b.artistName.includes(pattern) && !a.artistName.includes(pattern)) return BA;
+// 		// if not starts with and not include patterns, (if patterns has multiple words and partially matched)
+// 		// just order by artistName and then songName
+// 		const sortByKey = sortBy(a,b);
+// 		const sortByArtistName = sortByKey('artistName');
+// 		const sortBysongName = sortByKey('songName');
+// 		return sortByArtistName || sortBysongName || 0;
+// 	}
+// }
 
 function sortMultiFields(a, b){
 	if(a.weight > b.weight) return 1;
