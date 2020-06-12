@@ -40,7 +40,8 @@ function Log({gap, currentLog}) {
         {currentLog.map(log => 
           (
           <ConditionalTooltip keyword={log.keyword}>
-            <ColorBox cacheHit={log.cacheHit}>{log.keyword}</ColorBox>
+            <div style={{"color": log.cacheHit && "cyan"}}>{log.keyword}</div>
+            {/* <ColorBox cacheHit={log.cacheHit}>{log.keyword}</ColorBox> */}
           </ConditionalTooltip>
           )
         )}
