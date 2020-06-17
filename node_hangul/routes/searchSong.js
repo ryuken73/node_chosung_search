@@ -7,6 +7,7 @@ const searchType = require('../config/searchType');
 const orderSong = require('../lib/orderSong');
 
 const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
+const MAX_LOG_ROWS_BROADCASTING = global.MAX_LOG_ROWS_BROADCASTING;
 
 // search by distributed worker
 router.get('/withWorkers/:pattern', async (req, res, next) => {
