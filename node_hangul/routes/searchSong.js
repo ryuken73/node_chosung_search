@@ -19,14 +19,16 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		stopWatch.start();
 
 		const {app} = req;
-		const {pattern} = req.params;
+		// const {pattern} = req.params;
+		const {pattern:searchPattern} = req.params;
+		const pattern = searchPattern.toUpperCase();
 		const {userId, supportThreeWords, maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress;
 		const userFrom = {userId, ip};
 		const patternJAMO = extractJAMO(pattern).replace(/\s+/g, ' ');
 		global.logger.trace('%s',patternJAMO);
 
-		res.stopWatch = stopWatch;
+		res.stopWatch = stopWatch; 
 		req.metaData = {pattern, patternJAMO, ip, userId, maxReturnCount, supportThreeWords};
 
 		const workers = app.get('workers');	
@@ -37,7 +39,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const taskResults = app.get('taskResults');
 		const searchEvent = app.get('searchEvent');
 
-		if(isPatternWhiteSpaceOnly({pattern})) {
+		if(isPatternWhiteSpaceOnly({pattern})) {  
 			stopWatch.end();
 			res.send({result:null, count:null});
 			return;
