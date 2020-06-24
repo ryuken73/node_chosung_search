@@ -9,27 +9,39 @@ const orderSong = require('../lib/orderSong');
 const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
 const MAX_LOG_ROWS_BROADCASTING = global.MAX_LOG_ROWS_BROADCASTING;
 
+class InPattern {
+	construct(pattern){
+		this._pattern = pattern;
+		this._patternUpperCase = pattern.toUpperCase();
+		this._patternJAMO = extractJAMO(pattern).replace(/\s+/g, ' ');
+	}
+	
+	get pattern() { return this._pattern }
+	get upperCase() { return this._patternUpperCase}
+	get patternJAMO() { return this._patternJAMO}
+}
+
+const startTimer = digit =>	timer.create(digit).start();
+
 // search by distributed worker
 router.get('/withWorkers/:pattern', async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
-
+		
 		const DIGITS = 3;
-		const stopWatch = timer.create(DIGITS);
-		stopWatch.start();
+		const stopWatch = startTimer(DIGITS)
 
 		const {app} = req;
-		// const {pattern} = req.params;
 		const {pattern:searchPattern} = req.params;
-		const pattern = searchPattern.toUpperCase();
-		const {userId, supportThreeWords, maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
-		const ip = req.connection.remoteAddress;
+		const inPattern = new InPattern(searchPattern)
+		global.logger.trace('%s',inPattern);
+
+		const {userId='unknown', supportThreeWords, maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
+		const ip = req.connection.remoteAddress || 'none';
 		const userFrom = {userId, ip};
-		const patternJAMO = extractJAMO(pattern).replace(/\s+/g, ' ');
-		global.logger.trace('%s',patternJAMO);
 
 		res.stopWatch = stopWatch; 
-		req.metaData = {pattern, patternJAMO, ip, userId, maxReturnCount, supportThreeWords};
+		req.metaData = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, ip, userId, maxReturnCount, supportThreeWords};
 
 		const workers = app.get('workers');	
 		const cacheWorkers = app.get('cacheWorkers');
@@ -39,22 +51,22 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const taskResults = app.get('taskResults');
 		const searchEvent = app.get('searchEvent');
 
-		if(isPatternWhiteSpaceOnly({pattern})) {  
+		if(isPatternWhiteSpaceOnly({pattern: inPattern.upperCase})) {  
 			stopWatch.end();
 			res.send({result:null, count:null});
 			return;
 		} 
 
-		global.logger.info(`[${ip}][${userId}] new request : pattern [${pattern} ${supportThreeWords}]`);
+		global.logger.info(`[${ip}][${userId}] new request : pattern [${inPattern.upperCase} ${supportThreeWords}]`);
 		broadcastSearch(masterMonitorStore, 'start');
 
-		const {cacheHit, cacheResponse} = await lookupCache({cacheWorkers, patternJAMO, userFrom});
+		const {cacheHit, cacheResponse} = await lookupCache({cacheWorkers, patternJAMO: inPattern.patternJAMO, userFrom});
 		cacheHit ? processCacheResult({cacheHit, cacheResponse, logMonitorStore, masterMonitorStore, req, res}) : doNothing();
 		if(cacheHit) return;
 				
 		const {threeWordsSearchGroup, normalSearchGroup} = searchType;
 		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;		
-		const searchParams = {pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
+		const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
 
 		const searchResults = await searchRequest({workers, keyStore, taskResults, searchGroup, searchEvent, searchParams});
 		
@@ -63,27 +75,27 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 
 		supportThreeWords 
 		? searchResults
-		.sort(orderyByKey(pattern)) 
-		.sort(artistNameIncludesFirst(pattern))
-		.sort(artistNameStartsFirst(pattern)) 
+		.sort(orderyByKey(inPattern.upperCase)) 
+		.sort(artistNameIncludesFirst(inPattern.upperCase))
+		.sort(artistNameStartsFirst(inPattern.upperCase)) 
 		: searchResults.sort(sortMultiFields)
 
 		global.logger.trace(searchResults);
 		// get result count per weight and remove weight ftom results
 		const [resultCountPerWeight, resultsWithoutWeight] = getResultCountPerWeight(searchResults);
-		global.logger.info(`[${ip}][${userId}] result per weight : [%s] : %j`, pattern, resultCountPerWeight);
+		global.logger.info(`[${ip}][${userId}] result per weight : [%s] : %j`, inPattern.upperCase, resultCountPerWeight);
 		// remove duplicate results
 		const resultsUnique = removeDuplicate(resultsWithoutWeight);
 		const resultsSizeReduced = getOnlyKeys(resultsUnique, ['artistName', 'songName']);
 		const resultCount = resultsSizeReduced.length;
 		
 		global.logger.trace(resultsSizeReduced)
-		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, pattern, resultCount);
+		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, inPattern.upperCase, resultCount);
 		const elapsed = stopWatch.end();
-		broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern, resultCount});
+		broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern: inPattern.upperCase, resultCount});
 		broadcastSearch(masterMonitorStore, 'end');
 
-		cacheWorkers.length > 0 && updateCache(cacheWorkers, patternJAMO, resultsSizeReduced);
+		cacheWorkers.length > 0 && updateCache(cacheWorkers, inPattern.patternJAMO, resultsSizeReduced);
 		res.send({result: resultsSizeReduced.slice(0,maxReturnCount), count:resultsUnique.length});
 		
 	} catch (err) {
