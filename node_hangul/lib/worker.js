@@ -9,43 +9,6 @@ const WORDSEPARATOR = '^';
 const MIN_KEY_LENGTH = 2;
 let searchCount = 0;
 
-
-const getJAMO = (hangulStr) => {
-    return hangul.disassemble(hangulStr).join('');	
-}
-
-const clearWord = (word) => {
-    return word.replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');
-}
-
-const createSongObj = (data) => {
-    try {
-        // const {wordSep, line, supportThreeWords} = data;
-        // const wordArray = line.split(wordSep);
-        const wordArray = data;
-        if(wordArray.length < MIN_KEY_LENGTH){
-            console.error(`wordArray is too short[MIN_KEY_LENGTH = 2] but current Data :`, wordArray);
-            errored.push(wordArray);
-            return {artistName:'', songName:'',combinedName:''};
-        }
-
-        const [artistName, songName, year, label] = wordArray.map(word => clearWord(word));
-        const artistNsongNartist = `${artistName} ${songName} ${artistName}`;
-        const artistNsongNartistNoBlank =  `${songName.replace(/\s+/g, '')}${artistName.replace(/\s+/g, '')}${songName.replace(/\s+/g, '')}`;
-
-        return {
-            artistName,
-            songName,
-            combinedName : `${artistNsongNartist} ${artistNsongNartistNoBlank}`,
-            year,
-            label
-        } 
-    } catch (err) {
-        console.error(err);
-        process.exit();
-    }
-}
-
 const getSplited = (str, sep) => {
     return str.split(sep).filter(element => element !== "");
 }
@@ -91,11 +54,22 @@ const mkRegExpr = (str, spacing) => {
 
 class Song {
     constructor([artistName='', songName='']){
-        this._artistName = clearWord(artistName);
-        this._songName = clearWord(songName);   
+        this._artistName = this.clearWord(artistName);
+        this._songName = this.clearWord(songName);   
         this._combinedName = this.mkCombinedName();
-        this._jamoCombinedName = getJAMO(this._combinedName);
+        this._jamoCombinedName = this.getJAMO(this._combinedName);
         return this;     
+    }    
+    getJAMO = (hangulStr) => {
+        return hangul.disassemble(hangulStr).join('');	
+    }
+    clearWord = (word) => {
+        return word.replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');
+    }
+    mkCombinedName = () => {
+        const artistNsongNartist = `${this._artistName} ${this._songName} ${this._artistName}`;
+        const artistNsongNartistNoBlank = `${this._songName.replace(/\s+/g, '')}${this._artistName.replace(/\s+/g, '')}${this._songName.replace(/\s+/g, '')}`;
+        return `${artistNsongNartist} ${artistNsongNartistNoBlank}`
     }
     get artistName(){
         return this._artistName;
@@ -103,19 +77,14 @@ class Song {
     get songName(){
         return this._songName;
     }
-    mkCombinedName(){
-        const artistNsongNartist = `${this._artistName} ${this._songName} ${this._artistName}`;
-        const artistNsongNartistNoBlank =  `${this._songName.replace(/\s+/g, '')}${this._artistName.replace(/\s+/g, '')}${this._songName.replace(/\s+/g, '')}`;
-        return `${artistNsongNartist} ${artistNsongNartistNoBlank}`
-    }
     get combinedName(){
         return this._combinedName;
     }
     get jamoArtist(){
-        return getJAMO(this._artistName);
+        return this.getJAMO(this._artistName);
     }
     get jamoSong(){
-        return getJAMO(this._songName);
+        return this.getJAMO(this._songName);
     }
     get jamoCombinedName(){
         return this._jamoCombinedName;
@@ -135,13 +104,7 @@ const msgHandlers = {
     },
     'index' : (subType = null, messageKey, data) => {
         try {
-            // data === [artistName, songName, year, label] 
-            // const songObject = createSongObj(data);
             const songObject = new Song(data);
-            // songObject.jamoArtist = getJAMO(songObject.artistName);
-            // songObject.jamoSong = getJAMO(songObject.songName);
-            // songObject.jamoCombinedName= getJAMO(songObject.combinedName);
-
             songArray.push(songObject);
             process.send({
                 type: 'reply-index',
@@ -155,9 +118,7 @@ const msgHandlers = {
         }
     },
     'search' : (subType, messageKey, data) => {
-        // console.time('start1');
         searchCount += 1;
-        // console.log(searchCount);
         // default max result 100,000,000 
         const {pattern, patternJAMO, limit=100000000, supportThreeWords} = data;
         const notSupportThreeWords = !supportThreeWords;
@@ -249,9 +210,7 @@ const msgHandlers = {
             return {artistName, songName, weight: subType.weight}
         })            
         searchCount -= 1;
-        // console.log(searchCount);
-        // console.timeEnd('start3')
-        // console.log(`resultCount = [${result.length}]`)
+
         process.send({
             type: 'reply-search',
             clientId: process.pid,
