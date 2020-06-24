@@ -89,10 +89,43 @@ const mkRegExpr = (str, spacing) => {
 
 }
 
+class Song {
+    constructor([artistName='', songName='']){
+        this._artistName = clearWord(artistName);
+        this._songName = clearWord(songName);   
+        this._combinedName = this.mkCombinedName();
+        this._jamoCombinedName = getJAMO(this._combinedName);
+        return this;     
+    }
+    get artistName(){
+        return this._artistName;
+    }
+    get songName(){
+        return this._songName;
+    }
+    mkCombinedName(){
+        const artistNsongNartist = `${this._artistName} ${this._songName} ${this._artistName}`;
+        const artistNsongNartistNoBlank =  `${this._songName.replace(/\s+/g, '')}${this._artistName.replace(/\s+/g, '')}${this._songName.replace(/\s+/g, '')}`;
+        return `${artistNsongNartist} ${artistNsongNartistNoBlank}`
+    }
+    get combinedName(){
+        return this._combinedName;
+    }
+    get jamoArtist(){
+        return getJAMO(this._artistName);
+    }
+    get jamoSong(){
+        return getJAMO(this._songName);
+    }
+    get jamoCombinedName(){
+        return this._jamoCombinedName;
+    }
+}
+
 const msgHandlers = {
     'clear' : (subType = null, messageKey, data = null) => {
         songArray = [];
-        process.send({
+        process.send({ 
             type: 'reply-clear',
             clientId: process.pid,
             messageKey, 
@@ -103,10 +136,11 @@ const msgHandlers = {
     'index' : (subType = null, messageKey, data) => {
         try {
             // data === [artistName, songName, year, label] 
-            const songObject = createSongObj(data);
-            songObject.jamoArtist = getJAMO(songObject.artistName);
-            songObject.jamoSong = getJAMO(songObject.songName);
-            songObject.jamoCombinedName= getJAMO(songObject.combinedName);
+            // const songObject = createSongObj(data);
+            const songObject = new Song(data);
+            // songObject.jamoArtist = getJAMO(songObject.artistName);
+            // songObject.jamoSong = getJAMO(songObject.songName);
+            // songObject.jamoCombinedName= getJAMO(songObject.combinedName);
 
             songArray.push(songObject);
             process.send({
@@ -203,21 +237,21 @@ const msgHandlers = {
 
         // console.time('start3')
 		const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
-        const orderedResults =
-        result
-        .sort(orderyByKey(pattern)) 
-		.sort(artistNameIncludesFirst(pattern))
-        .sort(artistNameStartsFirst(pattern)) 
-        
-        result = orderedResults;
+        const orderedResults = result.sort(orderyByKey(pattern))         
+		                             .sort(artistNameIncludesFirst(pattern))
+                                     .sort(artistNameStartsFirst(pattern)) 
+      
+        // result = orderedResults;
 
-        limit && result.splice(limit);
-        result.map(obj => obj.weight = subType.weight)
+        limit && orderedResults.splice(limit);
+        result = orderedResults.map(songObj => {
+            const {artistName, songName} = songObj;
+            return {artistName, songName, weight: subType.weight}
+        })            
         searchCount -= 1;
         // console.log(searchCount);
         // console.timeEnd('start3')
         // console.log(`resultCount = [${result.length}]`)
-
         process.send({
             type: 'reply-search',
             clientId: process.pid,
