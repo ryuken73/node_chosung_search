@@ -1,9 +1,9 @@
-process.on('message', ({reqId, job}) => {
-    const {sleep} = job;
+process.on('message', ({requestId, request}) => {
+    const {sleep} = request;
     setTimeout(() => {
         console.log(`DONE:${process.pid}:sleep`);
         process.send({
-            resId : reqId,
+            responseId : requestId,
             success: true,
             result: sleep
         })
