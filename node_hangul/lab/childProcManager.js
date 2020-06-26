@@ -30,7 +30,7 @@ const _initRequestAPI = worker => {
                 const {responseId, success, result} = response;
                 if(responseId === requestId) {
                     console.log(`[workerPool][${worker.pid}]got responseId =`, responseId, success)
-                    worker.removeListener('response', handleResponse);
+                    worker.removeListener('message', handleResponse);
                     if(success) {
                         resolve(result);
                     } else {

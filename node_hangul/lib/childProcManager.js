@@ -28,9 +28,13 @@ const _initRequestAPI = worker => {
             worker.send({requestId, request});
             const handleResponse = response => {
                 const {responseId, success, result} = response;
+                if(responseId === undefined){
+                    console.error("child process should return response id to manager. or event listenr of workers will increase forever!", response);
+                    process.exit();
+                }
                 if(responseId === requestId) {
-                    console.log(`[workerPool][${worker.pid}]got responseId =`, responseId, success)
-                    worker.removeListener('response', handleResponse);
+                    // console.log(`[workerPool][${worker.pid}]got responseId =`, responseId, success)
+                    worker.removeListener('message', handleResponse);
                     if(success) {
                         resolve(result);
                     } else {

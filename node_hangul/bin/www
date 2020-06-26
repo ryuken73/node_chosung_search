@@ -103,7 +103,8 @@ async function main(){
   const startWorkerMessageKey = taskKey.getKey();
   taskResults.set(startWorkerMessageKey, []);
   const workers = master.createWorkers(global.NUMBER_OF_WORKER, workerModule, startWorkerMessageKey);
-  const cacheWorkers = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule);
+  // const cacheWorkers = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule);
+  const cacheWorkers = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule).workers;
   app.set('workers', workers);
   app.set('cacheWorkers', cacheWorkers);
 

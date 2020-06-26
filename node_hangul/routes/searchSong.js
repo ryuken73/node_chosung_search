@@ -111,7 +111,7 @@ async function lookupCache({cacheWorkers, patternJAMO, userFrom}){
 		cmd: 'get',
 		pattern: patternJAMO
 	}
-	const resultPromise = cacheWorkers.map( async worker => await worker.runJob(cacheSearchJob));
+	const resultPromise = cacheWorkers.map( async worker => await worker.promise.request(cacheSearchJob));
 	const resultsFromCache = await Promise.all(resultPromise);
 	// resultsFromCache = [null, null, [results], null]
 	global.logger.debug(resultsFromCache)
@@ -129,7 +129,7 @@ async function updateCache(cacheWorkers, patternJAMO, results){
 		results
 	}
 	const cacheIndex = patternJAMO.length % cacheWorkers.length;
-	const resultPromise = await cacheWorkers[cacheIndex].runJob(cacheSetJob);
+	const resultPromise = await cacheWorkers[cacheIndex].promise.request(cacheSetJob);
 	global.logger.debug(resultPromise)
 	return resultPromise
 }
@@ -140,7 +140,7 @@ async function deleteCache(cacheWorkers, patternJAMO){
 		cmd: 'delete',
 		pattern: patternJAMO,
 	}
-	const resultPromise = cacheWorkers.map( async worker => await worker.runJob(cacheDeleteJob));
+	const resultPromise = cacheWorkers.map( async worker => await worker.promise.request(cacheDeleteJob));
 	const resultsFromCache = await Promise.all(resultPromise);
 	global.logger.debug(resultsFromCache);
     global.logger.info(`delete cache [${patternJAMO}] Done!`);

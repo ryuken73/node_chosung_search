@@ -31,8 +31,8 @@ const cache = {
     }
 }
 
- process.on('message', ({reqId, job}) => {
-    const {cmd, pattern, results=[]} = job;
+ process.on('message', ({requestId, request}) => {
+    const {cmd, pattern, results=[]} = request;
     let result;
     switch(cmd){
         // case 'init' :
@@ -63,7 +63,7 @@ const cache = {
     }
     // console.log(`cache work done: ${process.pid}: cmd = ${cmd}`);
     process.send({
-        resId : reqId,
+        responseId : requestId,
         success: true,
         result
     })

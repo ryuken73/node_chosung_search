@@ -3,7 +3,8 @@ const fs = require('fs');
 const readline = require('readline');
 
 const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
-const workerPool = require('./workPool');
+const manager = require('./childProcManager');
+// const workerPool = require('./workPool');
 
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
@@ -242,7 +243,7 @@ const clear = async ({workers, keyStore, taskResults, clearEvent}) => {
 const clearCache = async (cacheWorkers) => {
     const clearJobs = cacheWorkers.map(async cacheWorker => {
         const job = {cmd : 'clear'};
-        return await cacheWorker.runJob(job);
+        return await cacheWorker.promise.request(job);
     })
     return Promise.all(clearJobs);
 }
@@ -335,7 +336,14 @@ const createWorkers = (maxWorkers, workerModule, startWorkerMessageKey) => {
 }
 
 const createCacheWorkers = (maxCache, cacheModule) => { 
-    return workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit)
+    const options = {
+        jsFile: cacheModule,
+        args: [],
+        count: maxCache,
+        customExitCallback: handleProcessExit
+    }
+    return manager.create(options);
+    // return workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit)
 }
 
 module.exports = {

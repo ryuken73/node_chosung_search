@@ -21,7 +21,7 @@ const start = {
         const requestMonitorJob = {cmd: 'requestMonitor'};
         setInterval( async () => {
             const cacheWorkers = app.get('cacheWorkers');
-            const reqPromises = cacheWorkers.map(async worker => await worker.runJob(requestMonitorJob));
+            const reqPromises = cacheWorkers.map(async worker => await worker.promise.request(requestMonitorJob));
             const monitorValues = await Promise.all(reqPromises);
             monitorValues.map(value => {
                 const {pid, cacheCount, cacheHit, mem} = value;
