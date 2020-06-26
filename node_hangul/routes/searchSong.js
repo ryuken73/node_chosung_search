@@ -10,10 +10,11 @@ const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
 const MAX_LOG_ROWS_BROADCASTING = global.MAX_LOG_ROWS_BROADCASTING;
 
 class InPattern {
-	construct(pattern){
+	constructor(pattern){
 		this._pattern = pattern;
 		this._patternUpperCase = pattern.toUpperCase();
 		this._patternJAMO = extractJAMO(pattern).replace(/\s+/g, ' ');
+		return this;
 	}
 	
 	get pattern() { return this._pattern }
@@ -21,20 +22,19 @@ class InPattern {
 	get patternJAMO() { return this._patternJAMO}
 }
 
-const startTimer = digit =>	timer.create(digit).start();
-
 // search by distributed worker
 router.get('/withWorkers/:pattern', async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
 		
 		const DIGITS = 3;
-		const stopWatch = startTimer(DIGITS)
+		const stopWatch = timer.create(DIGITS)
+		stopWatch.start();
 
 		const {app} = req;
 		const {pattern:searchPattern} = req.params;
 		const inPattern = new InPattern(searchPattern)
-		global.logger.trace('%s',inPattern);
+		console.log('%s',inPattern._pattern);
 
 		const {userId='unknown', supportThreeWords, maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress || 'none';
