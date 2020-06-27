@@ -168,18 +168,6 @@ function broadcastSearch(masterMonitorStore, type){
 	masterMonitorStore.broadcast({eventName:'masterMonitor'});	
 }
 
-function sortMultiFields(a, b){
-	if(a.weight > b.weight) return 1;
-	if(a.weight < b.weight) return -1;
-	if(a.artistName > b.artistName) return 1;
-	if(a.artistName < b.artistName) return -1;
-	if(a.songName > b.songName) return 1;
-	if(a.songName < b.songName) return -1;
-	// if(a.year > b.year) return 1;
-	// if(a.year < b.year) return -1;
-	return 0;
-}
-
 const isPatternWhiteSpaceOnly = ({pattern}) => pattern.replace(/\s+/, '').length === 0;
 
 const processCacheResult = ({cacheHit, cacheResponse, masterMonitorStore, logMonitorStore, req, res}) => {
