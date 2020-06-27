@@ -2,35 +2,12 @@ const hangul = require('hangul-js');
 const fs = require('fs');
 const getMemInfo = require('./getMemInfo');
 const orderSong = require('./orderSong');
+const song = require('./songClass');
 
 let songArray = [];
-const errored = [];
-const WORDSEPARATOR = '^'; 
-const MIN_KEY_LENGTH = 2;
 let searchCount = 0;
 
-const getSplited = (str, sep) => {
-    return str.split(sep).filter(element => element !== "");
-}
-
-const getMode = (str, complexSep) => {
-    const mode = {};
-    mode.complex = getSplited(str, complexSep).length == 2 ? true : false;
-    mode.complex = (!str.includes(complexSep) && getSplited(str, ' ').length == 2) ? true : mode.complex;
-    return mode;
-}
-
-const getKeyword = (searchMode, str, complexSep) => {
-    let sep = ' ';
-    if(!searchMode.complex) return [];
-    if(searchMode.complex && str.includes(WORDSEPARATOR)) sep = complexSep;
-    const [first, second] = getSplited(str, sep);
-    const firstUpperCased = first && first.toUpperCase().trimStart().trimEnd();
-    const secondUpperCased = second && second.toUpperCase().trimStart().trimEnd();    
-    return [firstUpperCased, secondUpperCased]
-}
-
-const replaceMeta = (word, replacer) => {
+const replaceRegMetaCharacter = (word, replacer) => {
     const re = /([?\\\*\+\.\{\}\[\]\(\)])/g
     return word.replace(re, replacer + '\$1');
 }
@@ -40,7 +17,7 @@ const mkRegExpr = (str, spacing) => {
         if(typeof(str) === 'string') {
             const wordsSplited = str.trimStart().trimEnd().split(' ');
             const whitespaceRemoved = wordsSplited.filter(word => word !== '');
-            const escapeMetaCharacters = whitespaceRemoved.map(word => replaceMeta(word, '\\'));
+            const escapeMetaCharacters = whitespaceRemoved.map(word => replaceRegMetaCharacter(word, '\\'));
             const spcaceExpr = spacing ? '.+' : '.*?';
             // console.log(escapeMetaCharacters.join(spcaceExpr))
             return new RegExp(escapeMetaCharacters.join(spcaceExpr));
@@ -48,46 +25,6 @@ const mkRegExpr = (str, spacing) => {
         return null;
     } catch (err) {
         return null;
-    }
-
-}
-
-class Song {
-    constructor([artistName='', songName='']){
-        this._artistName = this.clearWord(artistName);
-        this._songName = this.clearWord(songName);   
-        this._combinedName = this.mkCombinedName();
-        this._jamoCombinedName = this.getJAMO(this._combinedName);
-        return this;     
-    }    
-    getJAMO = (hangulStr) => {
-        return hangul.disassemble(hangulStr).join('');	
-    }
-    clearWord = (word) => {
-        return word.replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');
-    }
-    mkCombinedName = () => {
-        const artistNsongNartist = `${this._artistName} ${this._songName} ${this._artistName}`;
-        const artistNsongNartistNoBlank = `${this._songName.replace(/\s+/g, '')}${this._artistName.replace(/\s+/g, '')}${this._songName.replace(/\s+/g, '')}`;
-        return `${artistNsongNartist} ${artistNsongNartistNoBlank}`
-    }
-    get artistName(){
-        return this._artistName;
-    }
-    get songName(){
-        return this._songName;
-    }
-    get combinedName(){
-        return this._combinedName;
-    }
-    get jamoArtist(){
-        return this.getJAMO(this._artistName);
-    }
-    get jamoSong(){
-        return this.getJAMO(this._songName);
-    }
-    get jamoCombinedName(){
-        return this._jamoCombinedName;
     }
 }
 
@@ -104,7 +41,7 @@ const msgHandlers = {
     },
     'index' : (subType = null, messageKey, data) => {
         try {
-            const songObject = new Song(data);
+            const songObject = song.create(data);
             songArray.push(songObject);
             process.send({
                 type: 'reply-index',
@@ -120,97 +57,21 @@ const msgHandlers = {
     'search' : (subType, messageKey, data) => {
         searchCount += 1;
         // default max result 100,000,000 
-        const {pattern, patternJAMO, limit=100000000, supportThreeWords} = data;
-        const notSupportThreeWords = !supportThreeWords;
+        const {pattern, patternJAMO, limit=100000000} = data;
         const upperCased = patternJAMO.toUpperCase().trimEnd();
-        const searchMode = getMode(upperCased, WORDSEPARATOR);
-        // console.log(searchMode)
-
-        let firstRegExpr,secondRegExpr;
-
-        if(searchMode.complex){
-            const [firstUpperCased, secondUpperCased] = getKeyword(searchMode, upperCased, WORDSEPARATOR);
-            firstRegExpr = mkRegExpr(firstUpperCased, spacing=true);
-            secondRegExpr = mkRegExpr(secondUpperCased, spacing=true);     
-        }  
-        
-        const hatRemovedUpperCased = upperCased.endsWith('^') ? upperCased.replace(/\^$/,'') : upperCased;
-        const keywordExpr = mkRegExpr(hatRemovedUpperCased, spacing=true);
-        const keywordExprCanBeNospacing = mkRegExpr(hatRemovedUpperCased, spacing=false);
-        // console.timeEnd('start1');
-        // console.time('start2');
-        let result;
-        switch(subType.key){
-            case 'artistNsong' :
-                if(!searchMode.complex) {
-                    result = [];
-                    break;
-                }
-                result = songArray.filter(song => {
-                    if(!secondRegExpr) return false;
-                    // return song.jamoArtist.toUpperCase().includes(firstUpperCased) && song.jamoSong.toUpperCase().includes(secondUpperCased);
-                    return song.jamoArtist.toUpperCase().search(firstRegExpr) != -1 && song.jamoSong.toUpperCase().search(secondRegExpr) != -1;
-                });
-                break;
-            case 'songNartist' :
-                if(!searchMode.complex) {
-                    result = [];
-                    break;
-                }
-                result = songArray.filter(song => {
-                    if(!secondRegExpr) return false;
-                    // return song.jamoArtist.toUpperCase().includes(secondUpperCased) && song.jamoSong.toUpperCase().includes(firstUpperCased);
-                    return song.jamoArtist.toUpperCase().search(secondRegExpr) != -1 && song.jamoSong.toUpperCase().search(firstRegExpr) != -1;
-                })
-                break;
-            case 'artist' :
-                // result = songArray.filter(song => song.artistName.includes(pattern));
-                result = songArray.filter(song => song.jamoArtist.toUpperCase().startsWith(hatRemovedUpperCased));
-                break;
-            case 'artistJAMO' :
-                // result = songArray.filter(song => song.jamoArtist.toUpperCase().includes(upperCased));
-                result = songArray.filter(song => song.jamoArtist.toUpperCase().search(keywordExpr) != -1);
-                break;
-            case 'song' :
-                result = songArray.filter(song => song.jamoSong.toUpperCase().startsWith(hatRemovedUpperCased))
-                // result = songArray.filter(song => song.songName.includes(pattern));
-                break;
-            case 'songJAMO' :
-                // result = songArray.filter(song => song.jamoSong.toUpperCase().includes(upperCased))
-                result = songArray.filter(song => song.jamoSong.toUpperCase().search(keywordExpr) != -1);
-                break;
-            case 'artistNsongWithoutHat' :
-                // result = notSupportThreeWords ? [] : songArray.filter(song => song.jamoArtistNSong.toUpperCase().search(keywordExpr) != -1);
-                result = notSupportThreeWords ? [] : songArray.filter(song => song.jamoArtistNSong.toUpperCase().search(keywordExpr) != -1);
-                break;
-            case 'songNartistWithoutHat' :
-                result = notSupportThreeWords ? [] : songArray.filter(song => song.jamoSongNArtist.toUpperCase().search(keywordExpr) != -1);
-                break;
-            case 'threeWordsSearch' :
-                result = threeWordsSearch(songArray, keywordExpr, keywordExprCanBeNospacing);
-                // console.timeEnd('start2');
-                break;
-            default :
-                result = []
-                break;
-
-        }
-
-        // console.time('start3')
-		const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
-        const orderedResults = result.sort(orderyByKey(pattern))         
-		                             .sort(artistNameIncludesFirst(pattern))
-                                     .sort(artistNameStartsFirst(pattern)) 
+        const keywordExprCanBeNospacing = mkRegExpr(upperCased, spacing=false);
+        const searchResults = threeWordsSearch(songArray, keywordExprCanBeNospacing);
+        const orderedResults = searchResults
+                               .sort(orderSong.orderyByKey(pattern)) 
+                               .sort(orderSong.artistNameIncludesFirst(pattern))
+                               .sort(orderSong.artistNameStartsFirst(pattern)) 
       
-        // result = orderedResults;
-
         limit && orderedResults.splice(limit);
-        result = orderedResults.map(songObj => {
+        const result = orderedResults.map(songObj => {
             const {artistName, songName} = songObj;
             return {artistName, songName, weight: subType.weight}
         })            
         searchCount -= 1;
-
         process.send({
             type: 'reply-search',
             clientId: process.pid,
@@ -222,7 +83,7 @@ const msgHandlers = {
     }
 }
 
-function threeWordsSearch(songArray, keywordExpr, keywordExprCanBeNospacing){
+function threeWordsSearch(songArray, keywordExprCanBeNospacing){
     return songArray.filter(song => {
         return song.jamoCombinedName.toUpperCase().search(keywordExprCanBeNospacing) != -1
     })
