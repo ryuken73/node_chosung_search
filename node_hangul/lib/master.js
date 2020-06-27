@@ -21,29 +21,6 @@ const getFileSize = (srcFile) => {
     })
 }
 
-// const indexProgress = {
-//     processed : 0, 
-//     oldProcessed : 0,
-//     async setSrcFile(srcFile){
-//         this.srcFile = srcFile;
-//         const srcFileSize = await getFileSize(srcFile);
-//         this.srcFileSize = srcFileSize;
-//     },
-//     update({bytesRead, digit=0}){
-//         // console.log(this.processed, this.srcFileSize, bytesRead)
-//         const oldProcessed = ((this.processed / this.srcFileSize)*100).toFixed(digit);
-//         const newProcessed = ((bytesRead / this.srcFileSize)*100).toFixed(digit);
-//         this.processed = bytesRead;
-//         // global.logger.info(oldProcessed, newProcessed)
-//         const diff = this.srcFileSize - bytesRead;
-//         if(diff <= 0){
-//             global.logger.info(this.srcFileSize, bytesRead);
-//         }
-//         if(oldProcessed !== newProcessed) return newProcessed;
-//         return null;
-//     }
-// }
-
 
 const progressor = total => (processed, digit=0) => {
     return ((processed / total) * 100).toFixed(digit);   
@@ -250,7 +227,7 @@ const clearCache = async (cacheWorkers) => {
 
 const search = async ({workers, keyStore, taskResults, searchEvent, params}) => {
     try {
-        const {group, pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords} = params;
+        const {pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords} = params;
         const messageKey = keyStore.getNextKey();        
         taskResults.set(messageKey, []);
   
@@ -268,7 +245,6 @@ const search = async ({workers, keyStore, taskResults, searchEvent, params}) => 
         workers.map(async worker => {
             const job = {
                 type : 'search',
-                subType : group,
                 messageKey,
                 data : {
                     pattern,

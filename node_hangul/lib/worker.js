@@ -54,7 +54,7 @@ const msgHandlers = {
             process.exit();
         }
     },
-    'search' : (subType, messageKey, data) => {
+    'search' : (subType = null, messageKey, data) => {
         searchCount += 1;
         // default max result 100,000,000 
         const {pattern, patternJAMO, limit=100000000} = data;
@@ -69,14 +69,13 @@ const msgHandlers = {
         limit && orderedResults.splice(limit);
         const result = orderedResults.map(songObj => {
             const {artistName, songName} = songObj;
-            return {artistName, songName, weight: subType.weight}
+            return {artistName, songName}
         })            
         searchCount -= 1;
         process.send({
             type: 'reply-search',
             clientId: process.pid,
             messageKey,
-            subType,
             success:true,
             result,
         })

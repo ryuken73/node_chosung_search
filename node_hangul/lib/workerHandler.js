@@ -33,7 +33,7 @@ const initialize = ({searchEvent, clearEvent, masterMonitor}) => {
                 const {messageKey, subType} = message;
                 // const results = global.workerMessages.get(messageKey);
                 let resultsFlattened = resultsGathered.flat();
-                global.logger.debug(`[${messageKey}][${subType.key}] all result replied : ${resultsFlattened.length}`);          
+                global.logger.debug(`[${messageKey}] all result replied : ${resultsFlattened.length}`);          
                 searchEvent.emit(`success_${messageKey}`, resultsFlattened);
                 // global.workerMessages.delete(messageKey);
             }    

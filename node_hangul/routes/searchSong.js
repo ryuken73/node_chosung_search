@@ -64,28 +64,22 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		cacheHit ? processCacheResult({cacheHit, cacheResponse, logMonitorStore, masterMonitorStore, req, res}) : doNothing();
 		if(cacheHit) return;
 				
-		const {threeWordsSearchGroup, normalSearchGroup} = searchType;
-		const searchGroup = supportThreeWords ? threeWordsSearchGroup : normalSearchGroup;		
+		const {threeWordsSearchGroup} = searchType;
+		const searchGroup = threeWordsSearchGroup;		
 		const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
 
-		const searchResults = await searchRequest({workers, keyStore, taskResults, searchGroup, searchEvent, searchParams});
+		const searchResults = await searchRequest({workers, keyStore, taskResults, searchEvent, searchParams});
 		
-		// supportThreeWords ?  searchResults.sort(sortThreeWords(pattern)) : searchResults.sort(sortMultiFields)
 		const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
 
-		supportThreeWords 
-		? searchResults
+
+		searchResults
 		.sort(orderyByKey(inPattern.upperCase)) 
 		.sort(artistNameIncludesFirst(inPattern.upperCase))
 		.sort(artistNameStartsFirst(inPattern.upperCase)) 
-		: searchResults.sort(sortMultiFields)
 
 		global.logger.trace(searchResults);
-		// get result count per weight and remove weight ftom results
-		const [resultCountPerWeight, resultsWithoutWeight] = getResultCountPerWeight(searchResults);
-		global.logger.info(`[${ip}][${userId}] result per weight : [%s] : %j`, inPattern.upperCase, resultCountPerWeight);
-		// remove duplicate results
-		const resultsUnique = removeDuplicate(resultsWithoutWeight);
+		const resultsUnique = removeDuplicate(searchResults);
 		const resultsSizeReduced = getOnlyKeys(resultsUnique, ['artistName', 'songName']);
 		const resultCount = resultsSizeReduced.length;
 		
@@ -200,28 +194,14 @@ const processCacheResult = ({cacheHit, cacheResponse, masterMonitorStore, logMon
 	res.send({result: cacheResponse.slice(0,maxReturnCount), count: resultCount});
 }
 
-const searchRequest = async ({workers, keyStore, taskResults, searchGroup, searchEvent, searchParams}) => {
+const searchRequest = async ({workers, keyStore, taskResults, searchEvent, searchParams}) => {
 	return new Promise(async (resolve, reject) => {
-		const resultsFromWorkers = searchGroup.map(async group => {
-			const params = {...searchParams, group};
-			return await master.search({workers, keyStore, taskResults, searchEvent, params});
-		})		
-		const resolvedResults = await Promise.all(resultsFromWorkers);
+		const params = {...searchParams};
+		const resolvedResults = await master.search({workers, keyStore, taskResults, searchEvent, params});
 		const resultsConcat = resolvedResults.flat();
 		global.logger.trace(resultsConcat);
 		resolve(resultsConcat);
 	})
-}
-
-const getResultCountPerWeight = (searchResults) => {
-	const countPerWeight = {};
-	const resultsWithoutWeight = searchResults.map(result => {
-		const {weight} = result;
-		countPerWeight[weight] ? countPerWeight[weight]++ : countPerWeight[weight] = 1;
-		delete result.weight;
-		return result
-	})
-	return [countPerWeight, resultsWithoutWeight];
 }
 
 const removeDuplicate = (resultsWithoutWeight) => {
