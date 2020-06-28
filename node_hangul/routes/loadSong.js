@@ -24,7 +24,7 @@ router.get('/useWorkers', async (req, res, next) => {
 
 	const options = {
 		srcFile : global.SRC_FILE,
-		wordSep  : '^',
+		columnSep  : '^',
 		lineSep  : '\r\n',
 		encoding : 'utf8',
 		highWaterMark : 64 * 1024 * 10,

@@ -17,7 +17,7 @@ router.get('/:bookNum', async function(req, res, next) {
 	}
 	
 	const opts = {
-			wordSep  : ' ',
+			columnSep  : ' ',
 			lineSep  : '\n',
 			encoding : 'utf-8',
 			fname    : path.join(process.cwd(), `/input/${books[bookNum]}`)
@@ -43,7 +43,7 @@ router.get('/:bookNum', async function(req, res, next) {
 });
  
 function getData(options){
-	const {fname, encoding, wordSep} = options;
+	const {fname, encoding, columnSep} = options;
 	return new Promise((resolve, reject) => {
 		fs.readFile(fname, encoding, (err,data) => {
 			if(err){
@@ -51,7 +51,7 @@ function getData(options){
 				reject(err);
 			} else {
 				//global.logger.trace(data);
-				const result = data.split(wordSep).map( word => {
+				const result = data.split(columnSep).map( word => {
 					return {'word': word.trim(), 'wordEncoded':encodeURIComponent(word)};
 				});
 				const orderedResult = result.sort((a, b) => {

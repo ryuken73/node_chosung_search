@@ -1,26 +1,11 @@
 const child_process = require('child_process');
-const fs = require('fs');
-const readline = require('readline');
-
 const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
 const manager = require('./childProcManager');
+const readerClass = require('./readerClass');
 // const workerPool = require('./workPool');
 
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
-
-const getFileSize = (srcFile) => {
-    return new Promise((resolve, reject) => {
-        fs.stat(srcFile, (err, stat) => {
-            if(err){
-                reject(err);
-                return
-            }
-            resolve(stat.size);
-        })
-    })
-}
-
 
 const progressor = total => (processed, digit=0) => {
     return ((processed / total) * 100).toFixed(digit);   
@@ -62,20 +47,16 @@ const sendLine = (workers, keyStore, taskResults, wordArray) => {
 const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
     return new Promise(async(resolve, reject) => {      
         try {
-            const {db} = options;
-            // const whereClause = " where artist='제비뽑기'";
-            const whereClause = '';
-            // get total records
-            const getCountSQL = 'select count(*) as total from music.song_mst ' +  whereClause || '';
-            const result = await db.query(getCountSQL, []);
-            const totalRecordsCount = result.shift().TOTAL;
-            const getProgress = progressor(totalRecordsCount);
+            const reader = new DBIndexer({workers, keyStore, taskResults, masterMonitor, options});
+            const totalRecordsCount = await reader.getTotal();
+
+            const getProgress = progressor(totalRecordsCount);            
             const emitChangedValue = valueChanged(0);
-            // const sql = 'select artist, song_name from smsinst.song_mst fetch first 100 rows only';           
-            // const sql = 'select artist, song_name from music.song_mst fetch first 10 rows only';
+
             const sql = 'select artist, song_name from music.song_mst ' +  whereClause || '';
             const params = [];
             const rStream = await db.queryStream(sql, params);
+
             let selected = 0;
             rStream.on('data', result => {
                 selected ++;
@@ -111,77 +92,43 @@ const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options
     })
 }
 
+const notifyProgress = (percentProcessed, masterMonitor) => {
+    percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
+    percentProcessed && masterMonitor.setStatus('indexingStatus', 'INDEXING');
+    parseInt(percentProcessed) === 100 && 
+    (masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString())
+    ,masterMonitor.setStatus('indexingStatus', 'INDEX_DONE'));
+}
+
 const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
-    //await clear(workers);
     return new Promise(async (resolve, reject) => {
-        const opts = {
-            wordSep  : '"^"',
-            lineSep  : '\r\n',
-            encoding : 'utf8',
-            highWaterMark : 64 * 1024,
-            end : global.INDEXING_BYTES,
-        }
-        const combinedOpts = {
-            ...options, 
-            ...opts
-        };
-        global.logger.debug(combinedOpts);
-        const {srcFile, encoding, end, wordSep, lineSep} = combinedOpts;
-
-        const inputFileSize = await getFileSize(srcFile);
-        const getProgress = progressor(inputFileSize);
-        const emitChangedValue = valueChanged(0);
-        
-        const rStream = fs.createReadStream(srcFile, {encoding, start:0, end});
-        const rl = readline.createInterface({input:rStream});
-        const lineMaker = {
-            wordSep,
-            lineSep,
-            startOfLine : '',
-            CORRECT_NUMBER_OF_COLUMNS: 2,
-            hasProperColumns(line) {
-                global.logger.debug(this.CORRECT_NUMBER_OF_COLUMNS, this.wordSep, line.split(this.wordSep).length);
-                return line.split(this.wordSep).length === this.CORRECT_NUMBER_OF_COLUMNS;
-            }
-        }
-
+        const reader = await readerClass.createFileReader(options);
+        reader.start();
         global.logger.info('start indexing...');
-        rl.on('line', (line) => {
-            // console.log(rl.input.bytesRead)
-            const bytesRead = rl.input.bytesRead;
+
+        reader.on('line', line => {
             const digit = 0;
-            const percentProcessed = emitChangedValue(getProgress(bytesRead, digit));
+            const percentProcessed = reader.percentProcessed(digit);
             percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
-            percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
-            percentProcessed && masterMonitor.setStatus('indexingStatus', 'INDEXING');
-            parseInt(percentProcessed) === 100 && 
-            (masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString())
-            ,masterMonitor.setStatus('indexingStatus', 'INDEX_DONE'));
-            
-            const combinedLine = `${lineMaker.startOfLine}${line}`;
-            if(lineMaker.hasProperColumns(combinedLine)){
-                lineMaker.startOfLine = '';
-                const wordArray = combinedLine.split(lineMaker.wordSep);
-                const canSendMore = sendLine(workers, keyStore, taskResults, wordArray);
+            notifyProgress(percentProcessed, masterMonitor);
+            const arrayOfLine = reader.lineToArray(line);
+            if(arrayOfLine.length > 0){
+                const canSendMore = sendLine(workers, keyStore, taskResults, arrayOfLine);
                 if(!canSendMore){
                     // just pause readstream 1 second!
                     global.logger.info('pause stream!')
-                    rStream.pause();
-                    setTimeout(() => {global.logger.info('resume stream');rStream.resume()},100);
+                    reader.rStream.pause();
+                    setTimeout(() => {global.logger.info('resume stream');reader.rStream.resume()},100);
                 }
-            } else {
-                // to prepend line to next line 
-                // this can be occurred, when words contains \r\n.
-                global.logger.info('not proper number of columns : ',combinedLine, lineMaker.hasProperColumns(combinedLine));
-                lineMaker.startOfLine = combinedLine.replace(lineMaker.lineSep, '');
-                // return true;
+                return;
             }
+            global.logger.info('not proper number of columns : ', line);
         });        
-        rl.on('end', () => { 
+        reader.rl.on('end', () => { 
             console.log('end: ',keyStore.getKey());
     
         });
-        rStream.on('close', () => {
+        reader.rStream.on('close', () => {
             console.log('read stream closed!');
             const totalProcessed = masterMonitor.getStatus('lastIndexedCount');
             resolve(totalProcessed);
