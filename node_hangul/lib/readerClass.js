@@ -38,9 +38,9 @@ class DBReader extends Reader {
         const result = await this.db.query(getCountSQL, []);
         return result.shift().TOTAL;
     }
-    start(){
+    async start(){
         const sql = 'select artist, song_name from music.song_mst ' +  whereClause || '';
-        const rStream = await db.queryStream(sql, []]);
+        const rStream = await db.queryStream(sql, []);
         this.rStream = rStream;
         this.selected = 0;
         rStream.on('data', result => {
@@ -54,7 +54,7 @@ class DBReader extends Reader {
     }
 }
 
-class FileReader extends Reader {
+class FileReader extends Reader { 
     constructor(options){
         super();
         const defaultOptions = {
