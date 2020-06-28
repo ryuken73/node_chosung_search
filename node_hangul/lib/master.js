@@ -44,11 +44,19 @@ const sendLine = (workers, keyStore, taskResults, wordArray) => {
     }       
 } 
 
+const notifyProgress = (percentProcessed, masterMonitor) => {
+    percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
+    percentProcessed && masterMonitor.setStatus('indexingStatus', 'INDEXING');
+    parseInt(percentProcessed) === 100 && 
+    (masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString())
+    ,masterMonitor.setStatus('indexingStatus', 'INDEX_DONE'));
+}
+
 const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
     return new Promise(async(resolve, reject) => {      
         try {
-            const reader = new DBIndexer({workers, keyStore, taskResults, masterMonitor, options});
-            const totalRecordsCount = await reader.getTotal();
+            const reader = new readClass.createDBReader(options);
+            reader.start();
 
             const getProgress = progressor(totalRecordsCount);            
             const emitChangedValue = valueChanged(0);
@@ -59,30 +67,23 @@ const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options
 
             let selected = 0;
             rStream.on('data', result => {
-                selected ++;
-                // selected % 1000 === 0 && console.log(selected);
-                const digit = 1;
-                const percentProcessed = emitChangedValue(getProgress(selected, digit));
-                percentProcessed && global.logger.info(`processed... ${percentProcessed}% [${selected}/${totalRecordsCount}]`);
-                percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
-                percentProcessed && masterMonitor.setStatus('indexingStatus', 'INDEXING');
-                parseInt(percentProcessed) === 100 && 
-                (masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString())
-                ,masterMonitor.setStatus('indexingStatus', 'INDEX_DONE'));
-                
-                // parseInt(percentProcessed) === 100 && masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString());
 
+                const digit = 1;
+                const percentProcessed = reader.percentProcessed(digit);
+
+                percentProcessed && global.logger.info(`processed... ${percentProcessed}% [${reader.selected}/${reader.totalRecordsCount}]`);
+                notifyProgress(percentProcessed, masterMonitor);
                 const wordArray = [result.ARTIST, result.SONG_NAME];
                 // console.log(wordArray);  
                 const canSendMore = sendLine(workers, keyStore, taskResults, wordArray);
                 if(!canSendMore){
                     // just pause readstream 1 second!
                     global.logger.info('pause stream!')
-                    rStream.pause();
-                    setTimeout(() => {global.logger.info('resume stream');rStream.resume()},100);
+                    reader.rStream.pause();
+                    setTimeout(() => {global.logger.info('resume stream');reader.rStream.resume()},100);
                 }
             })
-            rStream.on('end', () => {
+            reader.rStream.on('end', () => {
                 resolve(selected);
             })
         } catch (err) {
@@ -90,14 +91,6 @@ const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options
             global.logger.error(err);
         }
     })
-}
-
-const notifyProgress = (percentProcessed, masterMonitor) => {
-    percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
-    percentProcessed && masterMonitor.setStatus('indexingStatus', 'INDEXING');
-    parseInt(percentProcessed) === 100 && 
-    (masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString())
-    ,masterMonitor.setStatus('indexingStatus', 'INDEX_DONE'));
 }
 
 const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}) => {

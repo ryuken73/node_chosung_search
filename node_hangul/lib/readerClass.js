@@ -38,6 +38,20 @@ class DBReader extends Reader {
         const result = await this.db.query(getCountSQL, []);
         return result.shift().TOTAL;
     }
+    start(){
+        const sql = 'select artist, song_name from music.song_mst ' +  whereClause || '';
+        const rStream = await db.queryStream(sql, []]);
+        this.rStream = rStream;
+        this.selected = 0;
+        rStream.on('data', result => {
+            this.selected ++;
+            this.emit('data', result);
+        });
+    }
+    percentProcessed(digit){
+        const getProgress = this.progressor(this.totalRecordsCount);
+        return this.emitChangedValue(getProgress(this.selected, digit));
+    }
 }
 
 class FileReader extends Reader {
@@ -120,6 +134,14 @@ const createFileReader = async options => {
     return fileReader;
 }
 
+const createDBReader = async options => {
+    const dbReader = new DBReader(options);
+    const totalRecordsCount = await dbReader.getTotal();
+    dbReader.totalRecordsCount = totalRecordsCount;
+    return dbReader;
+}
+
 module.exports = {
-    createFileReader
+    createFileReader,
+    createDBReader
 }
