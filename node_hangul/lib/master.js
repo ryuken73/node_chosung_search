@@ -7,28 +7,10 @@ const readerClass = require('./readerClass');
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
 
-const progressor = total => (processed, digit=0) => {
-    return ((processed / total) * 100).toFixed(digit);   
-}
-
-// FP : return value only when value changed 
-const valueChanged = (startValue) => {
-    let oldValue = startValue;
-    return (newValue) => {
-        if(newValue !== oldValue){
-            oldValue = newValue;
-            return newValue;
-        }
-        return false;
-    }
-}
-
 // main
-
 const sendLine = (workers, keyStore, taskResults, wordArray) => {
     try {
         const messageKey = keyStore.getNextKey();
-        //global.workerMessages.set(messageKey,[]);
         taskResults.set(messageKey,[]);
         const workerIndex = messageKey % workers.length;
         const job = {
@@ -226,9 +208,6 @@ function waitResult(messageKey, timer, event){
 }
 
 const createWorkers = (maxWorkers, workerModule, startWorkerMessageKey) => {
-    // const key = app.get('taskKey').getKey();
-    // app.get('taskResults').set(key, []); 
-
     const workerInit= new Array(maxWorkers);
     workerInit.fill(0); 
 
@@ -238,8 +217,6 @@ const createWorkers = (maxWorkers, workerModule, startWorkerMessageKey) => {
     })
 
     workers.map(worker => global.logger.info(`[${worker.pid}]worker started!`));
-    // console.log(workers[0].channel)
-
     return workers;       
 }
 
@@ -251,7 +228,6 @@ const createCacheWorkers = (maxCache, cacheModule) => {
         customExitCallback: handleProcessExit
     }
     return manager.create(options);
-    // return workerPool.createWorker(cacheModule, [], maxCache, handleProcessExit)
 }
 
 module.exports = {
