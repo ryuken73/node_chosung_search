@@ -57,15 +57,7 @@ const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options
         try {
             const reader = new readClass.createDBReader(options);
             reader.start();
-
-            const getProgress = progressor(totalRecordsCount);            
-            const emitChangedValue = valueChanged(0);
-
-            const sql = 'select artist, song_name from music.song_mst ' +  whereClause || '';
-            const params = [];
-            const rStream = await db.queryStream(sql, params);
-
-            let selected = 0;
+            global.logger.info('start indexing...from DB');
             rStream.on('data', result => {
 
                 const digit = 1;
@@ -97,7 +89,7 @@ const load =  async (workers, keyStore, taskResults, masterMonitor, options = {}
     return new Promise(async (resolve, reject) => {
         const reader = await readerClass.createFileReader(options);
         reader.start();
-        global.logger.info('start indexing...');
+        global.logger.info('start indexing...from File');
 
         reader.on('line', line => {
             const digit = 0;
