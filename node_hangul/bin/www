@@ -21,7 +21,7 @@ const workerHandlers = require('../lib/workerListener');
 const messageHandlers = require('../lib/workerHandler');
 
 const workerModule = path.join(__dirname, '../', 'lib/worker.js');
-const cacheModule = path.join(__dirname, '../', 'lib/cache.js');
+const cacheModule = path.join(__dirname, '../', 'lib/cacheEngine.js');
 
 // const childProcessMonitor = require('../lib/workerMonitor');
 
