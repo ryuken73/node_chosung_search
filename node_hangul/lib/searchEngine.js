@@ -74,24 +74,26 @@ const worker = {
 }
 
 process.on('message', ({requestId, request}) => {
-    const {cmd, pattern, results=[]} = request;
+    console.log('!!!!!!request arrived : ', requestId, request);
+    const {type, data, pattern, results=[]} = request;
     let result;
     let success;
-    switch(cmd){
+    switch(type){
         case 'clear' :
-            result = this.clear();
+            result = worker.clear();
             success = result;
             break;
         case 'index' :
-            result = this.index(data);
+            result = worker.index(data);
             success = result;
+            console.log('index result : ', result)
             break;
         case 'search' :
-            result = this.search(data);
+            result = worker.search(data);
             success = true;
             break;
         case 'requestMonitor' :
-            const {pid, songArray, searchCount} = this;
+            const {pid, songArray, searchCount} = worker;
             result = {
                 pid,
                 words: songArray.length,

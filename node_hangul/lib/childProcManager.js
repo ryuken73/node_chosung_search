@@ -12,7 +12,7 @@ const defaultExitCallback = (oldWorker, newWorker) => {
 
 }
 
-const _initGetNextIdAPI = worker => {
+const _attachGetNextIdAPI = worker => {
     worker.nextRequestId = () => {
         const pid = worker.pid;
         worker.jobId = worker.jobId === undefined ? 1 : ++worker.jobId;
@@ -20,20 +20,22 @@ const _initGetNextIdAPI = worker => {
     }
 }
 
-const _initRequestAPI = worker => {
+const _attachRequestAPI = worker => {
     worker.promise = {};
     worker.promise.request = request => {
+        console.log(`requesting...`, request)
         return new Promise((resolve, reject) => {
             const requestId = worker.nextRequestId();
+            global.logger.info('requestId : ', requestId)
             worker.send({requestId, request});
             const handleResponse = response => {
+                // console.log('response on : ', response)
                 const {responseId, success, result} = response;
                 if(responseId === undefined){
                     console.error("child process should return response id to manager. or event listenr of workers will increase forever!", response);
                     process.exit();
                 }
                 if(responseId === requestId) {
-                    // console.log(`[workerPool][${worker.pid}]got responseId =`, responseId, success)
                     worker.removeListener('message', handleResponse);
                     if(success) {
                         resolve(result);
@@ -47,6 +49,7 @@ const _initRequestAPI = worker => {
     }
 }
 
+
 class ChildProcessManager {
     constructor(jsFile, args=[], count=2, customExitCallback=defaultExitCallback){
         this.jsFile = jsFile;
@@ -54,24 +57,32 @@ class ChildProcessManager {
         this.customExitCallback = customExitCallback;
         this._workers = forkWorkers(jsFile, args, count);
         this._workers.forEach(worker => this._initWorker(worker));
+        this.sequence = 0;
         return this;
     }
 
     get workers(){ return this._workers}
+    get nextWorker(){
+        const nextIndex = this.sequence++ % this._workers.length;
+        return this._workers[nextIndex]
+    }
 
-    request(request){
+    request(request, worker){
+        if(worker && worker.promise){
+            return worker.promise.request(request);
+        }
         const requests = this.workers.map(worker => worker.promise.request(request));
         return Pomise.all(requests);
     }
 
     _initWorker(worker){
-        _initGetNextIdAPI(worker);
-        _initRequestAPI(worker);
-        this._initErrorHandler(worker);
-        this._initExitHandler(worker);
+        _attachGetNextIdAPI(worker);
+        _attachRequestAPI(worker);
+        this._attachErrorHandler(worker);
+        this._attachExitHandler(worker);
     }
 
-    _initExitHandler(worker){
+    _attachExitHandler(worker){
         worker.on('exit', (code,signal) => {
             console.log(`*********** worker exit : [${worker.pid}][${code}][${signal}]`);
             const oldWorker = worker;
@@ -81,12 +92,13 @@ class ChildProcessManager {
         })
     }
 
-    _initErrorHandler(worker){
+    _attachErrorHandler(worker){
         worker.on('error', (err) => {
             console.error(`*********** worker error : [${worker.pid}]`, err);
         })
     }
 }
+
 
 module.exports = {
     create : (options) => {

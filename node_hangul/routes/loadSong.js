@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const master = require('../lib/master');
+// const master = require('../lib/master');
+const master = require('../lib/masterEngine');  
  
 router.get('/useWorkers', async (req, res, next) => {
 	const {from} = req.query;
 	const workers = req.app.get('workers');
+	const manager = req.app.get('manager');
 	const io = req.app.get('io');
 	const keyStore = req.app.get('taskKey');
 	const masterMonitor = req.app.get('masterMonitor');
@@ -32,8 +34,9 @@ router.get('/useWorkers', async (req, res, next) => {
 	}
 	global.logger.info('request accepted');
 	res.send({result:'success', msg:'request accepted'});
-	const totalLoaded = workers ? await master.load(workers, keyStore, taskResults, masterMonitor, options) : {};
-	const result = totalLoaded ? {result:'success', count: totalLoaded} 
+	// const totalLoaded = workers ? await master.load(workers, keyStore, taskResults, masterMonitor, options) : {};
+	const totalLoaded = workers ? await master.loadFromFile(manager, masterMonitor, options) : {};
+	const result = totalLoaded ? {result:'success', count: totalLoade} 
 							   : {result:'failure', count: 0};
 	global.logger.info(result);
 	return						   

@@ -12,7 +12,7 @@ const cache = {
         const result = this.cache.get(pattern) || [];
         result.length > 0 && this.cacheHit++;
         return result;
-    },
+    }, 
     update : (pattern, results) => {
         // console.log(`set cache[${pattern}]:`, results)
         this.cache.set(pattern, results);
