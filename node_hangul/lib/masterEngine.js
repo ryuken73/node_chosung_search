@@ -11,7 +11,7 @@ const createSearchWorkers = (maxWorkers, workerModule) => {
         jsFile: workerModule,
         args: [],
         count: maxWorkers,
-        customExitCallback: handleProcessExit
+        customExitCallback: handleProcessExit 
     }
     return manager.create(options);
 }
@@ -37,11 +37,10 @@ const notifyProgress = (percentProcessed, masterMonitor) => {
 const sendLine = async (worker, wordArray) => {
     try {
         const job = {
-            type : 'index',
+            cmd : 'index',
             data : wordArray
         }        
         const result = await worker.promise.request(job); 
-        console.log(job.data, result)
         return result;
     } catch (err) {
             global.logger.error(err);
@@ -49,31 +48,36 @@ const sendLine = async (worker, wordArray) => {
 } 
 
 const loadFromFile =  async (manager, masterMonitor, options = {}) => {
+    let totalLoaded = 0;
     return new Promise(async (resolve, reject) => {
         const reader = await readerClass.createFileReader(options);
         reader.start();
         global.logger.info('start indexing...from File');
         const digit = 0;
         reader.on('line', async line => {
-            global.logger.info(line)
             const percentProcessed = reader.percentProcessed(digit);
             percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);
             notifyProgress(percentProcessed, masterMonitor);
             const arrayOfLine = reader.lineToArray(line);
             if(arrayOfLine.length > 0){
                 const result = await sendLine(manager.nextWorker, arrayOfLine);
-                console.log(result);
+                if(result === true) {
+                    const lastIndexedCount = masterMonitor.getStatus('lastIndexedCount') + 1;
+                    masterMonitor.setStatus('lastIndexedCount', lastIndexedCount)
+                    totalLoaded++;
+                }
             }
-            global.logger.info('not proper number of columns : ', line);
+            global.logger.debug('not proper number of columns : ', line);
+            if(parseInt(percentProcessed) === 100) {
+                global.logger.info(`indexing done = ${percentProcessed}`)
+                resolve(totalLoaded);
+            }
         });        
         reader.rl.on('end', () => { 
-            console.log('end: ',keyStore.getKey());
-    
+            global.logger.info('readline end');
         });
         reader.rStream.on('close', () => {
-            console.log('read stream closed!');
-            const totalProcessed = masterMonitor.getStatus('lastIndexedCount');
-            resolve(totalProcessed);
+            global.logger.info('read stream closed!');
         })
     })
 }

@@ -12,6 +12,8 @@ const defaultExitCallback = (oldWorker, newWorker) => {
 
 }
 
+const _increaseMaxListener = worker => worker.setMaxListeners(500);
+
 const _attachGetNextIdAPI = worker => {
     worker.nextRequestId = () => {
         const pid = worker.pid;
@@ -23,19 +25,18 @@ const _attachGetNextIdAPI = worker => {
 const _attachRequestAPI = worker => {
     worker.promise = {};
     worker.promise.request = request => {
-        console.log(`requesting...`, request)
+        // console.log(`requesting...`, request)
         return new Promise((resolve, reject) => {
             const requestId = worker.nextRequestId();
-            global.logger.info('requestId : ', requestId)
             worker.send({requestId, request});
             const handleResponse = response => {
-                // console.log('response on : ', response)
                 const {responseId, success, result} = response;
                 if(responseId === undefined){
                     console.error("child process should return response id to manager. or event listenr of workers will increase forever!", response);
                     process.exit();
                 }
                 if(responseId === requestId) {
+                    global.logger.debug(`remove listener : `, requestId)
                     worker.removeListener('message', handleResponse);
                     if(success) {
                         resolve(result);
@@ -76,6 +77,7 @@ class ChildProcessManager {
     }
 
     _initWorker(worker){
+        _increaseMaxListener(worker);
         _attachGetNextIdAPI(worker);
         _attachRequestAPI(worker);
         this._attachErrorHandler(worker);

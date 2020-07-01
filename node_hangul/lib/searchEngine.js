@@ -74,11 +74,10 @@ const worker = {
 }
 
 process.on('message', ({requestId, request}) => {
-    console.log('!!!!!!request arrived : ', requestId, request);
-    const {type, data, pattern, results=[]} = request;
+    const {cmd, data, pattern, results=[]} = request;
     let result;
     let success;
-    switch(type){
+    switch(cmd){
         case 'clear' :
             result = worker.clear();
             success = result;
@@ -86,21 +85,20 @@ process.on('message', ({requestId, request}) => {
         case 'index' :
             result = worker.index(data);
             success = result;
-            console.log('index result : ', result)
             break;
         case 'search' :
             result = worker.search(data);
             success = true;
             break;
         case 'requestMonitor' :
-            const {pid, songArray, searchCount} = worker;
+            const {pid, songArray, searchCount} = this;
             result = {
                 pid,
                 words: songArray.length,
                 searching: searchCount,
                 mem: getMemInfo()
             }
-            // console.log(result)
+            success = true;
             break;
     }
     // console.log(`cache work done: ${process.pid}: cmd = ${cmd}`);

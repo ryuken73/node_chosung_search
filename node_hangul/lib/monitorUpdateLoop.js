@@ -7,14 +7,22 @@ const start = {
             masterMonitor.setStatus('mem', getMemInfo());
         }, interval);
     },
-    
-    workers : (app, interval) => {
-        setInterval(() => {
-            const workers = app.get('workers');
-            const workerPids = workers.map(worker => worker.pid);
-            global.logger.trace('workers.pid.', workerPids);
-            workers.map(worker => worker.send('requestMonitor'));
-        }, interval);
+     
+    workers : (app, workersMonitor, interval) => {
+        const requestMonitorJob = {cmd: 'requestMonitor'};
+        const workers = app.get('workers');
+        workers.map(worker => {
+            setInterval( async () => {
+                global.logger.trace('worker.pid: ', worker.pid);
+                const result = await worker.promise.request(requestMonitorJob);
+                const {pid, words, searching, mem} = result;
+                const workerMonitor = workersMonitor.find(monitor => monitor.getStatus('pid') === pid);
+                monitorUtil.setWorkerStatus(workerMonitor, 'mem', mem);
+                monitorUtil.setWorkerStatus(workerMonitor, 'words', words);
+                monitorUtil.setWorkerStatus(workerMonitor, 'searching', searching);
+
+            }, interval);
+        })
     },
     
     cacheWorkers : (app, cacheWorkersMonitor, interval) => {

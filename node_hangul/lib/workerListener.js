@@ -25,44 +25,44 @@ const replyIndexHandler = (message, masterMonitor) =>{
 const clearTaskResultsAnyWay = (taskResult,messageKey) => taskResult.delete(messageKey);
 
 const attachMessageHanlder = ({worker, app, taskResults, handlers}) => {
-    worker.on('message', message => {         
-        const notGatherableJob = ['notify-start','reply-monitor', 'reply-index'];
+    // worker.on('message', message => {         
+    //     const notGatherableJob = ['notify-start','reply-monitor', 'reply-index'];
        
-        const {type, clientId, subType = {}, messageKey, result} = message;
-        const taskType = subType.key ? subType.key : 'none';
-        const resultForDebug = result.map ? result.length : result;
-        const masterMonitor = app.get('masterMonitor');
-        const workersMonitor = app.get('workersMonitor');
+    //     const {type, clientId, subType = {}, messageKey, result} = message;
+    //     const taskType = subType.key ? subType.key : 'none';
+    //     const resultForDebug = result.map ? result.length : result;
+    //     const masterMonitor = app.get('masterMonitor');
+    //     const workersMonitor = app.get('workersMonitor');
           
-        // type === 'reply-index' && messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
-        type === 'reply-index' && replyIndexHandler(message, masterMonitor);
-        type === 'reply-monitor' && replyMonitorHandler(workersMonitor, message, worker.pid);
-        global.logger.debug(type, notGatherableJob.includes(type));
-        if(notGatherableJob.includes(type)) {
-            clearTaskResultsAnyWay(taskResults, messageKey);
-            return; 
-        } 
+    //     // type === 'reply-index' && messageKey % PROGRESS_UNIT === 0 && global.logger.info(`processed...[${messageKey}]`);
+    //     type === 'reply-index' && replyIndexHandler(message, masterMonitor);
+    //     type === 'reply-monitor' && replyMonitorHandler(workersMonitor, message, worker.pid);
+    //     global.logger.debug(type, notGatherableJob.includes(type));
+    //     if(notGatherableJob.includes(type)) {
+    //         clearTaskResultsAnyWay(taskResults, messageKey);
+    //         return; 
+    //     } 
 
-        global.logger.debug(`[${messageKey}][${clientId}][${type}][${taskType}]worker done[result:${resultForDebug}]. check Job Status`);
+    //     global.logger.debug(`[${messageKey}][${clientId}][${type}][${taskType}]worker done[result:${resultForDebug}]. check Job Status`);
         
-        const TIMED_OUT = ! taskResults.has(messageKey);
-        if(TIMED_OUT) {
-            global.logger.error(`[${messageKey}][${clientId}][${type}][${taskType}]TIMED-OUT`);
-            handlers[type]['TIME_OUT'](message);
-            return false
-        }
+    //     const TIMED_OUT = ! taskResults.has(messageKey);
+    //     if(TIMED_OUT) {
+    //         global.logger.error(`[${messageKey}][${clientId}][${type}][${taskType}]TIMED-OUT`);
+    //         handlers[type]['TIME_OUT'](message);
+    //         return false
+    //     }
 
-        const resultsBefore = taskResults.get(messageKey);  
-        const resultsGathered = [...resultsBefore, result];
-        taskResults.set(messageKey, resultsGathered);
+    //     const resultsBefore = taskResults.get(messageKey);  
+    //     const resultsGathered = [...resultsBefore, result];
+    //     taskResults.set(messageKey, resultsGathered);
         
-        const ALL_DONE = resultsGathered.length === global.NUMBER_OF_WORKER;  
-        if(ALL_DONE) {
-            global.logger.info(`[${messageKey}][${taskType}][${resultForDebug}]ALL-DONE`);
-            taskResults.delete(messageKey);
-            handlers[type]['ALL_DONE'](message, resultsGathered);
-        }             
-    })
+    //     const ALL_DONE = resultsGathered.length === global.NUMBER_OF_WORKER;  
+    //     if(ALL_DONE) {
+    //         global.logger.info(`[${messageKey}][${taskType}][${resultForDebug}]ALL-DONE`);
+    //         taskResults.delete(messageKey);
+    //         handlers[type]['ALL_DONE'](message, resultsGathered);
+    //     }             
+    // })
 };
 
 const attachExitHandler = ({worker, app, workerModule, handlers}) => {

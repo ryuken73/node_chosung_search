@@ -136,7 +136,7 @@ async function main(){
   socketServer.setMonitorStores({logMonitor, masterMonitor, workersMonitor, cacheWorkersMonitor});
   socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
   monitorUpdateLoop.start.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.start.workers(app, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUpdateLoop.start.workers(app, workersMonitor, global.MONITOR_BROADCAST_INTERVAL);
   monitorUpdateLoop.start.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
   // master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
   // master.attachMessageEventHandler(app);

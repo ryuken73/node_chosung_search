@@ -36,9 +36,9 @@ router.get('/useWorkers', async (req, res, next) => {
 	res.send({result:'success', msg:'request accepted'});
 	// const totalLoaded = workers ? await master.load(workers, keyStore, taskResults, masterMonitor, options) : {};
 	const totalLoaded = workers ? await master.loadFromFile(manager, masterMonitor, options) : {};
-	const result = totalLoaded ? {result:'success', count: totalLoade} 
+	const result = totalLoaded ? {result:'success', count: totalLoaded} 
 							   : {result:'failure', count: 0};
-	global.logger.info(result);
+	global.logger.info('total loaded:',result.count);
 	return						   
 	// res.send(result);
 })
