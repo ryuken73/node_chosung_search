@@ -73,7 +73,7 @@ class ChildProcessManager {
             return worker.promise.request(request);
         }
         const requests = this.workers.map(worker => worker.promise.request(request));
-        return Pomise.all(requests);
+        return Promise.all(requests);
     }
 
     _initWorker(worker){

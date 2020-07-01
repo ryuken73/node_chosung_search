@@ -150,29 +150,23 @@ const search = async ({workers, keyStore, taskResults, searchEvent, params}) => 
     }
 }
 
-const clearIndex = async ({workers, keyStore, taskResults, clearEvent}) => {
+const clearIndex = async ({manager, masterMonitor}) => {
     try {
         // set uniq key (messageKey) and initialize empty result array
         global.logger.info(`clear search array start!`);
-        // keyStore.init();
-        const messageKey = keyStore.getNextKey();
-        taskResults.set(messageKey, []);
-
         const timer = setTimeout(() => {
-            global.logger.error(`[${messageKey}] timed out! delete form Map`);
-            taskResults.delete(messageKey);
+            global.logger.error(`clear Index timed out! delete form Map`);
         }, CLEAR_TIMEOUT);
 
-        workers.map(worker => {
-            const job = {
-                type: 'clear',
-                messageKey,
-                subType: null,
-                data: null
-            }
-            worker.send(job);
-        })
-        return await waitResult(messageKey, timer, clearEvent);
+        const job = {
+            cmd: 'clear'
+        }
+        await manager.request(job);
+        global.logger.info(`clearing all worker's data done!`);
+        masterMonitor.setStatus('lastIndexedDate', '');
+        masterMonitor.setStatus('lastIndexedCount', 0);
+        masterMonitor.setStatus('indexingStatus', 'NOT_INDEXED')
+        return
     } catch (err) {
         global.logger.error(err);
     }
