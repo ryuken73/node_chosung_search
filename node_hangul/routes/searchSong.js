@@ -1,7 +1,6 @@
 var express = require('express');
 var router = express.Router();
 var extractJAMO = require('../util/extractJAMO');
-// const master = require('../lib/master');
 const master = require('../lib/masterEngine');
 const timer = require('../lib/timer.js');
 const searchType = require('../config/searchType');
@@ -44,13 +43,10 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		res.stopWatch = stopWatch; 
 		req.metaData = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, ip, userId, maxReturnCount, supportThreeWords};
 
-		const workers = app.get('workers');	
 		const cacheWorkers = app.get('cacheWorkers');
 		const masterMonitorStore = app.get('masterMonitor');
 		const logMonitorStore = app.get('logMonitor');
-		const keyStore = app.get('taskKey');
-		const taskResults = app.get('taskResults');
-		const searchEvent = app.get('searchEvent');
+		const manager = app.get('manager');
 
 		if(isPatternWhiteSpaceOnly({pattern: inPattern.upperCase})) {  
 			stopWatch.end();
@@ -69,7 +65,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const searchGroup = threeWordsSearchGroup;		
 		const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
 
-		const searchResults = await searchRequest({workers, keyStore, taskResults, searchEvent, searchParams});
+		const searchResults = await searchRequest({manager, searchParams});
 		
 		const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
 
@@ -183,10 +179,10 @@ const processCacheResult = ({cacheHit, cacheResponse, masterMonitorStore, logMon
 	res.send({result: cacheResponse.slice(0,maxReturnCount), count: resultCount});
 }
 
-const searchRequest = async ({workers, keyStore, taskResults, searchEvent, searchParams}) => {
+const searchRequest = async ({manager, searchParams}) => {
 	return new Promise(async (resolve, reject) => {
 		const params = {...searchParams};
-		const resolvedResults = await master.search({workers, keyStore, taskResults, searchEvent, params});
+		const resolvedResults = await master.search({manager, params});
 		const resultsConcat = resolvedResults.flat();
 		global.logger.trace(resultsConcat);
 		resolve(resultsConcat);

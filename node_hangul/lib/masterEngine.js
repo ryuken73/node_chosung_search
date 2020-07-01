@@ -114,37 +114,30 @@ const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options
     })
 }
 
-const search = async ({workers, keyStore, taskResults, searchEvent, params}) => {
+const search = async ({manager, params}) => {
     try {
         const {pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords} = params;
-        const messageKey = keyStore.getNextKey();        
-        taskResults.set(messageKey, []);
-  
-        // if any of worker exeed timeout, delete temporary search result.
+
         const timer = setTimeout(() => {
-            global.logger.error(`[${messageKey}] timed out! delete form Map`);
-            taskResults.delete(messageKey);
+            global.logger.error(`search song timed out!`);
         }, SEARCH_TIMEOUT);
 
         
         // result limit per worker
         const limit = RESULT_LIMIT_WORKER;
-
-        // send search jot to each workers 
-        workers.map(async worker => {
-            const job = {
-                type : 'search',
-                messageKey,
-                data : {
-                    pattern,
-                    patternJAMO,
-                    limit,
-                    supportThreeWords
-                }
+        const job = {
+            cmd : 'search',
+            data : {
+                pattern,
+                patternJAMO,
+                limit,
+                supportThreeWords
             }
-            worker.send(job);                 
-        })    
-        return await waitResult(messageKey, timer, searchEvent); 
+        }
+        // send search jot to each workers 
+        const result = await manager.request(job);
+        clearTimeout(timer);
+        return result;
     } catch(err) {
         global.logger.error(err);
     }
@@ -152,7 +145,6 @@ const search = async ({workers, keyStore, taskResults, searchEvent, params}) => 
 
 const clearIndex = async ({manager, masterMonitor}) => {
     try {
-        // set uniq key (messageKey) and initialize empty result array
         global.logger.info(`clear search array start!`);
         const timer = setTimeout(() => {
             global.logger.error(`clear Index timed out! delete form Map`);
@@ -162,6 +154,7 @@ const clearIndex = async ({manager, masterMonitor}) => {
             cmd: 'clear'
         }
         await manager.request(job);
+        clearTimeout(timer);
         global.logger.info(`clearing all worker's data done!`);
         masterMonitor.setStatus('lastIndexedDate', '');
         masterMonitor.setStatus('lastIndexedCount', 0);
