@@ -120,7 +120,7 @@ const loadFromDB = async (manager, masterMonitor, options = {}) => {
 
 const search = async ({manager, params}) => {
     try {
-        const {pattern, patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords} = params;
+        const {pattern, patternJAMO, RESULT_LIMIT_WORKER} = params;
 
         const timer = setTimeout(() => {
             global.logger.error(`search song timed out!`);
@@ -134,8 +134,7 @@ const search = async ({manager, params}) => {
             data : {
                 pattern,
                 patternJAMO,
-                limit,
-                supportThreeWords
+                limit
             }
         }
         // send search jot to each workers 

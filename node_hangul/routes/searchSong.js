@@ -22,71 +22,68 @@ class InPattern {
 	get patternJAMO() { return this._patternJAMO}
 }
 
+const mkInPattern = (req, res, next) => {
+	const {pattern} = req.params;
+	const inPattern = new InPattern(pattern);
+	req.inPattern = inPattern;
+	next();
+}
+
+const handleNullPattern = (req, res, next) => {
+	if(isPatternWhiteSpaceOnly(req.inPattern.upperCase)) {  
+		res.send({result:null, count:null});
+		return;
+	} 
+	next();
+}
+
+const mkStopWatch = (req, res, next) => {
+	const DIGITS = 3;
+	const stopWatch = timer.create(DIGITS)
+	req.stopWatch = stopWatch;
+	res.stopWatch = stopWatch;
+	next();
+}
+
 // search by distributed worker
-router.get('/withWorkers/:pattern', async (req, res, next) => {
+router.get('/withWorkers/:pattern', mkInPattern, handleNullPattern, mkStopWatch, async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
-		
-		const DIGITS = 3;
-		const stopWatch = timer.create(DIGITS)
+
+		// start stopwatch
+		const {inPattern, stopWatch} = req;
 		stopWatch.start();
 
-		const {app} = req;
-		const {pattern:searchPattern} = req.params;
-		const inPattern = new InPattern(searchPattern)
-		// console.log('%s',inPattern._pattern);
-
-		const {userId='unknown', supportThreeWords, maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
+		const {userId='unknown', maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress || 'none';
-		const userFrom = {userId, ip};
+		global.logger.info(`[${ip}][${userId}] new request : pattern [${inPattern.upperCase}]`);
+		const broadcastStatus = broadcaster(req.app.get('masterMonitor'), req.app.get('logMonitor'))
+		broadcastStatus({status: 'start'});
 
-		res.stopWatch = stopWatch; 
-		req.metaData = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, ip, userId, maxReturnCount, supportThreeWords};
-
-		const cacheWorkers = app.get('cacheWorkers');
-		const masterMonitorStore = app.get('masterMonitor');
-		const logMonitorStore = app.get('logMonitor');
-		const manager = app.get('manager');
-
-		if(isPatternWhiteSpaceOnly({pattern: inPattern.upperCase})) {  
-			stopWatch.end();
-			res.send({result:null, count:null});
+		const cacheWorkers = req.app.get('cacheWorkers');
+		const {cacheHit, cacheResponse} = await lookupCache({cacheWorkers, patternJAMO: inPattern.patternJAMO});
+		if(cacheHit) {
+			global.logger.info(`[${ip}][${userId}] cache hit [${inPattern.patternJAMO}] `);
+			const elapsed = stopWatch.end();
+			const resultCount = cacheResponse.length;
+			broadcastStatus({status: 'cacheHit', results: {userId, ip, elapsed, pattern:inPattern.upperCase, resultCount, cacheHit}})
+			res.send({result: cacheResponse.slice(0,maxReturnCount), count: resultCount});
 			return;
-		} 
+		}
 
-		global.logger.info(`[${ip}][${userId}] new request : pattern [${inPattern.upperCase} ${supportThreeWords}]`);
-		broadcastSearch(masterMonitorStore, 'start');
+		const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER};
+		const searchResults = await searchRequest({manager: req.app.get('manager'), searchParams});
+		const orderedResult = orderResult(searchResults, orderSong, inPattern.upperCase);
 
-		const {cacheHit, cacheResponse} = await lookupCache({cacheWorkers, patternJAMO: inPattern.patternJAMO, userFrom});
-		cacheHit ? processCacheResult({cacheHit, cacheResponse, logMonitorStore, masterMonitorStore, req, res}) : doNothing();
-		if(cacheHit) return;
-				
-		const {threeWordsSearchGroup} = searchType;
-		const searchGroup = threeWordsSearchGroup;		
-		const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER, supportThreeWords};
-
-		const searchResults = await searchRequest({manager, searchParams});
-		
-		const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
-		const {artistNameStartsFirstWithFirstPattern} = orderSong;
-
-
-		searchResults
-		.sort(orderyByKey(inPattern.upperCase)) 
-		.sort(artistNameIncludesFirst(inPattern.upperCase))
-		.sort(artistNameStartsFirstWithFirstPattern(inPattern.upperCase))
-		.sort(artistNameStartsFirst(inPattern.upperCase)) 
-
-		global.logger.trace(searchResults);
-		const resultsUnique = removeDuplicate(searchResults);
+		global.logger.trace(orderedResult);
+		const resultsUnique = removeDuplicate(orderedResult);
 		const resultsSizeReduced = getOnlyKeys(resultsUnique, ['artistName', 'songName']);
 		const resultCount = resultsSizeReduced.length;
 		
 		global.logger.trace(resultsSizeReduced)
 		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, inPattern.upperCase, resultCount);
 		const elapsed = stopWatch.end();
-		broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern: inPattern.upperCase, resultCount});
-		broadcastSearch(masterMonitorStore, 'end');
+		broadcastStatus({status: 'end', results: {userId, ip, elapsed, pattern: inPattern.upperCase, resultCount}});
 
 		cacheWorkers.length > 0 && updateCache(cacheWorkers, inPattern.patternJAMO, resultsSizeReduced);
 		res.send({result: resultsSizeReduced.slice(0,maxReturnCount), count:resultsUnique.length});
@@ -97,21 +94,50 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 	}
 }); 
 
+const broadcaster = (masterMonitorStore, logMonitorStore) => {
+	return ({status, results}) => {
+		if(status === 'start'){
+			broadcastMaster(masterMonitorStore, 'start');
+			return;
+		}
+		if(status === 'cacheHit'){
+			const {userId, ip, elapsed, pattern, resultCount, cacheHit} = results;
+			broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern, resultCount, cacheHit});
+			broadcastMaster(masterMonitorStore, 'end');
+			return;
+		}
+		if(status === 'end'){
+			const {userId, ip, elapsed, pattern, resultCount} = results;
+			broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern, resultCount});
+			broadcastMaster(masterMonitorStore, 'end');
+			return;
+		}
+	}
+}
 
-async function lookupCache({cacheWorkers, patternJAMO, userFrom}){
-	const {ip, userId} = userFrom;
+const orderResult = (searchResults, orderSong, pattern) => {
+	const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
+	const {artistNameStartsFirstWithFirstPattern} = orderSong;
+
+	searchResults
+	.sort(orderyByKey(pattern)) 
+	.sort(artistNameIncludesFirst(pattern))
+	.sort(artistNameStartsFirstWithFirstPattern(pattern))
+	.sort(artistNameStartsFirst(pattern)) 
+
+	return searchResults;
+}
+
+async function lookupCache({cacheWorkers, patternJAMO}){
 	const cacheSearchJob = {
 		cmd: 'get',
 		pattern: patternJAMO
 	}
 	const resultPromise = cacheWorkers.map( async worker => await worker.promise.request(cacheSearchJob));
 	const resultsFromCache = await Promise.all(resultPromise);
-	// resultsFromCache = [null, null, [results], null]
 	global.logger.debug(resultsFromCache)
 	const cacheHit = resultsFromCache.some(result => result.length !== 0);
 	const cacheResponse = resultsFromCache.find(result => result.length !==0);
-	global.logger.info(`[${ip}][${userId}] cache ${cacheHit ? 'hit':'misss'} [${patternJAMO}] `);
-	
 	return {cacheHit, cacheResponse};
 }
 
@@ -160,26 +186,14 @@ function broadcastLog(elapsed, logMonitorStore, params){
 	logMonitorStore.broadcast({eventName:'logMonitor', message:newLog});
 }
 
-function broadcastSearch(masterMonitorStore, type){
+function broadcastMaster(masterMonitorStore, type){
 	let searchMonitorAfterSearch = masterMonitorStore.getStatus()['searching'];
 	type === 'start' && masterMonitorStore.setStatus('searching', searchMonitorAfterSearch+1);
 	type === 'end' && masterMonitorStore.setStatus('searching', searchMonitorAfterSearch-1);
 	masterMonitorStore.broadcast({eventName:'masterMonitor'});	
 }
 
-const isPatternWhiteSpaceOnly = ({pattern}) => pattern.replace(/\s+/, '').length === 0;
-
-const processCacheResult = ({cacheHit, cacheResponse, masterMonitorStore, logMonitorStore, req, res}) => {
-	global.logger.info('*****return from cache!!!!!');
-	const elapsed = res.stopWatch.end();
-	const {pattern, ip, userId, maxReturnCount} = req.metaData;
-	const resultCount = cacheResponse.length;
-	const bcastMessage =  {userId, ip, pattern, resultCount, cacheHit};
-	// const {masterMonitorStore, logMonitorStore} = req.app.get('monitorStores');
-	broadcastLog(elapsed, logMonitorStore, bcastMessage);
-	broadcastSearch(masterMonitorStore, 'end');
-	res.send({result: cacheResponse.slice(0,maxReturnCount), count: resultCount});
-}
+const isPatternWhiteSpaceOnly = (pattern) => pattern.replace(/\s+/, '').length === 0;
 
 const searchRequest = async ({manager, searchParams}) => {
 	return new Promise(async (resolve, reject) => {
