@@ -3,7 +3,6 @@ var router = express.Router();
 var extractJAMO = require('../util/extractJAMO');
 const master = require('../lib/masterEngine');
 const timer = require('../lib/timer.js');
-const searchType = require('../config/searchType');
 const orderSong = require('../lib/orderSong');
 
 const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
@@ -25,15 +24,11 @@ class InPattern {
 const mkInPattern = (req, res, next) => {
 	const {pattern} = req.params;
 	const inPattern = new InPattern(pattern);
-	req.inPattern = inPattern;
-	next();
-}
-
-const handleNullPattern = (req, res, next) => {
-	if(isPatternWhiteSpaceOnly(req.inPattern.upperCase)) {  
+	if(isPatternWhiteSpaceOnly(inPattern.upperCase)) {  
 		res.send({result:null, count:null});
 		return;
 	} 
+	req.inPattern = inPattern;
 	next();
 }
 
@@ -46,7 +41,7 @@ const mkStopWatch = (req, res, next) => {
 }
 
 // search by distributed worker
-router.get('/withWorkers/:pattern', mkInPattern, handleNullPattern, mkStopWatch, async (req, res, next) => {
+router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
 
@@ -180,7 +175,7 @@ function broadcastLog(elapsed, logMonitorStore, params){
 	}
 
 	const storedLog = logMonitorStore.getStatus()['log'];
-	const newLog = storedLog.length > 100 ? storedLog.slice(0, storedLog.length - 1) : [...storedLog];
+	const newLog = storedLog.length > MAX_LOG_ROWS_BROADCASTING ? storedLog.slice(0, storedLog.length - 1) : [...storedLog];
 	newLog.unshift(logMonitor);
 	logMonitorStore.setStatus('log', newLog);
 	logMonitorStore.broadcast({eventName:'logMonitor', message:newLog});
