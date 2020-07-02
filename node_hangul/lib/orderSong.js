@@ -10,6 +10,18 @@ function artistNameStartsFirst(patternOriginal){
 	}
 }
 
+function artistNameStartsFirstWithFirstPattern(patternOriginal){
+	return (a, b) => {
+		const pattern = patternOriginal.replace(/\s+$/,'').split(' ')[0]
+		const AB = -1;
+		const BA = 1;
+		// one of two records' artistName start with exact pattern, move forward
+		if(a.artistName.startsWith(pattern) && !b.artistName.startsWith(pattern)) return AB;
+		if(b.artistName.startsWith(pattern) && !a.artistName.startsWith(pattern)) return BA;
+		return 0;
+	}
+}
+
 function artistNameIncludesFirst(patternOriginal){
 	return (a, b) => {
 		const pattern = patternOriginal.replace(/\s+$/,'');
@@ -44,7 +56,8 @@ function sortBy(a,b) {
 }
 
 module.exports = {
-    artistNameStartsFirst,
+	artistNameStartsFirst,
+	artistNameStartsFirstWithFirstPattern,
     artistNameIncludesFirst,
     orderyByKey
 }

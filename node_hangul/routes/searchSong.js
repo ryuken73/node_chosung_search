@@ -34,7 +34,7 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const {app} = req;
 		const {pattern:searchPattern} = req.params;
 		const inPattern = new InPattern(searchPattern)
-		console.log('%s',inPattern._pattern);
+		// console.log('%s',inPattern._pattern);
 
 		const {userId='unknown', supportThreeWords, maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress || 'none';
@@ -68,11 +68,13 @@ router.get('/withWorkers/:pattern', async (req, res, next) => {
 		const searchResults = await searchRequest({manager, searchParams});
 		
 		const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
+		const {artistNameStartsFirstWithFirstPattern} = orderSong;
 
 
 		searchResults
 		.sort(orderyByKey(inPattern.upperCase)) 
 		.sort(artistNameIncludesFirst(inPattern.upperCase))
+		.sort(artistNameStartsFirstWithFirstPattern(inPattern.upperCase))
 		.sort(artistNameStartsFirst(inPattern.upperCase)) 
 
 		global.logger.trace(searchResults);

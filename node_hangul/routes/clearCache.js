@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const master = require('../lib/master');
+const master = require('../lib/masterEngine');
  
 router.get('/', async (req, res, next) => {
     const cacheWorkers = req.app.get('cacheWorkers');

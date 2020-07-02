@@ -11,7 +11,7 @@ const path = require('path');
 const EventEmitter = require('events');
 class eventEmitter extends EventEmitter {}
 const sockApp = require('../socket/main');
-const keyGen = require('../lib/keyGen');
+// const keyGen = require('../lib/keyGen');
 // const master = require('../lib/master');
 const master = require('../lib/masterEngine');
 const monitor = require('../lib/monitor.js');
@@ -94,16 +94,16 @@ async function main(){
   app.set('logMonitor', logMonitor);
 
   // create uniq key generator to use assigning taskkey 
-  const taskKey = keyGen.createKeyGenerator();
+  // const taskKey = keyGen.createKeyGenerator();
   // create task Results Map to hold child process's job result
   const taskResults = new Map();
 
-  app.set('taskKey', taskKey);
+  // app.set('taskKey', taskKey);
   app.set('taskResults', taskResults);
  
   // create workers and cacheWorkers processes
-  const startWorkerMessageKey = taskKey.getKey();
-  taskResults.set(startWorkerMessageKey, []);
+  // const startWorkerMessageKey = taskKey.getKey();
+  // taskResults.set(startWorkerMessageKey, []);
   // const workers = master.createWorkers(global.NUMBER_OF_WORKER, workerModule, startWorkerMessageKey);
   const manager = master.createSearchWorkers(global.NUMBER_OF_WORKER, workerModule);
   const workers = manager.workers;
