@@ -32,6 +32,7 @@ class DBReader extends Reader {
         super();
         this.db = options.db;
     }
+    get rStream(){return this._rStream}
     async getTotal(){
         const whereClause = '';
         const getCountSQL = 'select count(*) as total from music.song_mst ' +  whereClause || '';
@@ -39,9 +40,10 @@ class DBReader extends Reader {
         return result.shift().TOTAL;
     }
     async start(){
+        const whereClause = '';
         const sql = 'select artist, song_name from music.song_mst ' +  whereClause || '';
-        const rStream = await db.queryStream(sql, []);
-        this.rStream = rStream;
+        const rStream = await this.db.queryStream(sql, []);
+        this._rStream = rStream;
         this.selected = 0;
         rStream.on('data', result => {
             this.selected ++;

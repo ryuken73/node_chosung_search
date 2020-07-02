@@ -69,7 +69,7 @@ const loadFromFile =  async (manager, masterMonitor, options = {}) => {
             }
             global.logger.debug('not proper number of columns : ', line);
             if(parseInt(percentProcessed) === 100) {
-                global.logger.info(`indexing done = ${percentProcessed}`)
+                global.logger.info(`indexing done = ${percentProcessed}`) 
                 resolve(totalLoaded);
             }
         });        
@@ -82,31 +82,35 @@ const loadFromFile =  async (manager, masterMonitor, options = {}) => {
     })
 }
 
-const loadFromDB = async (workers, keyStore, taskResults, masterMonitor, options = {}) => {
-    return new Promise(async(resolve, reject) => {      
+const loadFromDB = async (manager, masterMonitor, options = {}) => {
+    return new Promise(async (resolve, reject) => {      
         try {
-            const reader = new readClass.createDBReader(options);
+            const reader = await readerClass.createDBReader(options);
             reader.start();
             global.logger.info('start indexing...from DB');
-            rStream.on('data', result => {
-
+            reader.on('data', async dbResult => { 
                 const digit = 1;
                 const percentProcessed = reader.percentProcessed(digit);
                 percentProcessed && global.logger.info(`processed... ${percentProcessed}% [${reader.selected}/${reader.totalRecordsCount}]`);
                 notifyProgress(percentProcessed, masterMonitor);
-                const wordArray = [result.ARTIST, result.SONG_NAME];
+                const wordArray = [dbResult.ARTIST, dbResult.SONG_NAME];
                 // console.log(wordArray);  
-                const canSendMore = sendLine(workers, keyStore, taskResults, wordArray);
-                if(!canSendMore){
+                const result = await sendLine(manager.nextWorker, wordArray);
+                if(result === true){
+                    masterMonitor.setStatus('lastIndexedCount', reader.selected)
                     // just pause readstream 1 second!
-                    global.logger.info('pause stream!')
-                    reader.rStream.pause();
-                    setTimeout(() => {global.logger.info('resume stream');reader.rStream.resume()},100);
+                    // global.logger.info('pause stream!')
+                    // reader.rStream.pause();
+                    // setTimeout(() => {global.logger.info('resume stream');reader.rStream.resume()},100);
+                }
+                if(parseInt(percentProcessed) === 100) {
+                    global.logger.info(`indexing done = ${percentProcessed}`)
+                    resolve(reader.selected);
                 }
             })
-            reader.rStream.on('end', () => {
-                resolve(selected);
-            })
+            // reader.rStream.on('end', () => {
+            //     global.logger.info('db reader end');
+            // })
         } catch (err) {
             reject(err);
             global.logger.error(err);

@@ -8,13 +8,13 @@ class Song {
         this._jamoCombinedName = this.getJAMO(this._combinedName);
         return this;     
     }    
-    getJAMO = (hangulStr) => {
+    getJAMO(hangulStr) {
         return hangul.disassemble(hangulStr).join('');	
     }
-    clearWord = (word) => {
+    clearWord(word) {
         return word.replace(/\s+/g, " ").trim().replace(/^"/gi, '').replace(/"$/gi, '').replace(/\s+$/gi, '');
     }
-    mkCombinedName = () => {
+    mkCombinedName() {
         const artistNsongNartist = `${this._artistName} ${this._songName} ${this._artistName}`;
         const artistNsongNartistNoBlank = `${this._songName.replace(/\s+/g, '')}${this._artistName.replace(/\s+/g, '')}${this._songName.replace(/\s+/g, '')}`;
         return `${artistNsongNartist} ${artistNsongNartistNoBlank}`

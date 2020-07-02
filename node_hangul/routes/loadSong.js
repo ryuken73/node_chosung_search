@@ -17,7 +17,7 @@ router.get('/useWorkers', async (req, res, next) => {
 		const options = {db: musicdb};
 		global.logger.info('request accepted');
 		res.send({result:'success', msg:'request accepted'});
-		const totalLoaded = workers ? await master.loadFromDB(workers, keyStore, taskResults, masterMonitor, options) : {};	
+		const totalLoaded = workers ? await master.loadFromDB(manager, masterMonitor, options) : {};	
 		const result = totalLoaded ? {result:'success', count: totalLoaded} 
 								   : {result:'failure', count: 0};
 		global.logger.info(result);
