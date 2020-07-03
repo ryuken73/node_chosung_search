@@ -8,12 +8,8 @@ const forkWorkers = (jsFile, args, count) => {
     return array.map( element => child_process.fork(jsFile, args));
 }
 
-const defaultExitCallback = (oldWorker, newWorker) => {
-
-}
-
+const defaultExitCallback = (oldWorker, newWorker) => {};
 const _increaseMaxListener = worker => worker.setMaxListeners(500);
-
 const _attachGetNextIdAPI = worker => {
     worker.nextRequestId = () => {
         const pid = worker.pid;
@@ -22,7 +18,7 @@ const _attachGetNextIdAPI = worker => {
     }
 }
 
-const _attachRequestAPI = worker => {
+const _attachRequestJobId = worker => {
     worker.promise = {};
     worker.promise.request = request => {
         // console.log(`requesting...`, request)
@@ -62,7 +58,7 @@ class ChildProcessManager {
         return this;
     }
 
-    get workers(){ return this._workers}
+    get workers(){ return [...this._workers]}
     get nextWorker(){
         const nextIndex = this.sequence++ % this._workers.length;
         return this._workers[nextIndex]
@@ -79,7 +75,7 @@ class ChildProcessManager {
     _initWorker(worker){
         _increaseMaxListener(worker);
         _attachGetNextIdAPI(worker);
-        _attachRequestAPI(worker);
+        _attachRequestJobId(worker);
         this._attachErrorHandler(worker);
         this._attachExitHandler(worker);
     }
