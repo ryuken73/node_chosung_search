@@ -33,8 +33,10 @@ global.INDEXING_BYTES = (config.INDEXING_BYTES === undefined || config.INDEXING_
 // global.LOG_LEVEL = config.LOG_LEVEL || 'info';
 global.MONITOR_BROADCAST_INTERVAL = config.MONITOR_BROADCAST_INTERVAL || 500;
 global.EXPRESS_REQ_TIMEOUT = config.EXPRESS_REQ_TIMEOUT || 300000;
-global.MAX_LOG_ROWS_BROADCASTING = config.MAX_LOG_ROWS_BROADCASTING || 300;
 global.NUMBER_OF_COLUMNS_FROM_FILE = config.NUMBER_OF_COLUMNS_FROM_FILE || 2;
+global.TOTAL_COUNT_SQL = config.TOTAL_COUNT_SQL || 'select count(*) as total from music.song_mst ';
+global.INDEX_DATA_SQL = config.INDEX_DATA_SQL || 'select artist, song_name from music.song_mst ';
+
 global.messageKey = 0;
 
 const app = express();

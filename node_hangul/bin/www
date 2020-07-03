@@ -99,9 +99,9 @@ async function main(){
 
   socketServer.setMonitorStores({logMonitor, masterMonitor, workersMonitor, cacheWorkersMonitor});
   socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
-  monitoUtil.loopSetStatus.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  monitoUtil.loopSetStatus.workers(app, workersMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  monitoUtil.loopSetStatus.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUtil.loopSetStatus.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUtil.loopSetStatus.workers(app, workersMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitorUtil.loopSetStatus.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
 
   /**
    * Listen on provided port, on all network interfaces.

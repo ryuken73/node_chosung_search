@@ -31,18 +31,18 @@ class DBReader extends Reader {
     constructor(options){
         super();
         this.db = options.db;
+        this.getCountSQL = options.getCountSQL;
+        this.getCountArgValue= options.getCountArgValue || [];
+        this.indexDataSQL = optionns.indexDataSQL;
+        this.indexDataArgValue = optionns.indexDataArgValue || [];
     }
     get rStream(){return this._rStream}
     async getTotal(){
-        const whereClause = '';
-        const getCountSQL = 'select count(*) as total from music.song_mst ' +  whereClause || '';
-        const result = await this.db.query(getCountSQL, []);
+        const result = await this.db.query(this.getCountSQL, this.getCountArgValue);
         return result.shift().TOTAL;
     }
     async start(){
-        const whereClause = '';
-        const sql = 'select artist, song_name from music.song_mst ' +  whereClause || '';
-        const rStream = await this.db.queryStream(sql, []);
+        const rStream = await this.db.queryStream(this.indexDataSQL, this.indexDataArgValue);
         this._rStream = rStream;
         this.selected = 0;
         rStream.on('data', result => {
