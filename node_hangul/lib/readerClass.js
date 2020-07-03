@@ -94,8 +94,6 @@ class FileReader extends Reader {
         rl.on('line', line => {
             this._bytesRead = rl.input.bytesRead;
             this.emit('line', line);
-            const arrayOfLine = this.lineToArray(line);
-            if(arrayOfLine.length > 0) this.emit('array', arrayOfLine);
         });
     }
     percentProcessed(digit){

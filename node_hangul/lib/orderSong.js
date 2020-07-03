@@ -35,7 +35,7 @@ function artistNameIncludesFirst(patternOriginal){
 }
 
 function orderyByKey(patternOriginal){
-	return (a, b) => {
+	return (a, b) => { 
 		const sortByKey = sortBy(a,b);
 		const sortByArtistName = sortByKey('artistName');
 		const sortBysongName = sortByKey('songName');
@@ -55,9 +55,18 @@ function sortBy(a,b) {
 	}
 }
 
+const orderDefault = (searchResults, pattern) => {
+	return [...searchResults]
+	.sort(orderyByKey(pattern)) 
+	.sort(artistNameIncludesFirst(pattern))
+	.sort(artistNameStartsFirstWithFirstPattern(pattern))
+	.sort(artistNameStartsFirst(pattern)) 
+}
+
 module.exports = {
 	artistNameStartsFirst,
 	artistNameStartsFirstWithFirstPattern,
     artistNameIncludesFirst,
-    orderyByKey
+	orderyByKey,
+	orderDefault
 }

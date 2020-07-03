@@ -8,25 +8,13 @@ const app = require('../app');
 const debug = require('debug')('node_db2:server');
 const http = require('http');
 const path = require('path');
-const EventEmitter = require('events');
-class eventEmitter extends EventEmitter {}
 const sockApp = require('../socket/main');
-// const keyGen = require('../lib/keyGen');
-// const master = require('../lib/master');
 const master = require('../lib/masterEngine');
 const monitor = require('../lib/monitor.js');
 const monitorUtil = require('../lib/monitorUtil');
-const monitorUpdateLoop = require('../lib/monitorUpdateLoop');
-const getMemInfo = require('../lib/getMemInfo');
-const workerHandlers = require('../lib/workerListener');
-const messageHandlers = require('../lib/workerHandler');
-
-// const workerModule = path.join(__dirname, '../', 'lib/worker.js');
 const workerModule = path.join(__dirname, '../', 'lib/searchEngine.js');
 const cacheModule = path.join(__dirname, '../', 'lib/cacheEngine.js');
-
-// const childProcessMonitor = require('../lib/workerMonitor');
-
+const getMemInfo = require('../lib/getMemInfo');
 
 
 /**
@@ -93,21 +81,10 @@ async function main(){
   app.set('masterMonitor', masterMonitor);
   app.set('logMonitor', logMonitor);
 
-  // create uniq key generator to use assigning taskkey 
-  // const taskKey = keyGen.createKeyGenerator();
-  // create task Results Map to hold child process's job result
-  const taskResults = new Map();
-
-  // app.set('taskKey', taskKey);
-  app.set('taskResults', taskResults);
- 
-  // create workers and cacheWorkers processes
-  // const startWorkerMessageKey = taskKey.getKey();
-  // taskResults.set(startWorkerMessageKey, []);
-  // const workers = master.createWorkers(global.NUMBER_OF_WORKER, workerModule, startWorkerMessageKey);
   const manager = master.createSearchWorkers(global.NUMBER_OF_WORKER, workerModule);
   const workers = manager.workers;
-  // const cacheWorkers = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule);
+
+
   const cacheWorkers = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule).workers;
   app.set('cacheWorkers', cacheWorkers);
   app.set('manager', manager);
@@ -120,26 +97,11 @@ async function main(){
   app.set('workersMonitor', workersMonitor);
   app.set('cacheWorkersMonitor', cacheWorkersMonitor);
 
-  // make handler for worker's messages (TIMEOUT or ALL-DONE handler)
-  // when worker replied job result with message type, emit appropriate event (eg: search.success_messageKey) 
-  const searchEvent = new eventEmitter();
-  const clearEvent = new eventEmitter();
-  const handlers = messageHandlers.initialize({searchEvent, clearEvent, masterMonitor});
-  app.set('searchEvent', searchEvent);
-  app.set('clearEvent', clearEvent);
-
-  // attach eventListenr on workers (to process reply from workers)
-  workers.map(worker => workerHandlers.attachMessageHanlder({worker, app, taskResults, handlers}));
-  workers.map(worker => workerHandlers.attachExitHandler({worker, app, workerModule, handlers}));
-  workers.map(worker => workerHandlers.attachErrorHandler(worker));
-
   socketServer.setMonitorStores({logMonitor, masterMonitor, workersMonitor, cacheWorkersMonitor});
   socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.start.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.start.workers(app, workersMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  monitorUpdateLoop.start.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  // master.initGatherMonitorLoop(app, global.MONITOR_BROADCAST_INTERVAL);
-  // master.attachMessageEventHandler(app);
+  monitoUtil.loopSetStatus.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitoUtil.loopSetStatus.workers(app, workersMonitor, global.MONITOR_BROADCAST_INTERVAL);
+  monitoUtil.loopSetStatus.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
 
   /**
    * Listen on provided port, on all network interfaces.

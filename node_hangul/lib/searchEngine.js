@@ -1,6 +1,6 @@
 const getMemInfo = require('./getMemInfo');
 const orderSong = require('./orderSong');
-const song = require('./songClass');
+const song = require('./songClass');    
 
 const replaceRegMetaCharacter = (word, replacer) => {
     const re = /([?\\\*\+\.\{\}\[\]\(\)])/g
@@ -53,11 +53,8 @@ const worker = {
         const upperCased = patternJAMO.toUpperCase().trimEnd();
         const keywordExprCanBeNospacing = mkRegExpr(upperCased, spacing=false);
         const searchResults = threeWordsSearch(this.songArray, keywordExprCanBeNospacing);
-        const orderedResults = searchResults
-                               .sort(orderSong.orderyByKey(pattern)) 
-                               .sort(orderSong.artistNameIncludesFirst(pattern))
-                               .sort(orderSong.artistNameStartsFirst(pattern)) 
-      
+        const {orderDefault} = orderSong;
+        const orderedResults = orderDefault(searchResults, pattern);     
         limit && orderedResults.splice(limit);
         const result = orderedResults.map(songObj => {
             const {artistName, songName} = songObj;

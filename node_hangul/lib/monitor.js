@@ -1,19 +1,7 @@
-const mapToObject = (mapInstance) => {
-    return [...mapInstance].reduce((acc, curr) => {
-        const [key, value] = curr;
-        acc[key] = value;
-        return acc;
-    }, {})
-}
-
 class Monitor {
     constructor({initialStatus, bcastIO, bcastDefaultEventName}){
-
         this.status = initialStatus.map ? new Map(initialStatus) : new Map(Object.entries(initialStatus));
-        if(bcastIO){
-            this.io = bcastIO;
-            // this.broadcast({eventName:bcastDefaultEventName});
-        }
+        this.io = bcastIO;
     }   
     getStatus(key){
         const result = key ? mapToObject(this.status)[key] :  mapToObject(this.status);
@@ -34,6 +22,14 @@ class Monitor {
             throw new Error(err);
         }
     }
+}
+
+const mapToObject = (mapInstance) => {
+    return [...mapInstance].reduce((acc, curr) => {
+        const [key, value] = curr;
+        acc[key] = value;
+        return acc;
+    }, {})
 }
 
 const createMonitor = ({initialStatus={}, notification={enabled:false}}) => {

@@ -14,10 +14,8 @@ const cache = {
         return result;
     }, 
     update : (pattern, results) => {
-        // console.log(`set cache[${pattern}]:`, results)
         this.cache.set(pattern, results);
         this.cacheCount++;
-        // console.log([...this.cache])
         return true;
     },
     delete : (pattern) => {
@@ -35,9 +33,6 @@ const cache = {
     const {cmd, pattern, results=[]} = request;
     let result;
     switch(cmd){
-        // case 'init' :
-        //     result = cache.create();
-        //     break;
         case 'get' :
             result = cache.lookup(pattern);
             break;
@@ -58,10 +53,8 @@ const cache = {
                 cacheHit,
                 mem: getMemInfo()
             }
-            // console.log(result)
             break;
     }
-    // console.log(`cache work done: ${process.pid}: cmd = ${cmd}`);
     process.send({
         responseId : requestId,
         success: true,

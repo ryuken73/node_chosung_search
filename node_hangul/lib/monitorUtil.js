@@ -2,7 +2,6 @@ const monitor = require('./monitor');
 const getMemInfo = require('./getMemInfo');
 
 const mkWorkerMonitor = ({pid, defaultNotifcationOption}) => {
-    // global.logger.trace('called mkWorkerMonitor,',defaultNotifcationOption);
     const initialStatus = {
         pid ,
         mem : getMemInfo(),
@@ -13,12 +12,10 @@ const mkWorkerMonitor = ({pid, defaultNotifcationOption}) => {
         initialStatus,
         notification: {...defaultNotifcationOption, ...{bcastDefaultEventName:'workerMonitor'}} 
     }
-    // global.logger.debug(options);
     return monitor.createMonitor(options);
 }
   
 const mkCacheWorkerMonitor = ({pid, defaultNotifcationOption}) => {
-    // global.logger.trace('called mkCacheWorkerMonitor,',defaultNotifcationOption);
     const initialStatus = {
         pid ,
         mem : getMemInfo(),
@@ -48,11 +45,51 @@ const setWorkerStatus = (workerMonitor, key, value) => {
     workerMonitor.setStatus(key, value)
 }
 
+const loopSetStatus = {
+    master : (masterMonitor, interval) => {
+        setInterval(() => {
+            masterMonitor.setStatus('mem', getMemInfo());
+        }, interval);
+    },
+     
+    workers : (app, workersMonitor, interval) => {
+        const requestMonitorJob = {cmd: 'requestMonitor'};
+        const workers = app.get('workers');
+        workers.map(worker => {
+            setInterval( async () => {
+                global.logger.trace('worker.pid: ', worker.pid);
+                const result = await worker.promise.request(requestMonitorJob);
+                const {pid, words, searching, mem} = result;
+                const workerMonitor = workersMonitor.find(monitor => monitor.getStatus('pid') === pid);
+                setWorkerStatus(workerMonitor, 'mem', mem);
+                setWorkerStatus(workerMonitor, 'words', words);
+
+            }, interval);
+        })
+    },
+    
+    cacheWorkers : (app, cacheWorkersMonitor, interval) => {
+        const requestMonitorJob = {cmd: 'requestMonitor'};
+        setInterval( async () => {
+            const cacheWorkers = app.get('cacheWorkers');
+            const reqPromises = cacheWorkers.map(async worker => await worker.promise.request(requestMonitorJob));
+            const monitorValues = await Promise.all(reqPromises);
+            monitorValues.map(value => {
+                const {pid, cacheCount, cacheHit, mem} = value;
+                const cacheWorker = cacheWorkersMonitor.find(monitor => monitor.getStatus('pid') === pid);
+                setCacheStatus(cacheWorker, 'mem', mem);
+                setCacheStatus(cacheWorker, 'cacheCount', cacheCount);
+                setCacheStatus(cacheWorker, 'cacheHit', cacheHit);
+            })   
+        }, interval);    
+    }    
+}
+
 module.exports = {
-    // initialize,
     mkWorkerMonitor,
     mkCacheWorkerMonitor,
     getAllStatus,
     setCacheStatus,
     setWorkerStatus,
+    loopSetStatus,
 }

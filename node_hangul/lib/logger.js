@@ -31,7 +31,6 @@ function mkLogger(opts){
     };
  
     const consoleOpts =  {
-        //format : "{{timestamp}} [{{title}}][{{method}}] {{message}} (in {{file}}:{{line}})",	
         format : "{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})",	
         dateformat: 'yyyy-mm-dd HH:MM:ss.l',
         level:logLevel,

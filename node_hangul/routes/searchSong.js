@@ -111,16 +111,17 @@ const broadcaster = (masterMonitorStore, logMonitorStore) => {
 }
 
 const orderResult = (searchResults, orderSong, pattern) => {
-	const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
-	const {artistNameStartsFirstWithFirstPattern} = orderSong;
+	const {orderDefault} = orderSong;
+	// const {orderyByKey, artistNameIncludesFirst, artistNameStartsFirst} = orderSong;
+	// const {artistNameStartsFirstWithFirstPattern} = orderSong;
 
-	searchResults
-	.sort(orderyByKey(pattern)) 
-	.sort(artistNameIncludesFirst(pattern))
-	.sort(artistNameStartsFirstWithFirstPattern(pattern))
-	.sort(artistNameStartsFirst(pattern)) 
+	// searchResults
+	// .sort(orderyByKey(pattern)) 
+	// .sort(artistNameIncludesFirst(pattern))
+	// .sort(artistNameStartsFirstWithFirstPattern(pattern))
+	// .sort(artistNameStartsFirst(pattern)) 
 
-	return searchResults;
+	return orderDefault(searchResults, pattern);
 }
 
 async function lookupCache({cacheWorkers, patternJAMO}){

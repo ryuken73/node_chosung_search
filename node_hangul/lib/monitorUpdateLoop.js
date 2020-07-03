@@ -19,7 +19,6 @@ const start = {
                 const workerMonitor = workersMonitor.find(monitor => monitor.getStatus('pid') === pid);
                 monitorUtil.setWorkerStatus(workerMonitor, 'mem', mem);
                 monitorUtil.setWorkerStatus(workerMonitor, 'words', words);
-                monitorUtil.setWorkerStatus(workerMonitor, 'searching', searching);
 
             }, interval);
         })

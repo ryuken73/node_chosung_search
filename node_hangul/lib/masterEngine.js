@@ -94,23 +94,15 @@ const loadFromDB = async (manager, masterMonitor, options = {}) => {
                 percentProcessed && global.logger.info(`processed... ${percentProcessed}% [${reader.selected}/${reader.totalRecordsCount}]`);
                 notifyProgress(percentProcessed, masterMonitor);
                 const wordArray = [dbResult.ARTIST, dbResult.SONG_NAME];
-                // console.log(wordArray);  
                 const result = await sendLine(manager.nextWorker, wordArray);
                 if(result === true){
                     masterMonitor.setStatus('lastIndexedCount', reader.selected)
-                    // just pause readstream 1 second!
-                    // global.logger.info('pause stream!')
-                    // reader.rStream.pause();
-                    // setTimeout(() => {global.logger.info('resume stream');reader.rStream.resume()},100);
                 }
                 if(parseInt(percentProcessed) === 100) {
                     global.logger.info(`indexing done = ${percentProcessed}`)
                     resolve(reader.selected);
                 }
             })
-            // reader.rStream.on('end', () => {
-            //     global.logger.info('db reader end');
-            // })
         } catch (err) {
             reject(err);
             global.logger.error(err);
