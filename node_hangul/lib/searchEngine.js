@@ -14,7 +14,6 @@ const mkRegExpr = (str, spacing) => {
             const whitespaceRemoved = wordsSplited.filter(word => word !== '');
             const escapeMetaCharacters = whitespaceRemoved.map(word => replaceRegMetaCharacter(word, '\\'));
             const spcaceExpr = spacing ? '.+' : '.*?';
-            // console.log(escapeMetaCharacters.join(spcaceExpr))
             return new RegExp(escapeMetaCharacters.join(spcaceExpr));
         }
         return null;
@@ -23,7 +22,7 @@ const mkRegExpr = (str, spacing) => {
     }
 }
 
-const threeWordsSearch = (songArray, keywordExprCanBeNospacing) => {
+const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
     return songArray.filter(song => {
         return song.jamoCombinedName.toUpperCase().search(keywordExprCanBeNospacing) != -1
     })
@@ -51,8 +50,8 @@ const worker = {
         // default max result 100,000,000 
         const {pattern, patternJAMO, limit=100000000} = data;
         const upperCased = patternJAMO.toUpperCase().trimEnd();
-        const keywordExprCanBeNospacing = mkRegExpr(upperCased, spacing=false);
-        const searchResults = threeWordsSearch(this.songArray, keywordExprCanBeNospacing);
+        const exprString = mkRegExpr(upperCased, spacing=false);
+        const searchResults = searchFromLocal(this.songArray, exprString);
         const {orderDefault} = orderSong;
         const orderedResults = orderDefault(searchResults, pattern);     
         limit && orderedResults.splice(limit);
