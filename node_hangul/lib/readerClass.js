@@ -33,8 +33,8 @@ class DBReader extends Reader {
         this.db = options.db;
         this.getCountSQL = options.getCountSQL;
         this.getCountArgValue= options.getCountArgValue || [];
-        this.indexDataSQL = optionns.indexDataSQL;
-        this.indexDataArgValue = optionns.indexDataArgValue || [];
+        this.indexDataSQL = options.indexDataSQL;
+        this.indexDataArgValue = options.indexDataArgValue || [];
     }
     get rStream(){return this._rStream}
     async getTotal(){
