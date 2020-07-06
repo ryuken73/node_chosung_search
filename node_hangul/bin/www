@@ -65,6 +65,7 @@ async function main(){
     initialStatus: {
       lastIndexedDate : '',
       lastIndexedCount : 0,
+      lastIndexedPercent : '0%',
       indexingStatus : 'NOT_INDEXED', // 'NOT_INDEXED', 'INDEXING', 'INDEX_DONE'
       pid : process.pid,
       mem : getMemInfo(),

@@ -27,8 +27,11 @@ const createCacheWorkers = (maxCache, cacheModule) => {
 }
 
 const notifyProgress = (percentProcessed, masterMonitor) => {
-    percentProcessed && masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
-    percentProcessed && masterMonitor.setStatus('indexingStatus', 'INDEXING');
+    if(percentProcessed){
+        masterMonitor.broadcast({eventName:'progress', message:percentProcessed});
+        masterMonitor.setStatus('indexingStatus', 'INDEXING');
+        masterMonitor.setStatus('lastIndexedPercent', `${percentProcessed}%`);
+    } 
     parseInt(percentProcessed) === 100 && 
     (masterMonitor.setStatus('lastIndexedDate', (new Date()).toLocaleString())
     ,masterMonitor.setStatus('indexingStatus', 'INDEX_DONE'));
@@ -153,6 +156,7 @@ const clearIndex = async ({manager, masterMonitor}) => {
         global.logger.info(`clearing all worker's data done!`);
         masterMonitor.setStatus('lastIndexedDate', '');
         masterMonitor.setStatus('lastIndexedCount', 0);
+        masterMonitor.setStatus('lastIndexedPercent', '0%');
         masterMonitor.setStatus('indexingStatus', 'NOT_INDEXED')
         return
     } catch (err) {

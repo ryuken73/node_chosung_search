@@ -4,6 +4,7 @@ import {brown} from '@material-ui/core/colors';
 
 function Master({gap, master}) {
   const lastIndexedCount = master.lastIndexedCount ? master.lastIndexedCount : 0;
+  const lastIndexedPercent = master.lastIndexedPercent ? master.lastIndexedPercent : '0%';
   const {searching = 0} = master;
   return (
         <Box 
@@ -22,7 +23,8 @@ function Master({gap, master}) {
             <div>MEM: {master.mem}</div>
             <p></p>
             <div>TOTAL INDEXED : {lastIndexedCount.toLocaleString()}</div>
-            <div>LAST INDEXED DATE: {master.lastIndexedDate}</div>
+            <div>TOTAL PERCENT : {lastIndexedPercent.toLocaleString()}</div>
+            <div>LAST INDEXED DATE : {master.lastIndexedDate}</div>
 
           </Box>
           <Box>
