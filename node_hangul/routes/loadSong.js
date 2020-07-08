@@ -10,7 +10,12 @@ router.get('/useWorkers', async (req, res, next) => {
 
 	if(from === 'db'){
 		const musicdb = req.app.get('musicdb');  
-		const options = {db: musicdb, getCountSQL: global.TOTAL_COUNT_SQL, indexDataSQL: global.INDEX_DATA_SQL}
+		const options = {
+			db: musicdb, 
+			getCountSQL: global.TOTAL_COUNT_SQL, 
+			indexDataSQL: global.INDEX_DATA_SQL,
+			limitSQLDataCount: global.LIMIT_SQL_DATA_COUNT
+		}
 		res.send({result:'success', msg:'request accepted'});
 		const totalLoaded = workers ? await master.loadFromDB(manager, masterMonitor, options) : {};	
 		const result = totalLoaded ? {result:'success', count: totalLoaded} 

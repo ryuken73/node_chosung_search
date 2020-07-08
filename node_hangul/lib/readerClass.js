@@ -34,15 +34,24 @@ class DBReader extends Reader {
         this.getCountSQL = options.getCountSQL;
         this.getCountArgValue= options.getCountArgValue || [];
         this.indexDataSQL = options.indexDataSQL;
+        this.limitSQLDataCount = options.limitSQLDataCount;
+        this.limitSQLClause = options.limitSQLDataCount === Infinity 
+                              ? '' 
+                              : `fetch first ${options.limitSQLDataCount} rows only` ;
         this.indexDataArgValue = options.indexDataArgValue || [];
     }
     get rStream(){return this._rStream}
+    get queryCountSQL() {return `${this.getCountSQL}`}
+    get queryDataSQL() {return `${this.indexDataSQL} ${this.limitSQLClause}`}   
     async getTotal(){
-        const result = await this.db.query(this.getCountSQL, this.getCountArgValue);
+        if(this.limitSQLDataCount !== Infinity) {
+            return this.limitSQLDataCount;
+        }
+        const result = await this.db.query(this.queryCountSQL, this.getCountArgValue);
         return result.shift().TOTAL;
     }
     async start(){
-        const rStream = await this.db.queryStream(this.indexDataSQL, this.indexDataArgValue);
+        const rStream = await this.db.queryStream(this.queryDataSQL, this.indexDataArgValue);
         this._rStream = rStream;
         this.selected = 0;
         rStream.on('data', result => {
