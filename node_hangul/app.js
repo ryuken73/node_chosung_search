@@ -34,9 +34,9 @@ global.INDEXING_BYTES = (config.INDEXING_BYTES === undefined || config.INDEXING_
 global.MONITOR_BROADCAST_INTERVAL = config.MONITOR_BROADCAST_INTERVAL || 500;
 global.EXPRESS_REQ_TIMEOUT = config.EXPRESS_REQ_TIMEOUT || 300000;
 global.NUMBER_OF_COLUMNS_FROM_FILE = config.NUMBER_OF_COLUMNS_FROM_FILE || 2;
-global.TOTAL_COUNT_SQL = config.TOTAL_COUNT_SQL || 'select count(*) as total from music.song_mst ';
-global.INDEX_DATA_SQL = config.INDEX_DATA_SQL || 'select artist, song_name from music.song_mst ';
-
+global.TOTAL_COUNT_SQL = config.TOTAL_COUNT_SQL || 'select count(*) as total from music.v_autocomplete ';
+global.INDEX_DATA_SQL = config.INDEX_DATA_SQL || 'select artist, song_name, key, open_dt, status from music.v_autocomplete ';
+global.LIMIT_SQL_DATA_COUNT = config.LIMIT_SQL_DATA_COUNT || Infinity;
 global.messageKey = 0;
 
 const app = express();
