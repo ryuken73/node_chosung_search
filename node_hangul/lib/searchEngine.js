@@ -28,6 +28,31 @@ const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
     })
 }
 
+const filterStatusIsY = songObject => {
+    return songObject.status === 'Y';
+}
+
+const padZero = num => {
+	if(num < 10){
+		return `0${num}`;
+	}
+	return num.toString();
+};
+
+const getDayString = date => {
+    const year = date.getFullYear();
+	const month = padZero(date.getMonth() + 1);
+    const day = padZero(date.getDate());
+    const minute = padZero(date.getMinutes());
+	const second = padZero(date.getSeconds());
+	return year+month+day+minute+second;
+}
+
+const filterOpenTimeIsLessThanNow = songObject => {
+    return songObject.open_dt < getDayString(new Date());
+    // return songObject.open_dt < '20200608000000'
+}
+
 const worker = {
     init : () => {
         this.pid = process.pid;
@@ -51,7 +76,9 @@ const worker = {
         const {pattern, patternJAMO, limit=100000000} = data;
         const upperCased = patternJAMO.toUpperCase().trimEnd();
         const exprString = mkRegExpr(upperCased, spacing=false);
-        const searchResults = searchFromLocal(this.songArray, exprString);
+        const searchResults = searchFromLocal(this.songArray, exprString)
+                              .filter(filterStatusIsY)
+                              .filter(filterOpenTimeIsLessThanNow);
         const {orderDefault} = orderSong;
         const orderedResults = orderDefault(searchResults, pattern);     
         limit && orderedResults.splice(limit);

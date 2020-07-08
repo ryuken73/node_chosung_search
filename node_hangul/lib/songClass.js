@@ -1,11 +1,14 @@
 const hangul = require('hangul-js');
 
 class Song {
-    constructor([artistName='', songName='']){
+    constructor([artistName='', songName='', key='', open_dt='19900101', status='N']){
         this._artistName = this.clearWord(artistName);
         this._songName = this.clearWord(songName);   
         this._combinedName = this.mkCombinedName();
         this._jamoCombinedName = this.getJAMO(this._combinedName);
+        this._key = key;
+        this._open_dt = open_dt;
+        this._status = status;
         return this;     
     }    
     getJAMO(hangulStr) {
@@ -37,10 +40,19 @@ class Song {
     get jamoCombinedName(){
         return this._jamoCombinedName;
     }
+    get key(){
+        return this._key;
+    }
+    get open_dt(){
+        return this._open_dt;
+    }
+    get status(){
+        return this._status;
+    }
 }
 
 module.exports = {
-    create([artistName='', songName='']){
-        return new Song([artistName, songName]);
+    create([artistName='', songName='', key='', open_dt='20991231000000', status='N']){
+        return new Song([artistName, songName, key, open_dt, status]);
     }
 }

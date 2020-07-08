@@ -96,8 +96,9 @@ const loadFromDB = async (manager, masterMonitor, options = {}) => {
                 const percentProcessed = reader.percentProcessed(digit);
                 percentProcessed && global.logger.info(`processed... ${percentProcessed}% [${reader.selected}/${reader.totalRecordsCount}]`);
                 notifyProgress(percentProcessed, masterMonitor);
-                const wordArray = [dbResult.ARTIST, dbResult.SONG_NAME];
-                const result = await sendLine(manager.nextWorker, wordArray);
+                const wordArray = [dbResult.ARTIST, dbResult.SONG_NAME, dbResult.KEY, dbResult.OPEN_DT, dbResult.STATUS];
+                // global.logger.info(wordArray);
+                const result = await sendLine(manager.nextWorker, wordArray);                
                 if(result === true){
                     masterMonitor.setStatus('lastIndexedCount', reader.selected)
                 }
