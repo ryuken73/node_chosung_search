@@ -67,11 +67,13 @@ export default class App extends Component {
   updateMasterMonitor(masterMonitor){
     console.log('update master:',masterMonitor)
     const {indexingStatus} = masterMonitor;
+    const startingIndex = (indexingStatus === 'INDEX_STARTED');
     const onIndexing = (indexingStatus === 'INDEXING');
     const indexDone = (indexingStatus === 'INDEX_DONE');
     this.setState({
       ...this.state,
       master: masterMonitor,
+      startingIndex,
       onIndexing,
       indexDone
     })
@@ -128,6 +130,7 @@ export default class App extends Component {
       // disableLoadFileBtn: true,
       // disalbeClearCacheBtn: true,
       // disalbeClearIndexBtn: true,
+      startingIndex: true,
       onIndexing: true,
     })
     const result = await axiosRequest.get('load');
@@ -141,6 +144,7 @@ export default class App extends Component {
       // disableLoadFileBtn: true,
       // disalbeClearCacheBtn: true,
       // disalbeClearIndexBtn: true,
+      startingIndex: true,
       onIndexing: true
     })
     const result = await axiosRequest.get('loadFromDB');
@@ -169,12 +173,12 @@ export default class App extends Component {
 
   render() {
     const {workers, master, currentLog, cacheWorkers, progress} = this.state;
-    const {onIndexing, indexDone} = this.state;
+    const {startingIndex, onIndexing, indexDone} = this.state;
     // const {disalbeClearCacheBtn, disalbeClearIndexBtn} = this.state;
-    const disableLoadDBBtn = onIndexing || indexDone;
-    const disableLoadFileBtn = onIndexing || indexDone;
-    const disalbeClearIndexBtn = onIndexing || !indexDone;
-    const disalbeClearCacheBtn = onIndexing || !indexDone;
+    const disableLoadDBBtn = startingIndex || onIndexing || indexDone;
+    const disableLoadFileBtn = startingIndex|| onIndexing || indexDone;
+    const disalbeClearIndexBtn = startingIndex || onIndexing || !indexDone;
+    const disalbeClearCacheBtn = startingIndex || onIndexing || !indexDone;
     const gap = 0.3;
     return (
       <Box display="flex" flexDirection="column" height="100vh" className="App">

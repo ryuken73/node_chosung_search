@@ -53,6 +53,7 @@ const sendLine = async (worker, wordArray) => {
 const loadFromFile =  async (manager, masterMonitor, options = {}) => {
     let totalLoaded = 0;
     return new Promise(async (resolve, reject) => {
+        masterMonitor.setStatus('indexingStatus', 'INDEX_STARTED');
         const reader = await readerClass.createFileReader(options);
         reader.start();
         global.logger.info('start indexing...from File');
@@ -88,6 +89,7 @@ const loadFromFile =  async (manager, masterMonitor, options = {}) => {
 const loadFromDB = async (manager, masterMonitor, options = {}) => {
     return new Promise(async (resolve, reject) => {      
         try {
+            masterMonitor.setStatus('indexingStatus', 'INDEX_STARTED');
             const reader = await readerClass.createDBReader(options);
             reader.start();
             global.logger.info('start indexing...from DB');
@@ -110,6 +112,8 @@ const loadFromDB = async (manager, masterMonitor, options = {}) => {
         } catch (err) {
             reject(err);
             global.logger.error(err);
+            masterMonitor.setStatus('indexingStatus', 'INDEX_DONE');
+
         }
     })
 }
