@@ -2,7 +2,7 @@
   "name": "my-components",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://127.0.0.1:3007/",
+  "proxy": "http://127.0.0.1:3009/",
   "secure": false,
   "dependencies": {
     "@material-ui/core": "^4.9.2",
