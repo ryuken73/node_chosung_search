@@ -14,7 +14,7 @@ const createSearchWorkers = (maxWorkers, workerModule) => {
         customExitCallback: handleProcessExit 
     }
     return manager.create(options);
-}
+} 
 
 const createCacheWorkers = (maxCache, cacheModule) => { 
     const options = {

@@ -4,8 +4,8 @@ const master = require('../lib/masterEngine');
  
 router.get('/useWorkers', async (req, res, next) => {
 	const {from} = req.query;
-	const workers = req.app.get('workers');
-	const manager = req.app.get('manager');
+	const workers = req.app.get('searchWorkers');
+	const manager = req.app.get('searchManager');
 	const masterMonitor = req.app.get('masterMonitor');
 
 	if(from === 'db'){

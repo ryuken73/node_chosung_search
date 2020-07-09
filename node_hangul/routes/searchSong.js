@@ -67,7 +67,7 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 		}
 
 		const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER};
-		const searchResults = await searchRequest({manager: req.app.get('manager'), searchParams});
+		const searchResults = await searchRequest({manager: req.app.get('searchManager'), searchParams});
 		const orderedResult = orderResult(searchResults, orderSong, inPattern.upperCase);
 
 		global.logger.trace(orderedResult);

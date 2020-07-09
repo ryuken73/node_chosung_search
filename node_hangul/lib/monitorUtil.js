@@ -54,7 +54,7 @@ const loopSetStatus = {
      
     workers : (app, workersMonitor, interval) => {
         const requestMonitorJob = {cmd: 'requestMonitor'};
-        const workers = app.get('workers');
+        const workers = app.get('searchWorkers');
         workers.map(worker => {
             setInterval( async () => {
                 global.logger.trace('worker.pid: ', worker.pid);

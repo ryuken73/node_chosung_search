@@ -82,17 +82,19 @@ async function main(){
   app.set('masterMonitor', masterMonitor);
   app.set('logMonitor', logMonitor);
 
-  const manager = master.createSearchWorkers(global.NUMBER_OF_WORKER, workerModule);
-  const workers = manager.workers;
+  const searchManager = master.createSearchWorkers(global.NUMBER_OF_WORKER, workerModule);
+  const searchWorkers = searchManager.workers;
+  const cacheManager = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule);
+  const cacheWorkers = cacheManager.workers
 
-
-  const cacheWorkers = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule).workers;
+  app.set('searchManager', searchManager);
+  app.set('searchWorkers', searchWorkers);
+  app.set('cacheManager', cacheManager);
   app.set('cacheWorkers', cacheWorkers);
-  app.set('manager', manager);
-  app.set('workers', workers);
+  // app.set('workers', workers);
 
   // make monitor instance for worker to get/set monitor status and broadcast status
-  const workersMonitor = workers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
+  const workersMonitor = searchWorkers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
   const cacheWorkersMonitor = cacheWorkers.map(worker => monitorUtil.mkCacheWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
   global.logger.debug(`workersMonitor initial status:`, workersMonitor[0].getStatus());
   app.set('workersMonitor', workersMonitor);
