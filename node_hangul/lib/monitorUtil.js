@@ -54,8 +54,8 @@ const loopSetStatus = {
      
     workers : (app, workersMonitor, interval) => {
         const requestMonitorJob = {cmd: 'requestMonitor'};
-        const workers = app.get('searchWorkers');
-        workers.map(worker => {
+        const masterEngine = app.get('masterEngine');
+        masterEngine.searchManager.workers.map(worker => {
             setInterval( async () => {
                 global.logger.trace('worker.pid: ', worker.pid);
                 const result = await worker.promise.request(requestMonitorJob);
@@ -71,8 +71,8 @@ const loopSetStatus = {
     cacheWorkers : (app, cacheWorkersMonitor, interval) => {
         const requestMonitorJob = {cmd: 'requestMonitor'};
         setInterval( async () => {
-            const cacheWorkers = app.get('cacheWorkers');
-            const reqPromises = cacheWorkers.map(async worker => await worker.promise.request(requestMonitorJob));
+            const masterEngine = app.get('masterEngine');
+            const reqPromises = masterEngine.cacheManager.workers.map(async worker => await worker.promise.request(requestMonitorJob));
             const monitorValues = await Promise.all(reqPromises);
             monitorValues.map(value => {
                 const {pid, cacheCount, cacheHit, mem} = value;

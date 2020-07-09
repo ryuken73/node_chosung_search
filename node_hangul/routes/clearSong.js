@@ -4,9 +4,9 @@ const router = express.Router();
 const master = require('../lib/masterEngine');
  
 router.get('/', async (req, res, next) => {
-	const manager = req.app.get('searchManager');
+	const masterEngine = req.app.get('masterEngine');
 	const masterMonitor = req.app.get('masterMonitor');
-	const result = await master.clearIndex({manager, masterMonitor});
+	const result = await masterEngine.clearIndex({masterMonitor});
 	res.send(result);
 })
 

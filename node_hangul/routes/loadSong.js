@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const master = require('../lib/masterEngine');  
  
 router.get('/useWorkers', async (req, res, next) => {
 	const {from} = req.query;
-	const workers = req.app.get('searchWorkers');
-	const manager = req.app.get('searchManager');
+	const masterEngine = req.app.get('masterEngine');
 	const masterMonitor = req.app.get('masterMonitor');
 
 	if(from === 'db'){
@@ -17,7 +15,7 @@ router.get('/useWorkers', async (req, res, next) => {
 			limitSQLDataCount: global.LIMIT_SQL_DATA_COUNT
 		}
 		res.send({result:'success', msg:'request accepted'});
-		const totalLoaded = workers ? await master.loadFromDB(manager, masterMonitor, options) : {};	
+		const totalLoaded = masterEngine ? await masterEngine.loadFromDB(masterMonitor, options) : {};	
 		const result = totalLoaded ? {result:'success', count: totalLoaded} 
 								   : {result:'failure', count: 0};
 		global.logger.info(result); 
@@ -34,7 +32,7 @@ router.get('/useWorkers', async (req, res, next) => {
 	}
 	global.logger.info('request accepted');
 	res.send({result:'success', msg:'request accepted'});
-	const totalLoaded = workers ? await master.loadFromFile(manager, masterMonitor, options) : {};
+	const totalLoaded = workers ? await masterEngine.loadFromFile(masterMonitor, options) : {};
 	const result = totalLoaded ? {result:'success', count: totalLoaded} 
 							   : {result:'failure', count: 0};
 	global.logger.info('total loaded:',result.count);

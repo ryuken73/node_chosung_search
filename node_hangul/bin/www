@@ -16,7 +16,6 @@ const workerModule = path.join(__dirname, '../', 'lib/searchEngine.js');
 const cacheModule = path.join(__dirname, '../', 'lib/cacheEngine.js');
 const getMemInfo = require('../lib/getMemInfo');
 
-
 /**
  * Get port from environment and store in Express.
  */
@@ -82,20 +81,17 @@ async function main(){
   app.set('masterMonitor', masterMonitor);
   app.set('logMonitor', logMonitor);
 
-  const searchManager = master.createSearchWorkers(global.NUMBER_OF_WORKER, workerModule);
-  const searchWorkers = searchManager.workers;
-  const cacheManager = master.createCacheWorkers(global.NUMBER_OF_CACHE, cacheModule);
-  const cacheWorkers = cacheManager.workers
-
-  app.set('searchManager', searchManager);
-  app.set('searchWorkers', searchWorkers);
-  app.set('cacheManager', cacheManager);
-  app.set('cacheWorkers', cacheWorkers);
-  // app.set('workers', workers);
+  const masterEngine = master.initMaster({
+    maxWorkers : global.NUMBER_OF_WORKER,
+    searchModule : workerModule,
+    maxCache : global.NUMBER_OF_CACHE,
+    cacheModule : cacheModule
+  })
+  app.set('masterEngine', masterEngine);
 
   // make monitor instance for worker to get/set monitor status and broadcast status
-  const workersMonitor = searchWorkers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
-  const cacheWorkersMonitor = cacheWorkers.map(worker => monitorUtil.mkCacheWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
+  const workersMonitor = masterEngine.searchManager.workers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
+  const cacheWorkersMonitor = masterEngine.cacheManager.workers.map(worker => monitorUtil.mkCacheWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
   global.logger.debug(`workersMonitor initial status:`, workersMonitor[0].getStatus());
   app.set('workersMonitor', workersMonitor);
   app.set('cacheWorkersMonitor', cacheWorkersMonitor);

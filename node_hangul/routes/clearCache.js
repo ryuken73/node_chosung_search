@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const master = require('../lib/masterEngine');
  
 router.get('/', async (req, res, next) => {
-    const cacheWorkers = req.app.get('cacheWorkers');
-    const result = await master.clearCache(cacheWorkers);
+    const masterEngine = req.app.get('masterEngine');
+    const result = await masterEngine.clearCache();
     global.logger.info('clearCache : ', result);
 	res.send(result);
 })

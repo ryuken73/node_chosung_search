@@ -1,7 +1,6 @@
 var express = require('express');
 var router = express.Router();
 var extractJAMO = require('../util/extractJAMO');
-const master = require('../lib/masterEngine');
 const timer = require('../lib/timer.js');
 const orderSong = require('../lib/orderSong');
 
@@ -44,7 +43,6 @@ const mkStopWatch = (req, res, next) => {
 router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, next) => {
 	try {
 		global.logger.trace('%s',req.params.pattern);
-
 		// start stopwatch
 		const {inPattern, stopWatch} = req;
 		stopWatch.start();
@@ -55,8 +53,9 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 		const broadcastStatus = broadcaster(req.app.get('masterMonitor'), req.app.get('logMonitor'))
 		broadcastStatus({status: 'start'});
 
-		const cacheWorkers = req.app.get('cacheWorkers');
-		const {cacheHit, cacheResponse} = await lookupCache({cacheWorkers, patternJAMO: inPattern.patternJAMO});
+		const masterEngine = req.app.get('masterEngine');
+		const {cacheHit, cacheResponse} = await masterEngine.lookupCache({patternJAMO: inPattern.patternJAMO});
+
 		if(cacheHit) {
 			global.logger.info(`[${ip}][${userId}] cache hit [${inPattern.patternJAMO}] `);
 			const elapsed = stopWatch.end();
@@ -67,7 +66,7 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 		}
 
 		const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER};
-		const searchResults = await searchRequest({manager: req.app.get('searchManager'), searchParams});
+		const searchResults = await searchRequest({masterEngine: req.app.get('masterEngine'), searchParams});
 		const orderedResult = orderResult(searchResults, orderSong, inPattern.upperCase);
 
 		global.logger.trace(orderedResult);
@@ -80,11 +79,14 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 		const elapsed = stopWatch.end();
 		broadcastStatus({status: 'end', results: {userId, ip, elapsed, pattern: inPattern.upperCase, resultCount}});
 
-		cacheWorkers.length > 0 && updateCache(cacheWorkers, inPattern.patternJAMO, resultsSizeReduced);
+		masterEngine.cacheManager && masterEngine.addCache({
+			patternJAMO : inPattern.patternJAMO,
+			results : resultsSizeReduced
+		})
 		res.send({result: resultsSizeReduced.slice(0,maxReturnCount), count:resultsUnique.length});
 		
 	} catch (err) {
-		console.error(err);
+		global.logger.error(err);
 		res.send({result:null, count:null});
 	}
 }); 
@@ -115,30 +117,6 @@ const orderResult = (searchResults, orderSong, pattern) => {
 	return orderDefault(searchResults, pattern);
 }
 
-async function lookupCache({cacheWorkers, patternJAMO}){
-	const cacheSearchJob = {
-		cmd: 'get',
-		pattern: patternJAMO
-	}
-	const resultPromise = cacheWorkers.map( async worker => await worker.promise.request(cacheSearchJob));
-	const resultsFromCache = await Promise.all(resultPromise);
-	global.logger.debug(resultsFromCache)
-	const cacheHit = resultsFromCache.some(result => result.length !== 0);
-	const cacheResponse = resultsFromCache.find(result => result.length !==0);
-	return {cacheHit, cacheResponse};
-}
-
-async function updateCache(cacheWorkers, patternJAMO, results){
-	const cacheSetJob = {
-		cmd: 'put',
-		pattern: patternJAMO,
-		results
-	}
-	const cacheIndex = patternJAMO.length % cacheWorkers.length;
-	const resultPromise = await cacheWorkers[cacheIndex].promise.request(cacheSetJob);
-	global.logger.debug(resultPromise)
-	return resultPromise
-}
 
 async function deleteCache(cacheWorkers, patternJAMO){
 	global.logger.error(`cache has duplicate entry [${patternJAMO}]`);
@@ -182,10 +160,10 @@ function broadcastMaster(masterMonitorStore, type){
 
 const isPatternWhiteSpaceOnly = (pattern) => pattern.replace(/\s+/, '').length === 0;
 
-const searchRequest = async ({manager, searchParams}) => {
+const searchRequest = async ({masterEngine, searchParams}) => {
 	return new Promise(async (resolve, reject) => {
 		const params = {...searchParams};
-		const resolvedResults = await master.search({manager, params});
+		const resolvedResults = await masterEngine.search({params});
 		const resultsConcat = resolvedResults.flat();
 		global.logger.trace(resultsConcat);
 		resolve(resultsConcat);
