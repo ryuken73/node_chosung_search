@@ -27,16 +27,14 @@ global.NUMBER_OF_WORKER = config.NUMBER_OF_WORKER === undefined ? 5 : config.NUM
 global.NUMBER_OF_CACHE = config.NUMBER_OF_CACHE === undefined ? 2 : config.NUMBER_OF_CACHE ;
 global.RESULT_LIMIT_WORKER = config.RESULT_LIMIT_WORKER || 1000;
 global.PORT = config.PORT || 3000;
-global.INDEXING_BYTES = (config.INDEXING_BYTES === undefined || config.INDEXING_BYTES === 0 || config.INDEXING_BYTES === "0") 
-                        ? 0 
-                        : config.INDEXING_BYTES; 
-// global.LOG_LEVEL = config.LOG_LEVEL || 'info';
+const isValueMeaningful = value => (value !== undefined && value !== 0 && value !== "0");
+global.INDEXING_BYTES = isValueMeaningful(config.INDEXING_BYTES) ? config.INDEXING_BYTES : 0;
+global.LIMIT_SQL_DATA_COUNT = isValueMeaningful(config.LIMIT_SQL_DATA_COUNT) ? config.LIMIT_SQL_DATA_COUNT : 0;
 global.MONITOR_BROADCAST_INTERVAL = config.MONITOR_BROADCAST_INTERVAL || 500;
 global.EXPRESS_REQ_TIMEOUT = config.EXPRESS_REQ_TIMEOUT || 300000;
 global.NUMBER_OF_COLUMNS_FROM_FILE = config.NUMBER_OF_COLUMNS_FROM_FILE || 2;
 global.TOTAL_COUNT_SQL = config.TOTAL_COUNT_SQL || 'select count(*) as total from music.v_autocomplete ';
 global.INDEX_DATA_SQL = config.INDEX_DATA_SQL || 'select artist, song_name, key, open_dt, status from music.v_autocomplete ';
-global.LIMIT_SQL_DATA_COUNT = config.LIMIT_SQL_DATA_COUNT || Infinity;
 global.messageKey = 0;
 
 const app = express();

@@ -35,7 +35,7 @@ class DBReader extends Reader {
         this.getCountArgValue= options.getCountArgValue || [];
         this.indexDataSQL = options.indexDataSQL;
         this.limitSQLDataCount = options.limitSQLDataCount;
-        this.limitSQLClause = options.limitSQLDataCount === Infinity 
+        this.limitSQLClause = options.limitSQLDataCount === 0
                               ? '' 
                               : `fetch first ${options.limitSQLDataCount} rows only` ;
         this.indexDataArgValue = options.indexDataArgValue || [];
@@ -44,7 +44,7 @@ class DBReader extends Reader {
     get queryCountSQL() {return `${this.getCountSQL}`}
     get queryDataSQL() {return `${this.indexDataSQL} ${this.limitSQLClause}`}   
     async getTotal(){
-        if(this.limitSQLDataCount !== Infinity) {
+        if(this.limitSQLDataCount !== 0) {
             return this.limitSQLDataCount;
         }
         const result = await this.db.query(this.queryCountSQL, this.getCountArgValue);
