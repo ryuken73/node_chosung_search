@@ -15,6 +15,7 @@ const monitorUtil = require('../lib/monitorUtil');
 const workerModule = path.join(__dirname, '../', 'lib/searchEngine.js');
 const cacheModule = path.join(__dirname, '../', 'lib/cacheEngine.js');
 const getMemInfo = require('../lib/getMemInfo');
+const schedulerEngine = require('../lib/schedulerEngine');
 
 /**
  * Get port from environment and store in Express.
@@ -88,6 +89,11 @@ async function main(){
     cacheModule : cacheModule
   })
   app.set('masterEngine', masterEngine);
+
+  const scheduleEngine = require('../lib/schedulerEngine')(masterEngine);
+  // scheduleEngine.init(masterEngine);
+  scheduleEngine.register('* * * * * * ', 'incremental_v_song');
+  scheduleEngine.start('incremental_v_song'); 
 
   // make monitor instance for worker to get/set monitor status and broadcast status
   const workersMonitor = masterEngine.searchManager.workers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));

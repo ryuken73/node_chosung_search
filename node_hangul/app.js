@@ -8,7 +8,6 @@ const compression = require('compression');
 const cors = require('cors');
 const routes = require('./routes/index');
 const users = require('./routes/users');
-
 const ibmdb = require('./lib/ibm_db');
 
 const configAbsolutePath = path.resolve('./config.json');
@@ -58,18 +57,6 @@ const loggerOptions = {
 }
 
 global.logger = require('./lib/logger')(loggerOptions);
-// const env = app.get('env');
-// if(env === 'development'){	
-// 	console.log('development environment!!');	
-// 	var logTracer = require('tracer').console(
-// 			{
-// 				format: "{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})",	
-// 				dateformat: 'yyyy-mm-dd HH:MM:ss',
-// 				level: global.LOG_LEVEL
-// 			}
-// 		);
-// }
-////
 
 // set db config
 const musicdb = ibmdb.connectDB(MUSICDB_CONNECTION_STRING);
@@ -90,14 +77,12 @@ app.use('/search', require('./routes/search'));
 app.use('/searchSong', require('./routes/searchSong'));
 app.use('/clearSong', require('./routes/clearSong'));
 app.use('/clearCache', require('./routes/clearCache'));
-
-
+ 
 // app.use('/heapdump',function(req,res,next){
 //   var filename = 'd:/temp/' + Date.now() + '.heapsnapshot';
 //   heapdump.writeSnapshot(filename);
 //   res.send('Heapdump has been generated in '+filename);
 // });
-
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
