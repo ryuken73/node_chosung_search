@@ -179,8 +179,6 @@ const master = {
             pattern: patternJAMO
         }
         const resultsFromCache = await this.cacheManager.request(cacheSearchJob);
-        // const resultPromise = cacheWorkers.map( async worker => await worker.promise.request(cacheSearchJob));
-        // const resultsFromCache = await Promise.all(resultPromise);
         const cacheHit = resultsFromCache.some(result => result.length !== 0);
         const cacheResponse = resultsFromCache.find(result => result.length !==0);
         return {cacheHit, cacheResponse};
@@ -191,7 +189,6 @@ const master = {
             pattern: patternJAMO,
             results
         }
-        // const cacheIndex = patternJAMO.length % cacheWorkers.length;
         const resultPromise = await this.cacheManager.nextWorker.promise.request(cacheSetJob);
         global.logger.debug(resultPromise)
         return resultPromise
