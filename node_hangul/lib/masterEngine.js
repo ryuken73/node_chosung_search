@@ -33,16 +33,16 @@ const sendLine = async (searchWorker, wordArray) => {
 const master = {
     searchManager : null,
     cacheManager : null,
-    createSearchWorkers(maxWorkers, searchModile) {
+    createSearchWorkers({maxWorkers, searchModule}) {
         const options = {
-            jsFile: searchModile,
+            jsFile: searchModule,
             args: [],
             count: maxWorkers,
             customExitCallback: handleProcessExit  
         }
         this.searchManager = manager.create(options); 
     },
-    createCacheWorkers(maxCache, cacheModule){ 
+    createCacheWorkers({maxCache, cacheModule}){ 
         const options = {
             jsFile: cacheModule,
             args: [], 
@@ -203,15 +203,15 @@ const master = {
 
     },
     async delCacheSearchable([artistName, songName]){
-        
+
     }
 
 }
 
 const initMaster = (options) => {
     const {maxWorkers, searchModule, maxCache, cacheModule} = options;
-    master.createSearchWorkers(maxWorkers, searchModule);
-    master.createCacheWorkers(maxCache, cacheModule);
+    master.createSearchWorkers({maxWorkers, searchModule});
+    master.createCacheWorkers({maxCache, cacheModule});
     return master
 }
 
