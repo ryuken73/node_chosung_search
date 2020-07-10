@@ -22,6 +22,14 @@ const cache = {
         this.cache.delete(pattern);
         return true;
     },
+    deleteByKey : (key) => {
+        const filtered = [...this.cache].filter(([pattern, results]) => {
+            // to fast return, use results.some instead of results.every
+            const resultsHasKey = results.some(result => result.key === key);
+            return !resultsHasKey
+        })
+        this.cache = new Map(filtered);
+    },
     clear : () => {
         this.cache = new Map();
         this.cacheCount = 0;
@@ -30,7 +38,7 @@ const cache = {
 }
 
  process.on('message', ({requestId, request}) => {
-    const {cmd, pattern, results=[]} = request;
+    const {cmd, pattern, key, results=[]} = request;
     let result;
     switch(cmd){
         case 'get' :
@@ -41,6 +49,9 @@ const cache = {
             break;
         case 'delete' :
             result = cache.delete(pattern, results);
+            break;
+        case 'deleteByKey' :
+            result = cache.deleteByKey(key);
             break;
         case 'clear' :
             result = cache.clear();

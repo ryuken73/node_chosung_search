@@ -92,7 +92,7 @@ async function main(){
 
   const scheduleEngine = require('../lib/schedulerEngine')(masterEngine);
   // scheduleEngine.init(masterEngine);
-  scheduleEngine.register('* * * * * * ', 'incremental_v_song');
+  scheduleEngine.register('0 * * * * * ', 'incremental_v_song');
   scheduleEngine.start('incremental_v_song'); 
 
   // make monitor instance for worker to get/set monitor status and broadcast status

@@ -117,6 +117,12 @@ const master = {
             }
         })
     },
+    async addIndex({masterMonitor, wordArray}){
+
+    },
+    async delIndexByKey({masterMonitor, key}){
+
+    },
     async search({params}) {
         try {
             const {pattern, patternJAMO, RESULT_LIMIT_WORKER} = params;
@@ -192,7 +198,14 @@ const master = {
         const resultPromise = await this.cacheManager.nextWorker.promise.request(cacheSetJob);
         global.logger.debug(resultPromise)
         return resultPromise
+    },
+    async delCacheByKey({key}){
+
+    },
+    async delCacheSearchable([artistName, songName]){
+        
     }
+
 }
 
 const initMaster = (options) => {

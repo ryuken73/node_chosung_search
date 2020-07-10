@@ -89,6 +89,13 @@ const worker = {
         this.searchCount -= 1;
         return result;
     },
+    deleteByKey : (key) => {
+        const filtered = [...this.songArray].filter( songObject => {
+            // to fast return, use results.some instead of results.every
+            return songObject.key !== key;            
+        })
+        this.songArray = filtered;
+    },
     clear : () => {
         this.songArray = [];
         this.searchCount = 0;
@@ -112,6 +119,9 @@ process.on('message', ({requestId, request}) => {
         case 'search' :
             result = worker.search(data);
             success = true;
+            break;
+        case 'deleteByKey' :
+            result = worker.deleteByKey(key);
             break;
         case 'requestMonitor' :
             const {pid, songArray, searchCount} = this;
