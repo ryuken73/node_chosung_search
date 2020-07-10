@@ -21,7 +21,9 @@ const sendLine = async (searchWorker, wordArray) => {
     try {
         const job = {
             cmd : 'index', 
-            data : wordArray
+            payload : {
+                data : wordArray
+            }
         }        
         const result = await searchWorker.promise.request(job); 
         return result;
@@ -136,10 +138,12 @@ const master = {
             const limit = RESULT_LIMIT_WORKER;
             const job = {
                 cmd : 'search',
-                data : {
-                    pattern,
-                    patternJAMO,
-                    limit
+                payload : {
+                    data : {
+                        pattern,
+                        patternJAMO,
+                        limit
+                    }
                 }
             }
             // send search jot to each workers 
@@ -182,7 +186,9 @@ const master = {
     async lookupCache({patternJAMO}){
         const cacheSearchJob = {
             cmd: 'get',
-            pattern: patternJAMO
+            payload: {
+                pattern: patternJAMO
+            }
         }
         const resultsFromCache = await this.cacheManager.request(cacheSearchJob);
         const cacheHit = resultsFromCache.some(result => result.length !== 0);
@@ -192,8 +198,10 @@ const master = {
     async addCache({patternJAMO, results}){
         const cacheSetJob = {
             cmd: 'put',
-            pattern: patternJAMO,
-            results
+            payload: {
+                pattern: patternJAMO,
+                results
+            }
         }
         const resultPromise = await this.cacheManager.nextWorker.promise.request(cacheSetJob);
         global.logger.debug(resultPromise)

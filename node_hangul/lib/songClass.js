@@ -52,7 +52,7 @@ class Song {
 }
 
 module.exports = {
-    create([artistName='', songName='', key='', open_dt='20991231000000', status='N']){
+    create([artistName='', songName='', key='', open_dt='19991231000000', status='Y']){
         return new Song([artistName, songName, key, open_dt, status]);
     }
 }

@@ -104,7 +104,9 @@ const worker = {
 }
 
 process.on('message', ({requestId, request}) => {
-    const {cmd, data, pattern, results=[]} = request;
+    // const {cmd, data, pattern, results=[]} = request;
+    const {cmd, payload={}} = request;
+    const {data, key} = payload;
     let result;
     let success;
     switch(cmd){

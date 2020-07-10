@@ -38,7 +38,8 @@ const cache = {
 }
 
  process.on('message', ({requestId, request}) => {
-    const {cmd, pattern, key, results=[]} = request;
+    const {cmd, payload={}} = request;
+    const {pattern, results, key} = payload;
     let result;
     switch(cmd){
         case 'get' :

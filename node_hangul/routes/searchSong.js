@@ -122,7 +122,9 @@ async function deleteCache(cacheWorkers, patternJAMO){
 	global.logger.error(`cache has duplicate entry [${patternJAMO}]`);
 	const cacheDeleteJob = {
 		cmd: 'delete',
-		pattern: patternJAMO,
+		payload: {
+			pattern: patternJAMO,
+		}
 	}
 	const resultPromise = cacheWorkers.map( async worker => await worker.promise.request(cacheDeleteJob));
 	const resultsFromCache = await Promise.all(resultPromise);
