@@ -9,11 +9,11 @@ const SOCKET_EVENT_NAME = {
     CACHE : 'cacheMonitor',
     SEARCH : 'searchMonitor',
     PROGRESS : 'progress',
-    LOG : 'logMonitor',
-}
+    LOG : 'logMonitor', 
+} 
 const INDEXING_STATUS = {
     NOT_INDEXED : 'NOT_INDEXED',
-    INDEX_STARTED : 'INDEX_STARTED',
+    INDEX_STARTED : 'INDEX_STARTED', 
     INDEING : 'INDEXING',
     INDEX_DONE : 'INDEX_DONE'
 }
@@ -293,7 +293,7 @@ const master = {
                 })
             }
         }
-    },       
+    },        
     request({cmd, payload={}}){
         const {monitorStatus={}} = payload;
         let result;

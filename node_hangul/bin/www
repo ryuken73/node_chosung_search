@@ -10,12 +10,8 @@ const http = require('http');
 const path = require('path');
 const sockApp = require('../socket/main');
 const master = require('../lib/masterEngine');
-const monitor = require('../lib/monitor.js');
-const monitorUtil = require('../lib/monitorUtil');
 const workerModule = path.join(__dirname, '../', 'lib/searchEngine.js');
 const cacheModule = path.join(__dirname, '../', 'lib/cacheEngine.js');
-const getMemInfo = require('../lib/getMemInfo');
-const schedulerEngine = require('../lib/schedulerEngine');
 
 const MAX_LOG_ROWS_BROADCASTING = global.MAX_LOG_ROWS_BROADCASTING;
 
