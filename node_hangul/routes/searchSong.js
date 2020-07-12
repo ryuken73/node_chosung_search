@@ -50,7 +50,7 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 		const {userId='unknown', maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress || 'none';
 		global.logger.info(`[${ip}][${userId}] new request : pattern [${inPattern.upperCase}]`);
-		const broadcastStatus = broadcaster(req.app.get('masterMonitor'), req.app.get('logMonitor'))
+		const broadcastStatus = broadcaster(req.app.get('masterEngine'), req.app.get('logMonitor'))
 		broadcastStatus({status: 'start'});
 
 		const masterEngine = req.app.get('masterEngine');
@@ -91,22 +91,22 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 	}
 }); 
 
-const broadcaster = (masterMonitorStore, logMonitorStore) => {
+const broadcaster = (masterEngine, logMonitorStore) => {
 	return ({status, results}) => {
 		if(status === 'start'){
-			broadcastMaster(masterMonitorStore, 'start');
+			broadcastMaster(masterEngine, 'start');
 			return;
 		}
 		if(status === 'cacheHit'){
 			const {userId, ip, elapsed, pattern, resultCount, cacheHit} = results;
-			broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern, resultCount, cacheHit});
-			broadcastMaster(masterMonitorStore, 'end');
+			broadcastLog(elapsed, masterEngine, {userId, ip, pattern, resultCount, cacheHit});
+			broadcastMaster(masterEngine, 'end');
 			return;
 		}
 		if(status === 'end'){
 			const {userId, ip, elapsed, pattern, resultCount} = results;
-			broadcastLog(elapsed, logMonitorStore, {userId, ip, pattern, resultCount});
-			broadcastMaster(masterMonitorStore, 'end');
+			broadcastLog(elapsed, masterEngine, {userId, ip, pattern, resultCount});
+			broadcastMaster(masterEngine, 'end');
 			return;
 		}
 	}
@@ -133,9 +133,8 @@ async function deleteCache(cacheWorkers, patternJAMO){
 	return true;
 }
 
-function broadcastLog(elapsed, logMonitorStore, params){
+async function broadcastLog(elapsed, masterEngine, params){
 	const {userId, ip, pattern, resultCount, cacheHit} = params;
-	// const elapsed = stopWatch.end();
 	const logMonitor = {
 		eventTime: (new Date()).toLocaleString(),
 		userId: userId ? userId : 'None',
@@ -144,20 +143,16 @@ function broadcastLog(elapsed, logMonitorStore, params){
 		elapsed: elapsed,
 		resultCount,
 		cacheHit
-	}
-
-	const storedLog = logMonitorStore.getStatus()['log'];
-	const newLog = storedLog.length > MAX_LOG_ROWS_BROADCASTING ? storedLog.slice(0, storedLog.length - 1) : [...storedLog];
-	newLog.unshift(logMonitor);
-	logMonitorStore.setStatus('log', newLog);
-	logMonitorStore.broadcast({eventName:'logMonitor', message:newLog});
+	}	
+	masterEngine.setStatus.promise.log({log: logMonitor});
+	masterEngine.broadcast('logMonitor', await masterEngine.getStatus.promise.log());
 }
 
-function broadcastMaster(masterMonitorStore, type){
-	let searchMonitorAfterSearch = masterMonitorStore.getStatus()['searching'];
-	type === 'start' && masterMonitorStore.setStatus('searching', searchMonitorAfterSearch+1);
-	type === 'end' && masterMonitorStore.setStatus('searching', searchMonitorAfterSearch-1);
-	masterMonitorStore.broadcast({eventName:'masterMonitor'});	
+async function broadcastMaster(masterEngine, type){
+	const masterStatus = await masterEngine.getStatus.promise.master()
+	type === 'start' && await masterEngine.setStatus.promise.master({searching: masterStatus.searching + 1});
+	type === 'end' && await masterEngine.setStatus.promise.master({searching: masterStatus.searching - 1});
+	masterEngine.broadcast('masterMonitor', await masterEngine.getStatus.promise.master());
 }
 
 const isPatternWhiteSpaceOnly = (pattern) => pattern.replace(/\s+/, '').length === 0;

@@ -15,7 +15,7 @@ router.get('/useWorkers', async (req, res, next) => {
 			limitSQLDataCount: global.LIMIT_SQL_DATA_COUNT
 		}
 		res.send({result:'success', msg:'request accepted'});
-		const totalLoaded = masterEngine ? await masterEngine.loadFromDB(masterMonitor, options) : {};	
+		const totalLoaded = masterEngine ? await masterEngine.loadFromDB(options) : {};	
 		const result = totalLoaded ? {result:'success', count: totalLoaded} 
 								   : {result:'failure', count: 0};
 		global.logger.info(result); 
@@ -32,7 +32,7 @@ router.get('/useWorkers', async (req, res, next) => {
 	}
 	global.logger.info('request accepted');
 	res.send({result:'success', msg:'request accepted'});
-	const totalLoaded = masterEngine ? await masterEngine.loadFromFile(masterMonitor, options) : {};
+	const totalLoaded = masterEngine ? await masterEngine.loadFromFile(options) : {};
 	const result = totalLoaded ? {result:'success', count: totalLoaded} 
 							   : {result:'failure', count: 0};
 	global.logger.info('total loaded:',result.count);

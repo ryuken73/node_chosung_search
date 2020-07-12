@@ -4,6 +4,19 @@ const getMemInfo = require('./getMemInfo');
 
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
+const SOCKET_EVENT_NAME = {
+    MASTER : 'masterMonitor',
+    CACHE : 'cacheMonitor',
+    SEARCH : 'searchMonitor',
+    PROGRESS : 'progress',
+    LOG : 'logMonitor',
+}
+const INDEXING_STATUS = {
+    NOT_INDEXED : 'NOT_INDEXED',
+    INDEX_STARTED : 'INDEX_STARTED',
+    INDEING : 'INDEXING',
+    INDEX_DONE : 'INDEX_DONE'
+}
 
 const handleProcessExit = (oldWorker, newWorker) => console.log(oldWorker.pid, newWorker.pid);
 
@@ -73,10 +86,14 @@ const master = {
             if(this.bcastIO !== null) this.bcastIO.emit(eventName, message);
         }
     },
-    async loadFromFile(masterMonitor, options = {}){
+    initLog(options){
+        const {maxLogs = 100} = options;
+        this.log = [];
+        this.maxLogs = maxLogs;
+    },
+    async loadFromFile(options = {}){
         let totalLoaded = 0;
         return new Promise(async (resolve, reject) => {
-            // masterMonitor.setStatus('indexingStatus', 'INDEX_STARTED');
             this.indexingStatus = INDEXING_STATUS.INDEX_STARTED;
             const reader = await readerClass.createFileReader(options);
             reader.start();
@@ -90,8 +107,6 @@ const master = {
                 if(arrayOfLine.length > 0){
                     const result = await sendLine(this.searchManager.nextWorker, arrayOfLine);
                     if(result === true) {
-                        // const lastIndexedCount = masterMonitor.getStatus('lastIndexedCount') + 1;
-                        // masterMonitor.setStatus('lastIndexedCount', lastIndexedCount)
                         this.lastIndexedCount++;
                         totalLoaded++;
                     }
@@ -110,10 +125,9 @@ const master = {
             })
         })
     },
-    async loadFromDB(masterMonitor, options = {}) {
+    async loadFromDB(options = {}) {
         return new Promise(async (resolve, reject) => {      
             try {
-                // masterMonitor.setStatus('indexingStatus', 'INDEX_STARTED');
                 this.indexingStatus = INDEXING_STATUS.INDEX_STARTED;
                 const reader = await readerClass.createDBReader(options);
                 reader.start();
@@ -127,7 +141,6 @@ const master = {
                     // global.logger.info(wordArray);
                     const result = await sendLine(this.searchManager.nextWorker, wordArray);                
                     if(result === true){
-                        // masterMonitor.setStatus('lastIndexedCount', reader.selected)
                         this.lastIndexedCount = reader.selected;
                     }
                     if(parseInt(percentProcessed) === 100) {
@@ -138,7 +151,7 @@ const master = {
             } catch (err) {
                 reject(err);
                 global.logger.error(err);
-                masterMonitor.setStatus('indexingStatus', 'INDEX_DONE');
+                this.master.setStatus.promise.master({'indexingStatus': 'INDEX_DONE'});
     
             }
         })
@@ -191,10 +204,10 @@ const master = {
             await this.searchManager.request(job);
             clearTimeout(timer);
             global.logger.info(`clearing all worker's data done!`);
-            masterMonitor.setStatus('lastIndexedDate', '');
-            masterMonitor.setStatus('lastIndexedCount', 0);
-            masterMonitor.setStatus('lastIndexedPercent', '0%');
-            masterMonitor.setStatus('indexingStatus', 'NOT_INDEXED')
+            this.master.setStatus.promise.master({'lastIndexedDate': ''});
+            this.master.setStatus.promise.master({'lastIndexedCount': 0});
+            this.master.setStatus.promise.master({'lastIndexedPercent': '0%'});
+            this.master.setStatus.promise.master({'indexingStatus': 'NOT_INDEXED'})
             return
         } catch (err) { 
             global.logger.error(err); 
@@ -237,17 +250,50 @@ const master = {
     async delCacheSearchable([artistName, songName]){
 
     },
-    async requestMonitor(managerType){
-        const engine = {
-            'search' : this.searchManager,
-            'cache' : this.cacheManager,
-            'master' : this
+    getStatus : {
+        promise : {
+            async search(){
+                return await master.searchManager.request({cmd: 'requestMonitor'});
+            },
+            async cache(){
+                return await master.cacheManager.request({cmd: 'requestMonitor'});
+            },
+            async master(){
+                return await master.request({cmd: 'requestMonitor'});
+            },
+            async log(){
+                return await master.request({cmd: 'requestLog'});
+            }
         }
-        const requestMonitorJob = {
-            cmd: 'requestMonitor'
+    }, 
+    setStatus : {
+        promise : {
+            async search(monitorValues){
+                return await master.searchManager.request({
+                    cmd: 'setMonitorValue',
+                    payload: {monitorStatus: monitorValues}
+                });
+            },
+            async cache(monitorValues){
+                return await master.cacheManager.request({
+                    cmd: 'setMonitorValue',
+                    payload: {monitorStatus: monitorValues}
+                });
+            },
+            async master(monitorValues){
+                return await master.request({
+                    cmd: 'setMonitorValue',
+                    payload: {monitorStatus: monitorValues}
+                });
+            },
+            async log(logValue){
+                return await master.request({
+                    cmd: 'setLog',
+                    payload: {monitorStatus: logValue}
+                })
+            }
         }
-        return await engine[managerType].request(requestMonitorJob);
-    },
+    },       
     request({cmd, payload={}}){
         const {monitorStatus={}} = payload;
         let result;
@@ -263,70 +309,43 @@ const master = {
                     searching: this.searching
                 }
                 break;
+            case 'requestLog' : 
+                result = this.log;
+                break;
             case 'setMonitorValue' :
                 Object.keys(monitorStatus).forEach(key => {
                     this[key] = monitorStatus[key];
                 })
                 result = true;
                 break;
-        }
+            case 'setLog' :
+                const {log} = monitorStatus;
+                const storedLog = this.log;
+                const newLog = storedLog.length > this.maxLogs ?  storedLog.slice(0, storedLog.length - 1) : [...storedLog];
+                newLog.unshift(log);
+                this.log = newLog;
+            }
         return result;
     }
 
 }
 
-// class MasterStatus {
-//     constructor(){
-//         this._pid = process.pid;
-//         this._lastIndexedDate = '';
-//         this._lastIndexedCount = 0;
-//         this._lastIndexedPercent = '0%';
-//         this._indexingStatus = 'NOT_INDEXED'; // 'NOT_INDEXED', 'INDEXING', 'INDEX_DONE'
-//         this._pid = process.pid;
-//         this._mem = getMemInfo();
-//         this._searching = 0
-//     }
-//     get pid() {return this._pid}
-//     get mem() {return getMemInfo();}
-//     get lastIndexedDate() {return this._lastIndexedDate}
-//     get lastIndexedCount() {return this._lastIndexedCount}
-//     get lastIndexedPercent() {return this._lastIndexedPercent}
-//     get indexingStatus() {return this._indexingStatus}
-//     get searching() {return this._searching};
-//     set lastIndexedDate(date) {this._lastIndexedDate = date}
-//     set lastIndexedCount(count) {this._lastIndexedCount = count}
-//     set lastIndexedPercent(percent) {this._lastIndexedPercent = percent}
-//     set indexingStatus(status) {this._indexingStatus = status}
-//     set searching(count) {this._searching = count};
-// }
-
-const SOCKET_EVENT_NAME = {
-    MASTER : 'masterMonitor',
-    PROGRESS : 'progress'
-}
-
-const INDEXING_STATUS = {
-    NOT_INDEXED : 'NOT_INDEXED',
-    INDEX_STARTED : 'INDEX_STARTED',
-    INDEING : 'INDEXING',
-    INDEX_DONE : 'INDEX_DONE'
-}
-
 const initMaster = (options) => {
-    const {maxWorkers, searchModule, maxCache, cacheModule, notification} = options;
+    const {maxWorkers, searchModule, maxCache, cacheModule, notification, logOptions} = options;
     master.createSearchWorkers({maxWorkers, searchModule});
     master.createCacheWorkers({maxCache, cacheModule});
     const initialStatus = {
         pid : process.pid,
         lastIndexedDate : '',
         lastIndexedCount : 0,
-        lastIndexedPercent : '0%',
+        lastIndexedPercent : '0%',          
         indexingStatus : INDEXING_STATUS.NOT_INDEXED,
         mem : getMemInfo(),
         searching : 0
     }        
     master.initMasterStatus(initialStatus);
     master.initNotification(notification);
+    master.initLog(logOptions);
 
     return master
 }

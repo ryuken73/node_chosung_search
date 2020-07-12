@@ -17,6 +17,9 @@ const cacheModule = path.join(__dirname, '../', 'lib/cacheEngine.js');
 const getMemInfo = require('../lib/getMemInfo');
 const schedulerEngine = require('../lib/schedulerEngine');
 
+const MAX_LOG_ROWS_BROADCASTING = global.MAX_LOG_ROWS_BROADCASTING;
+
+
 /**
  * Get port from environment and store in Express.
  */
@@ -42,46 +45,6 @@ async function main(){
   app.set('io',io); 
   app.set('sockets', io.sockets);
   const socketServer = sockApp.createServer(io);
-  const defaultNotifcationOption = {
-    enabled: true,
-    bcastIO: io
-  }
-
-  // create log monitor (to broadcast serach and cache hit history using socket.io)
-  const logMonitorOptions = {
-    initialStatus: {
-      log: []
-    },
-    notification: {
-      ...defaultNotifcationOption, 
-      bcastDefaultEventName:'logMonitor'
-    }
-  }
-
-  const logMonitor = monitor.createMonitor(logMonitorOptions);
-  global.logger.debug(`logMonitor initial status:`, logMonitor.getStatus()['log']);
-
-  // const masterMonitorOptions = {
-  //   initialStatus: {
-  //     lastIndexedDate : '',
-  //     lastIndexedCount : 0,
-  //     lastIndexedPercent : '0%',
-  //     indexingStatus : 'NOT_INDEXED', // 'NOT_INDEXED', 'INDEXING', 'INDEX_DONE'
-  //     pid : process.pid,
-  //     mem : getMemInfo(),
-  //     searching : 0
-  //   },
-  //   notification: {
-  //     ...defaultNotifcationOption, 
-  //     bcastDefaultEventName:'masterMonitor'
-  //   } 
-  // }
-  // const masterMonitor = monitor.createMonitor(masterMonitorOptions);
-  // global.logger.debug(`masterMonitor initial status:`, masterMonitor.getStatus());
-
-  // app.set('masterMonitor', masterMonitor);
-  app.set('logMonitor', logMonitor);
-
   const masterEngine = master.initMaster({
     maxWorkers : global.NUMBER_OF_WORKER,
     searchModule : workerModule,
@@ -90,6 +53,9 @@ async function main(){
     notification: {
       enabled : true,
       bcastIO : io
+    },
+    logOptions: {
+      maxLogs : MAX_LOG_ROWS_BROADCASTING
     }
   })
   app.set('masterEngine', masterEngine);
@@ -102,18 +68,6 @@ async function main(){
   // make monitor instance for worker to get/set monitor status and broadcast status
   socketServer.registerMaster(masterEngine);
   socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
-
-  // const workersMonitor = masterEngine.searchManager.workers.map(worker => monitorUtil.mkWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
-  // const cacheWorkersMonitor = masterEngine.cacheManager.workers.map(worker => monitorUtil.mkCacheWorkerMonitor({pid:worker.pid, defaultNotifcationOption}));
-  // global.logger.debug(`workersMonitor initial status:`, workersMonitor[0].getStatus());
-  // app.set('workersMonitor', workersMonitor);
-  // app.set('cacheWorkersMonitor', cacheWorkersMonitor);
-
-  // socketServer.setMonitorStores({logMonitor, masterMonitor, workersMonitor, cacheWorkersMonitor});
-  // socketServer.startBroadcastLoop(global.MONITOR_BROADCAST_INTERVAL);
-  // monitorUtil.loopSetStatus.master(masterMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  // monitorUtil.loopSetStatus.workers(app, workersMonitor, global.MONITOR_BROADCAST_INTERVAL);
-  // monitorUtil.loopSetStatus.cacheWorkers(app, cacheWorkersMonitor, global.MONITOR_BROADCAST_INTERVAL);
 
   /**
    * Listen on provided port, on all network interfaces.
