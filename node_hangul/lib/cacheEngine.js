@@ -39,7 +39,7 @@ const cache = {
 
  process.on('message', ({requestId, request}) => {
     const {cmd, payload={}} = request;
-    const {pattern, results, key} = payload;
+    const {pattern, results, key, monitorStatus} = payload;
     let result;
     switch(cmd){
         case 'get' :
@@ -56,6 +56,11 @@ const cache = {
             break;
         case 'clear' :
             result = cache.clear();
+            break;
+        case 'setMonitorValue' :
+            Object.keys(monitorStatus).forEach(key => {
+                this[key] = monitorStatus[key];
+            })
             break;
         case 'requestMonitor' :
             const {pid, cacheCount, cacheHit} = this;

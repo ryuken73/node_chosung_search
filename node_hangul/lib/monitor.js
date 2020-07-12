@@ -13,7 +13,7 @@ class Monitor {
         } catch(err) {
             throw new Error(err);
         }
-    }
+    } 
     broadcast({eventName, message=this.getStatus()}){
         global.logger.debug(`broadcast ${eventName} ${message}`);
         try{

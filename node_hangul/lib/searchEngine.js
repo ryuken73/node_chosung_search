@@ -106,7 +106,7 @@ const worker = {
 process.on('message', ({requestId, request}) => {
     // const {cmd, data, pattern, results=[]} = request;
     const {cmd, payload={}} = request;
-    const {data, key} = payload;
+    const {data, key, monitorStatus} = payload;
     let result;
     let success;
     switch(cmd){
@@ -124,6 +124,11 @@ process.on('message', ({requestId, request}) => {
             break;
         case 'deleteByKey' :
             result = worker.deleteByKey(key);
+            break;
+        case 'setMonitorValue' :
+            Object.keys(monitorStatus).forEach(key => {
+                this[key] = monitorStatus[key];
+            })
             break;
         case 'requestMonitor' :
             const {pid, songArray, searchCount} = this;

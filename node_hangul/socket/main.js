@@ -39,22 +39,45 @@ class SocketServer {
         // const cacheWorkersMonitor = app.get('cacheWorkersMonitor');
         this.monitors = monitors
     }
+    registerMaster(masterEngine){
+        this.masterEngine = masterEngine;
+    }
     getCurrentMonitor(){
         const workersMonitor = this.monitors.workersMonitor;
         const cacheWorkersMonitor = this.monitors.cacheWorkersMonitor;
         return {workersMonitor, cacheWorkersMonitor};
     }
+    // startBroadcastLoop(interval = 5000){
+    //     global.logger.info('start broadcast loop!');
+    //     const {masterMonitor} = this.monitors;
+    //     return setInterval(() => {
+    //         const {workersMonitor, cacheWorkersMonitor} = this.getCurrentMonitor();
+    //         const allStatus = monitorUtil.getAllStatus(workersMonitor);
+    //         global.logger.trace('allStatus,', allStatus);
+    //         this.rootNameSpace.emit('masterMonitor', masterMonitor.getStatus());
+    //         // this.rootNameSpace.emit('workerMonitor', monitorUtil.getAllStatus(workersMonitor));
+    //         this.rootNameSpace.emit('workerMonitor', allStatus);
+    //         this.rootNameSpace.emit('cacheWorkerMonitor', monitorUtil.getAllStatus(cacheWorkersMonitor));
+    //     }, interval)
+    // } 
     startBroadcastLoop(interval = 5000){
         global.logger.info('start broadcast loop!');
-        const {masterMonitor} = this.monitors;
-        return setInterval(() => {
-            const {workersMonitor, cacheWorkersMonitor} = this.getCurrentMonitor();
-            const allStatus = monitorUtil.getAllStatus(workersMonitor);
-            global.logger.trace('allStatus,', allStatus);
-            this.rootNameSpace.emit('masterMonitor', masterMonitor.getStatus());
-            // this.rootNameSpace.emit('workerMonitor', monitorUtil.getAllStatus(workersMonitor));
-            this.rootNameSpace.emit('workerMonitor', allStatus);
-            this.rootNameSpace.emit('cacheWorkerMonitor', monitorUtil.getAllStatus(cacheWorkersMonitor));
+        const {masterEngine} = this;
+        return setInterval(async () => {
+            const masterStatus = await masterEngine.requestMonitor('master');
+            const searchWorkersStatus = await masterEngine.requestMonitor('search');
+            const cacheWorkersStatus = await masterEngine.requestMonitor('cache');
+            this.rootNameSpace.emit('masterMonitor', masterStatus);
+            this.rootNameSpace.emit('workerMonitor', searchWorkersStatus);
+            this.rootNameSpace.emit('cacheWorkerMonitor', cacheWorkersStatus);
+            
+            // const {workersMonitor, cacheWorkersMonitor} = this.getCurrentMonitor();
+            // const allStatus = monitorUtil.getAllStatus(workersMonitor);
+            // global.logger.trace('allStatus,', allStatus);
+            // this.rootNameSpace.emit('masterMonitor', masterMonitor.getStatus());
+            // // this.rootNameSpace.emit('workerMonitor', monitorUtil.getAllStatus(workersMonitor));
+            // this.rootNameSpace.emit('workerMonitor', allStatus);
+            // this.rootNameSpace.emit('cacheWorkerMonitor', monitorUtil.getAllStatus(cacheWorkersMonitor));
         }, interval)
     }
     getInfo(socket){
