@@ -41,6 +41,7 @@ async function main(){
   app.set('io',io); 
   app.set('sockets', io.sockets);
   const socketServer = sockApp.createServer(io);
+  
   const masterEngine = master.initMaster({
     maxWorkers : global.NUMBER_OF_WORKER,
     searchModule : workerModule,

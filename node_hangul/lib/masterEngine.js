@@ -9,7 +9,7 @@ const SOCKET_EVENT_NAME = {
     CACHE : 'cacheMonitor',
     SEARCH : 'searchMonitor',
     PROGRESS : 'progress',
-    LOG : 'logMonitor', 
+    LOG : 'logMonitor'
 } 
 const INDEXING_STATUS = {
     NOT_INDEXED : 'NOT_INDEXED',
@@ -156,11 +156,23 @@ const master = {
             }
         })
     },
-    async addIndex({masterMonitor, wordArray}){
-
+    async addIndex({wordArray}){
+        const addIndexJob = {
+            cmd : 'index',
+            data : wordArray
+        }
+        const resultPromise = await this.searchManager.nextWorker.promise.request(addIndexJob);
+        global.logger.debug(resultPromise)
+        return resultPromise;
     },
-    async delIndexByKey({masterMonitor, key}){
-
+    async delIndexByKey({key}){
+        const deleteIndexJob = {
+            cmd : 'deleteByKey',
+            key
+        }
+        const resultPromise = await this.searchManager.request(deleteIndexJob);
+        global.logger.debug(resultPromise)
+        return resultPromise;
     },
     async search({params}) {
         try {
@@ -191,7 +203,7 @@ const master = {
             global.logger.error(err);
         }
     },
-    async clearIndex({masterMonitor}) {
+    async clearIndex() {
         try {
             global.logger.info(`clear search array start!`);
             const timer = setTimeout(() => {
@@ -245,7 +257,15 @@ const master = {
         return resultPromise
     },
     async delCacheByKey({key}){
-
+        const cacheDelJob = {
+            cmd: 'deleteByKey',
+            payload: {
+                key
+            }
+        }
+        const resultPromise = await this.cacheManager.request(cacheDelJob);   
+        global.logger.debug(resultPromise);
+        return resultPromise;    
     },
     async delCacheSearchable([artistName, songName]){
 
@@ -293,7 +313,7 @@ const master = {
                 })
             }
         }
-    },        
+    },       
     request({cmd, payload={}}){
         const {monitorStatus={}} = payload;
         let result;
