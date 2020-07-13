@@ -28,10 +28,12 @@ const cache = {
     deleteByKey : (key) => {
         const filtered = [...this.cache].filter(([pattern, results]) => {
             // to fast return, use results.some instead of results.every
+            // console.log(pattern, results, process.pid);
             const resultsHasKey = results.some(result => result.key === key);
             return !resultsHasKey
         })
         this.cache = new Map(filtered);
+        return true;
     },
     deleteSearchable : (SongRecord) => {
         const songObj = song.create(SongRecord);
@@ -66,7 +68,7 @@ const cache = {
             result = cache.delete(pattern, results);
             break;
         case 'deleteByKey' :
-            result = cache.deleteByKey(key);
+            result = cache.deleteByKey(key);            
             break;
         case 'deleteSearchable' :
             result = cache.deleteSearchable(singleSongRecord);
@@ -80,7 +82,8 @@ const cache = {
             })
             break;
         case 'requestMonitor' :
-            const {pid, cacheCount, cacheHit} = this;
+            const {pid, cacheHit} = this;
+            const cacheCount = this.cache.size;
             result = {
                 pid,
                 cacheCount,
