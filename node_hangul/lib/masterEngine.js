@@ -174,14 +174,15 @@ const master = {
         global.logger.debug(resultPromise)
         return resultPromise;
     },
-    async search({params}) {
+    async search(params) {
         try {
-            const {pattern, patternJAMO, RESULT_LIMIT_WORKER} = params;
-    
+            // const {pattern, patternJAMO, RESULT_LIMIT_WORKER} = params;
+            const {inPattern, RESULT_LIMIT_WORKER} = params;
+            const pattern = inPattern.pattern;
+   
             const timer = setTimeout(() => {
                 global.logger.error(`search song timed out!`);
             }, SEARCH_TIMEOUT);
-    
             
             // result limit per worker
             const limit = RESULT_LIMIT_WORKER;
@@ -190,7 +191,6 @@ const master = {
                 payload : {
                     data : {
                         pattern,
-                        patternJAMO,
                         limit
                     }
                 }

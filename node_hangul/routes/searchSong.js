@@ -1,28 +1,15 @@
 var express = require('express');
 var router = express.Router();
-var extractJAMO = require('../util/extractJAMO');
 const timer = require('../lib/timer.js');
 const orderSong = require('../lib/orderSong');
+const {createPattern} = require('../lib/patternClass');
 
 const RESULT_LIMIT_WORKER = global.RESULT_LIMIT_WORKER;
 const MAX_LOG_ROWS_BROADCASTING = global.MAX_LOG_ROWS_BROADCASTING;
 
-class InPattern {
-	constructor(pattern){
-		this._pattern = pattern;
-		this._patternUpperCase = pattern.toUpperCase();
-		this._patternJAMO = extractJAMO(pattern).replace(/\s+/g, ' ');
-		return this;
-	}
-	
-	get pattern() { return this._pattern }
-	get upperCase() { return this._patternUpperCase}
-	get patternJAMO() { return this._patternJAMO}
-}
-
 const mkInPattern = (req, res, next) => {
 	const {pattern} = req.params;
-	const inPattern = new InPattern(pattern);
+	const inPattern = createPattern(pattern);
 	if(isPatternWhiteSpaceOnly(inPattern.upperCase)) {  
 		res.send({result:null, count:null});
 		return;
@@ -65,7 +52,8 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 			return;
 		}
 
-		const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER};
+		// const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER};
+		const searchParams = {inPattern, RESULT_LIMIT_WORKER};
 		const searchResults = await searchRequest({masterEngine: req.app.get('masterEngine'), searchParams});
 		const orderedResult = orderResult(searchResults, orderSong, inPattern.upperCase);
 
@@ -159,8 +147,9 @@ const isPatternWhiteSpaceOnly = (pattern) => pattern.replace(/\s+/, '').length =
 
 const searchRequest = async ({masterEngine, searchParams}) => {
 	return new Promise(async (resolve, reject) => {
-		const params = {...searchParams};
-		const resolvedResults = await masterEngine.search({params});
+		// const params = {...searchParams};
+		// console.log(params)
+		const resolvedResults = await masterEngine.search(searchParams);
 		const resultsConcat = resolvedResults.flat();
 		global.logger.trace(resultsConcat);
 		resolve(resultsConcat);

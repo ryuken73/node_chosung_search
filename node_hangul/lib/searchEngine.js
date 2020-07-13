@@ -1,6 +1,8 @@
 const getMemInfo = require('./getMemInfo');
 const orderSong = require('./orderSong');
-const song = require('./songClass');    
+const song = require('./songClass');  
+const {createPattern} = require('./patternClass');
+
 
 const replaceRegMetaCharacter = (word, replacer) => {
     const re = /([?\\\*\+\.\{\}\[\]\(\)])/g
@@ -73,14 +75,15 @@ const worker = {
     search : (data) => {
         this.searchCount += 1;
         // default max result 100,000,000 
-        const {pattern, patternJAMO, limit=100000000} = data;
-        const upperCased = patternJAMO.toUpperCase().trimEnd();
-        const exprString = mkRegExpr(upperCased, spacing=false);
+        // const {pattern, patternJAMO, limit=100000000} = data;
+        const {pattern, limit=100000000} = data;
+        const inPattern = createPattern(pattern);
+        const exprString = inPattern.getRegExpString(spacing=false);
         const searchResults = searchFromLocal(this.songArray, exprString)
                               .filter(filterStatusIsY)
                               .filter(filterOpenTimeIsLessThanNow);
         const {orderDefault} = orderSong;
-        const orderedResults = orderDefault(searchResults, pattern);     
+        const orderedResults = orderDefault(searchResults, inPattern.pattern);     
         limit && orderedResults.splice(limit);
         const result = orderedResults.map(songObj => {
             const {artistName, songName} = songObj;
