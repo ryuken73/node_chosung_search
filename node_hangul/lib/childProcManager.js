@@ -64,13 +64,14 @@ class ChildProcessManager {
         return this._workers[nextIndex]
     }
 
-    async request(request, worker){
+    request(request, worker){
         if(worker && worker.promise){
             return worker.promise.request(request);
         }
         const requests = this.workers.map(worker => worker.promise.request(request));
-        const results = await Promise.all(requests);
-        return results.every(result => result === true);
+        return Promise.all(requests);
+        // const results = await Promise.all(requests);
+        // return results.every(result => result === true);
     }
 
     _initWorker(worker){
