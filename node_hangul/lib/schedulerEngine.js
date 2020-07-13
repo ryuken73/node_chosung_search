@@ -21,7 +21,7 @@ module.exports = (masterEngine, db) => {
 
     const incrIndexer = require('./incremantalIndexer')(masterEngine, db);
     const schedulableTasks = {
-        'incremental_v_song' : async () => {
+        [global.SCHEDULE_NAME.INCREMENTAL] : async () => {
             const {handleUpdate, handleInsert, handleDelete, deleteDBRecord} = incrIndexer;
             global.logger.info('schedule tiggerred');
             const sqlGetChanged = 'select * from music.ac_search_log order by event_time asc';

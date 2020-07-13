@@ -8,6 +8,8 @@ router.get('/useWorkers', async (req, res, next) => {
 
 	if(from === 'db'){
 		const musicdb = req.app.get('musicdb');  
+		const scheduleEngine = req.app.get('scheduleEngine');
+		scheduleEngine.stop(global.SCHEDULE_NAME.INCREMENTAL);
 		const options = {
 			db: musicdb, 
 			getCountSQL: global.TOTAL_COUNT_SQL, 
@@ -18,6 +20,7 @@ router.get('/useWorkers', async (req, res, next) => {
 		const totalLoaded = masterEngine ? await masterEngine.loadFromDB(options) : {};	
 		const result = totalLoaded ? {result:'success', count: totalLoaded} 
 								   : {result:'failure', count: 0};
+		scheduleEngine.start(global.SCHEDULE_NAME.INCREMENTAL);
 		global.logger.info(result); 
 		return; 
 	}
