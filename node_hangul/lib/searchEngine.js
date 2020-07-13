@@ -76,6 +76,7 @@ const worker = {
             return songObject.key !== key;            
         })
         this.songArray = filtered;
+        return true;
     },
     clear : () => {
         this.songArray = [];
@@ -103,13 +104,15 @@ process.on('message', ({requestId, request}) => {
             result = worker.search(data);
             success = true;
             break;
-        case 'deleteByKey' :
+        case 'deleteByKey' :   
             result = worker.deleteByKey(key);
+            success = true;
             break;
         case 'setMonitorValue' :
             Object.keys(monitorStatus).forEach(key => {
                 this[key] = monitorStatus[key];
             })
+            success = true;
             break;
         case 'requestMonitor' :
             const {pid, songArray, searchCount} = this;
