@@ -66,7 +66,9 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 		const elapsed = stopWatch.end();
 		broadcastStatus({status: 'end', results: {userId, ip, elapsed, pattern: inPattern.upperCase, resultCount}});
 
-		masterEngine.cacheManager && masterEngine.addCache({
+		masterEngine.cacheManager && 
+		resultsSizeReduced.length > 0 && 
+		masterEngine.addCache({
 			patternJAMO : inPattern.patternJAMO,
 			results : resultsSizeReduced
 		})
