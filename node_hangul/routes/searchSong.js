@@ -52,7 +52,6 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 			return;
 		}
 
-		// const searchParams = {pattern: inPattern.upperCase, patternJAMO: inPattern.patternJAMO, RESULT_LIMIT_WORKER};
 		const searchParams = {inPattern, RESULT_LIMIT_WORKER};
 		const searchResults = await searchRequest({masterEngine: req.app.get('masterEngine'), searchParams});
 		const orderedResult = orderResult(searchResults, orderSong, inPattern.upperCase);

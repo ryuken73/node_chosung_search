@@ -4,25 +4,25 @@ const song = require('./songClass');
 const {createPattern} = require('./patternClass');
 
 
-const replaceRegMetaCharacter = (word, replacer) => {
-    const re = /([?\\\*\+\.\{\}\[\]\(\)])/g
-    return word.replace(re, replacer + '\$1');
-}
+// const replaceRegMetaCharacter = (word, replacer) => {
+//     const re = /([?\\\*\+\.\{\}\[\]\(\)])/g
+//     return word.replace(re, replacer + '\$1');
+// }
 
-const mkRegExpr = (str, spacing) => {
-    try {
-        if(typeof(str) === 'string') {
-            const wordsSplited = str.trimStart().trimEnd().split(' ');
-            const whitespaceRemoved = wordsSplited.filter(word => word !== '');
-            const escapeMetaCharacters = whitespaceRemoved.map(word => replaceRegMetaCharacter(word, '\\'));
-            const spcaceExpr = spacing ? '.+' : '.*?';
-            return new RegExp(escapeMetaCharacters.join(spcaceExpr));
-        }
-        return null;
-    } catch (err) {
-        return null;
-    }
-}
+// const mkRegExpr = (str, spacing) => {
+//     try {
+//         if(typeof(str) === 'string') {
+//             const wordsSplited = str.trimStart().trimEnd().split(' ');
+//             const whitespaceRemoved = wordsSplited.filter(word => word !== '');
+//             const escapeMetaCharacters = whitespaceRemoved.map(word => replaceRegMetaCharacter(word, '\\'));
+//             const spcaceExpr = spacing ? '.+' : '.*?';
+//             return new RegExp(escapeMetaCharacters.join(spcaceExpr));
+//         }
+//         return null;
+//     } catch (err) {
+//         return null;
+//     }
+// }
 
 const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
     return songArray.filter(song => {
@@ -75,7 +75,6 @@ const worker = {
     search : (data) => {
         this.searchCount += 1;
         // default max result 100,000,000 
-        // const {pattern, patternJAMO, limit=100000000} = data;
         const {pattern, limit=100000000} = data;
         const inPattern = createPattern(pattern);
         const exprString = inPattern.getRegExpString(spacing=false);

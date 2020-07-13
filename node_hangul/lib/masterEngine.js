@@ -176,7 +176,6 @@ const master = {
     },
     async search(params) {
         try {
-            // const {pattern, patternJAMO, RESULT_LIMIT_WORKER} = params;
             const {inPattern, RESULT_LIMIT_WORKER} = params;
             const pattern = inPattern.pattern;
    
