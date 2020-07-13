@@ -40,13 +40,13 @@ class IBMDB {
         return new Promise( async (resolve,reject) => {
             try {
                 const conn = await this._getConnection();
-                this.logger.info(`query excution start! ${sql} : ${params}`)
+                // this.logger.trace(`query excution start! ${sql} : ${params}`)
                 conn.query(sql, params, (err, results, sqlca) => {
                     if(err){
                         reject(err);
                     } else {
-                        this.logger.info(`query excution ok! ${sql} : ${params}`)
-                        this.logger.info(sqlca)
+                        // this.logger.trace(`query excution ok! ${sql} : ${params}`)
+                        // this.logger.trace(sqlca)
                         //this.logger.debug(results);
                         resolve(results);
                         conn.close();
@@ -54,7 +54,7 @@ class IBMDB {
                 })
             } catch (err) {                
                 reject(err);
-                conn.close();
+                conn.close(); 
             }
         })
     }
