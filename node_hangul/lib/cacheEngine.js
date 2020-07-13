@@ -28,7 +28,6 @@ const cache = {
     deleteByKey : (key) => {
         const filtered = [...this.cache].filter(([pattern, results]) => {
             // to fast return, use results.some instead of results.every
-            // console.log(pattern, results);
             const resultsHasKey = results.some(result => result.key === key);
             return !resultsHasKey
         })
@@ -37,10 +36,7 @@ const cache = {
     },
     deleteByValue : (artistName, songName) => {
         const filtered = [...this.cache].filter(([pattern, results]) => {
-            console.log(pattern, results);
             const resultsHasValue = results.some(result => {
-                console.log(`@@@@@${result.artistName} ${artistName}`)
-                console.log(`@@@@@${result.songName} ${songName}`)
                 return result.artistName === artistName && result.songName === songName;
             })
             return !resultsHasValue
