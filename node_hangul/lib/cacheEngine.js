@@ -1,4 +1,7 @@
 const getMemInfo = require('./getMemInfo');
+const {mkRegExpr} = require('../lib/patternClass');
+const song = require('./songClass');  
+
 
 const cache = {
     init : () => {
@@ -30,6 +33,17 @@ const cache = {
         })
         this.cache = new Map(filtered);
     },
+    deleteSearchable : (SongRecord) => {
+        const songObj = song.create(SongRecord);
+        const patternJAMOs = [...this.cache.keys()];
+        const patternsToDelete = patternJAMOs.filter(patternJAMO => {
+            const exprString = mkRegExpr(patternJAMO)(spacing = false);
+            return songObj.match(exprString)
+        })
+        console.log(`cache patterns to delete : `, patternsToDelete);
+        patternsToDelete.forEach(patternJAMO => this.cache.delete(patternJAMO));
+        return true;
+    },
     clear : () => {
         this.cache = new Map();
         this.cacheCount = 0;
@@ -53,6 +67,9 @@ const cache = {
             break;
         case 'deleteByKey' :
             result = cache.deleteByKey(key);
+            break;
+        case 'deleteSearchable' :
+            result = cache.deleteSearchable(singleSongRecord);
             break;
         case 'clear' :
             result = cache.clear();

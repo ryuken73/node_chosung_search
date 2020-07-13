@@ -42,5 +42,6 @@ const createPattern = pattern => {
 }
 
 module.exports = {
-    createPattern
+    createPattern,
+    mkRegExpr
 }

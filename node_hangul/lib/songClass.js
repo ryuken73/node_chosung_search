@@ -22,6 +22,9 @@ class Song {
         const artistNsongNartistNoBlank = `${this._songName.replace(/\s+/g, '')}${this._artistName.replace(/\s+/g, '')}${this._songName.replace(/\s+/g, '')}`;
         return `${artistNsongNartist} ${artistNsongNartistNoBlank}`
     }
+    match(regExpr){
+        return this.jamoCombinedName.toUpperCase().search(regExpr) !== -1
+    }
     get artistName(){
         return this._artistName;
     }

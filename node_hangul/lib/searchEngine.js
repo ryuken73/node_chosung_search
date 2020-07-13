@@ -3,30 +3,9 @@ const orderSong = require('./orderSong');
 const song = require('./songClass');  
 const {createPattern} = require('./patternClass');
 
-
-// const replaceRegMetaCharacter = (word, replacer) => {
-//     const re = /([?\\\*\+\.\{\}\[\]\(\)])/g
-//     return word.replace(re, replacer + '\$1');
-// }
-
-// const mkRegExpr = (str, spacing) => {
-//     try {
-//         if(typeof(str) === 'string') {
-//             const wordsSplited = str.trimStart().trimEnd().split(' ');
-//             const whitespaceRemoved = wordsSplited.filter(word => word !== '');
-//             const escapeMetaCharacters = whitespaceRemoved.map(word => replaceRegMetaCharacter(word, '\\'));
-//             const spcaceExpr = spacing ? '.+' : '.*?';
-//             return new RegExp(escapeMetaCharacters.join(spcaceExpr));
-//         }
-//         return null;
-//     } catch (err) {
-//         return null;
-//     }
-// }
-
 const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
     return songArray.filter(song => {
-        return song.jamoCombinedName.toUpperCase().search(keywordExprCanBeNospacing) != -1
+        return song.match(keywordExprCanBeNospacing)
     })
 }
 
