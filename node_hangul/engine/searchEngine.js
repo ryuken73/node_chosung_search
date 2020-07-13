@@ -1,7 +1,7 @@
-const getMemInfo = require('./getMemInfo');
-const orderSong = require('./orderSong');
-const song = require('./songClass');  
-const {createPattern} = require('./patternClass');
+const getMemInfo = require('../lib/getMemInfo');
+const orderSong = require('../lib/orderSong');
+const song = require('../lib/songClass');  
+const {createPattern} = require('../lib/patternClass');
 
 const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
     return songArray.filter(song => {

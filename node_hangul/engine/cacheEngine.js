@@ -1,6 +1,6 @@
-const getMemInfo = require('./getMemInfo');
+const getMemInfo = require('../lib/getMemInfo');
 const {mkRegExpr} = require('../lib/patternClass');
-const song = require('./songClass');  
+const song = require('../lib/songClass');  
 
 
 const cache = {

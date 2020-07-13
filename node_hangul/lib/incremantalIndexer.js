@@ -1,4 +1,4 @@
-const masterEngine = require("./masterEngine");
+// const masterEngine = require("./masterEngine");
 
 module. exports = (masterEngine, db) => {
     const deleteIndex = async KEY => {

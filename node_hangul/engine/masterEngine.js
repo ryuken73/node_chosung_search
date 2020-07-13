@@ -1,6 +1,6 @@
-const manager = require('./childProcManager');
-const readerClass = require('./readerClass');
-const getMemInfo = require('./getMemInfo');
+const manager = require('../lib/childProcManager');
+const readerClass = require('../lib/readerClass');
+const getMemInfo = require('../lib/getMemInfo');
 
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;

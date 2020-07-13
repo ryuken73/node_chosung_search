@@ -19,7 +19,7 @@ module.exports = (masterEngine, db) => {
         return true; 
     }
 
-    const incrIndexer = require('./incremantalIndexer')(masterEngine, db);
+    const incrIndexer = require('../lib/incremantalIndexer')(masterEngine, db);
     const schedulableTasks = {
         [global.SCHEDULE_NAME.INCREMENTAL] : async () => {
             const {handleUpdate, handleInsert, handleDelete, deleteDBRecord} = incrIndexer;
