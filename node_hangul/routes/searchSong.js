@@ -56,7 +56,7 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 		const searchResults = await searchRequest({masterEngine: req.app.get('masterEngine'), searchParams});
 		const orderedResult = orderResult(searchResults, orderSong, inPattern.upperCase);
 
-		global.logger.trace(orderedResult);
+		global.logger.debug(orderedResult);
 		const resultsUnique = removeDuplicate(orderedResult);
 		const resultsSizeReduced = getOnlyKeys(resultsUnique, ['artistName', 'songName']);
 		const resultCount = resultsSizeReduced.length;
