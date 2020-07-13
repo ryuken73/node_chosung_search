@@ -28,9 +28,22 @@ const cache = {
     deleteByKey : (key) => {
         const filtered = [...this.cache].filter(([pattern, results]) => {
             // to fast return, use results.some instead of results.every
-            // console.log(pattern, results, process.pid);
+            // console.log(pattern, results);
             const resultsHasKey = results.some(result => result.key === key);
             return !resultsHasKey
+        })
+        this.cache = new Map(filtered);
+        return true;
+    },
+    deleteByValue : (artistName, songName) => {
+        const filtered = [...this.cache].filter(([pattern, results]) => {
+            console.log(pattern, results);
+            const resultsHasValue = results.some(result => {
+                console.log(`@@@@@${result.artistName} ${artistName}`)
+                console.log(`@@@@@${result.songName} ${songName}`)
+                return result.artistName === artistName && result.songName === songName;
+            })
+            return !resultsHasValue
         })
         this.cache = new Map(filtered);
         return true;
@@ -55,7 +68,7 @@ const cache = {
 
  process.on('message', ({requestId, request}) => {
     const {cmd, payload={}} = request;
-    const {pattern, results, key, monitorStatus} = payload;
+    const {pattern, results, key, monitorStatus, artistName,songName} = payload;
     let result;
     switch(cmd){
         case 'get' :
@@ -69,6 +82,9 @@ const cache = {
             break;
         case 'deleteByKey' :
             result = cache.deleteByKey(key);            
+            break;
+        case 'deleteByValue' :
+            result = cache.deleteByValue(artistName, songName);
             break;
         case 'deleteSearchable' :
             result = cache.deleteSearchable(singleSongRecord);
