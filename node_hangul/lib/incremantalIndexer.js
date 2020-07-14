@@ -53,7 +53,7 @@ module. exports = (masterEngine, db) => {
             }
         }
         const result = await masterEngine.searchManager.nextWorker.promise.request(addIndexJob);
-        global.logger.info(`addIndex : result[${result}] artist[${ARTIST}] song[${SONG_NAME}] status[${STATUS}] key[${KEY}]`);
+        global.logger.trace(`addIndex : result[${result}] artist[${ARTIST}] song[${SONG_NAME}] status[${STATUS}] key[${KEY}]`);
         return result;
     }
 
@@ -63,7 +63,7 @@ module. exports = (masterEngine, db) => {
         const sqlDeleteArgs = [EVENT_TIME, KEY];
         //const result = await db.execute(sqlDeleteRecord, sqlDeleteArgs);
         const result = await Promise.resolve(true)
-        global.logger.info(`deleteDBRecord : result[${result}] EVENT_TIME[${EVENT_TIME}] KEY[${KEY}]`);
+        global.logger.trace(`deleteDBRecord : result[${result}] EVENT_TIME[${EVENT_TIME}] KEY[${KEY}]`);
     }
 
     const handleUpdate = async record => {

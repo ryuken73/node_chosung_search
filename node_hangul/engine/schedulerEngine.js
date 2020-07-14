@@ -23,7 +23,7 @@ module.exports = (masterEngine, db) => {
     const schedulableTasks = {
         [global.SCHEDULE_NAME.INCREMENTAL] : async () => {
             const {handleUpdate, handleInsert, handleDelete, deleteDBRecord} = incrIndexer;
-            global.logger.info('schedule tiggerred');
+            global.logger.info('scheduler tiggerred');
             const sqlGetChanged = 'select * from music.ac_search_log order by event_time asc';
             const changedRecords = await db.query(sqlGetChanged, []);
             changedRecords.forEach(async record => {
@@ -39,6 +39,7 @@ module.exports = (masterEngine, db) => {
     const start = scheduleName => {
         if(registeredTasks.has(scheduleName)){
             registeredTasks.get(scheduleName).start();
+            global.logger.info('scheduler started!');
             return true;
         } else {
             global.logger.error(`No such task. register first! : ${scheduleName}`);
@@ -49,6 +50,7 @@ module.exports = (masterEngine, db) => {
     const stop = scheduleName => {
         if(registeredTasks.has(scheduleName)){
             registeredTasks.get(scheduleName).stop();
+            global.logger.info('scheduler stopped!');
             return true;
         } else {
             global.logger.error(`No such task. register first! : ${scheduleName}`);
