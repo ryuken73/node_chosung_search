@@ -17,10 +17,32 @@ module. exports = (masterEngine, db) => {
         }
         return await masterEngine.cacheManager.request(deleteJob);
     }
-    const addIndex = async KEY => {
+    const deleteCacheSearchable = async KEY => {
         const sqlGetDetail = `${global.INDEX_DATA_SQL} where key = ?`;
         const recordDetail = await db.query(sqlGetDetail, [KEY]);
-        const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = recordDetail.shift();
+        const {ARTIST, SONG_NAME} = recordDetail.shift();
+        const deleteJob = {
+            cmd: 'deleteByValue', 
+            payload: {
+                artistName: ARTIST,
+                songName: SONG_NAME
+            }
+        }
+        return await masterEngine.cacheManager.request(deleteJob);
+    }
+    const getDBRecord = async KEY  => {
+        const sqlGetDetail = `${global.INDEX_DATA_SQL} where key = ?`;
+        const recordDetail = await db.query(sqlGetDetail, [KEY]);
+        // const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = recordDetail.shift();
+        const dbRecord = recordDetail.shift();
+        return dbRecord
+    }
+    const addIndex = async KEY => {
+        // const sqlGetDetail = `${global.INDEX_DATA_SQL} where key = ?`;
+        // const recordDetail = await db.query(sqlGetDetail, [KEY]);
+        // const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = recordDetail.shift();
+        const dbRecord= await getDBRecord(KEY);
+        const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord
         const addIndexJob = {
             cmd : 'index',
             payload : {
@@ -62,7 +84,13 @@ module. exports = (masterEngine, db) => {
     }
 
     const handleInsert = async record => {
-        console.log('handleInsert');
+        // const {EVENT_TIME, KEY} = record
+        // const addIndexResults = await addIndex(KEY);
+        // if(addIndexResults !== true){
+        //     global.logger.error('add index failed : ', KEY);
+        //     return false
+        // }
+        
         return true;
     }
 
