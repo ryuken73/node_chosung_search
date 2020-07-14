@@ -53,7 +53,7 @@ const master = {
     createSearchWorkers({maxWorkers, searchModule}) {
         const options = {
             jsFile: searchModule,
-            args: [],
+            args: [global.APPLY_SEARCH_FILTER_STATUS, global.APPLY_SEARCH_FILTER_OPEN_TIME],
             count: maxWorkers,
             customExitCallback: handleProcessExit  
         }

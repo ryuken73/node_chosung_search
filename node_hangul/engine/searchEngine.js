@@ -9,11 +9,6 @@ const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
     })
 }
 
-const filterStatusIsY = songObject => {
-    return true;
-    // return songObject.status === 'Y';
-}
-
 const padZero = num => {
 	if(num < 10){
 		return `0${num}`;
@@ -30,17 +25,14 @@ const getDayString = date => {
 	return year+month+day+minute+second;
 }
 
-const filterOpenTimeIsLessThanNow = songObject => {
-    return true
-    // return songObject.open_dt < getDayString(new Date());
-    // return songObject.open_dt < '20200608000000'
-}
-
 const worker = {
     init : () => {
+        const [nodeBinary, moduleFile, ApplyStatusFilter, ApplyOpenTimeFilter] = process.argv;
         this.pid = process.pid;
         this.songArray = [];
         this.searchCount = 0;
+        this.ApplyStatusFilter = ApplyStatusFilter;
+        this.ApplyOpenTimeFilter = ApplyOpenTimeFilter;
         return this;
     },
     index : (pattern) => {
@@ -60,8 +52,8 @@ const worker = {
         const inPattern = createPattern(pattern);
         const exprString = inPattern.getRegExpString(spacing=false);
         const searchResults = searchFromLocal(this.songArray, exprString)
-                              .filter(filterStatusIsY)
-                              .filter(filterOpenTimeIsLessThanNow);
+                              .filter(worker.filterStatusIsY)
+                              .filter(worker.filterOpenTimeIsLessThanNow);
         const {orderDefault} = orderSong;
         const orderedResults = orderDefault(searchResults, inPattern.pattern);     
         limit && orderedResults.splice(limit);
@@ -92,6 +84,19 @@ const worker = {
     clear : () => {
         this.songArray = [];
         this.searchCount = 0;
+        return true;
+    },
+    filterStatusIsY : songObject => {
+        if(this.ApplyStatusFilter === 'true'){
+            return songObject.status === 'Y';
+        }
+        console.log(this.ApplyStatusFilter)
+        return true;
+    },
+    filterOpenTimeIsLessThanNow : songObject => {
+        if(this.ApplyOpenTimeFilter === 'true'){
+            return songObject.open_dt < getDayString(new Date());
+        }
         return true;
     }
 }

@@ -72,7 +72,7 @@ module. exports = (masterEngine, db) => {
         const dbRecord= await _getDBRecord(KEY);
         if(dbRecord === false) return false;
         const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord;
-        global.logger.info(`scheduler : update record [${ARTIST}][${SONG_NAME}][${KEY}]`);
+        global.logger.info(`scheduler : update record [${ARTIST}][${SONG_NAME}][${KEY}][${STATUS}]`);
 
         const deleteCacheResults = await _deleteCacheByValue([ARTIST, SONG_NAME]);
         if(deleteCacheResults.some(result => result !== true)){
@@ -96,7 +96,7 @@ module. exports = (masterEngine, db) => {
         const dbRecord= await _getDBRecord(KEY);
         if(dbRecord === false) return false;
         const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord;
-        global.logger.info(`scheduler : insert record [${ARTIST}][${SONG_NAME}][${KEY}]`);
+        global.logger.info(`scheduler : insert record [${ARTIST}][${SONG_NAME}][${KEY}][${STATUS}]`);
 
         const addIndexResults = await _addIndex([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]);
         if(addIndexResults !== true){

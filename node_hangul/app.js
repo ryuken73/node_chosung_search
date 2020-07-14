@@ -34,6 +34,8 @@ global.EXPRESS_REQ_TIMEOUT = config.EXPRESS_REQ_TIMEOUT || 300000;
 global.NUMBER_OF_COLUMNS_FROM_FILE = config.NUMBER_OF_COLUMNS_FROM_FILE || 2;
 global.TOTAL_COUNT_SQL = config.TOTAL_COUNT_SQL || 'select count(*) as total from music.v_autocomplete ';
 global.INDEX_DATA_SQL = config.INDEX_DATA_SQL || 'select artist, song_name, key, open_dt, status from music.v_autocomplete ';
+global.APPLY_SEARCH_FILTER_STATUS = config.APPLY_SEARCH_FILTER_STATUS || true;
+global.APPLY_SEARCH_FILTER_OPEN_TIME = config.APPLY_SEARCH_FILTER_OPEN_TIME || true;
 global.SCHEDULE_NAME = {
   INCREMENTAL : 'incremental_v_song'
 }
