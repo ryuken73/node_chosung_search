@@ -6,7 +6,6 @@ module. exports = (masterEngine, db) => {
         const recordDetail = await db.query(sqlGetDetail, [KEY]);
         const dbRecord = recordDetail.shift();
         if(dbRecord === undefined || dbRecord === {}){
-            global.logger.error(`_getDBRecord failure : KEY[${KEY}]`);
             return false;
         }
         return dbRecord
@@ -40,11 +39,11 @@ module. exports = (masterEngine, db) => {
         }
         return await masterEngine.cacheManager.request(deleteJob);
     }
-    const _deleteCacheSearchable = async ([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]) => {
+    const _deleteCacheSearchable = async ([ARTIST, SONG_NAME]) => {
         const deleteJob = {
             cmd: 'deleteSearchable', 
             payload: {
-                singleSongRecord: [ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]
+                singleSongRecord: [ARTIST, SONG_NAME]
             }
         }
         return await masterEngine.cacheManager.request(deleteJob);
@@ -59,80 +58,119 @@ module. exports = (masterEngine, db) => {
         global.logger.trace(`deleteDBRecord : result[${result}] EVENT_TIME[${EVENT_TIME}] KEY[${KEY}]`);
     }
 
+    const getStatusLogger = ([EVENT_TIME, KEY, IUD_TYPE]) => (stage, message='') => {
+        const Operations = {'U': 'update', 'I': 'insert', 'D': 'delete'};
+        message = message !== '' ? ` ${message}` : ''; 
+        global.logger.info(`scheduler : ${Operations[IUD_TYPE]} [${stage}] ${message} [${EVENT_TIME}] [${KEY}]`);
+    }
+
+    const getDataLogger = ([KEY, IUD_TYPE]) => ([ARTIST_NAME, SONG_NAME, STATUS], message='') => {
+        const Operations = {'U': 'update', 'I': 'insert', 'D': 'delete'};
+        message = message !== '' ? ` ${message}` : '';
+        global.logger.info(`scheduler : ${Operations[IUD_TYPE]} [DATA] ${message} [${ARTIST_NAME}] [${SONG_NAME}] [${STATUS}]`);
+    }
+
     const handleUpdate = async record => {
-        const {EVENT_TIME, KEY} = record
-        global.logger.info(`scheduler : update start [${EVENT_TIME}][${KEY}]`);
+        const {EVENT_TIME, KEY, IUD_TYPE} = record
+        const statusLogger = getStatusLogger([EVENT_TIME, KEY, IUD_TYPE]);
+        const dataLogger = getDataLogger([KEY, IUD_TYPE]);
+
+        statusLogger('FIRE');        
 
         const deleteResults = await _deleteIndexByKey(KEY);
         if(deleteResults.some(result => result !== true)){
-            global.logger.error(`delete index failed : `, KEY);
-            return false
-        }
-        
-        const dbRecord= await _getDBRecord(KEY);
-        if(dbRecord === false) return false;
-        const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord;
-        global.logger.info(`scheduler : update record [${ARTIST}][${SONG_NAME}][${KEY}][${STATUS}]`);
+            statusLogger('DEL_INDEX','failed');        
+            // record can be not exsiting, and go process on.
+        }    
 
-        const deleteCacheResults = await _deleteCacheByValue([ARTIST, SONG_NAME]);
-        if(deleteCacheResults.some(result => result !== true)){
-            global.logger.error(`delete cache failed : `, KEY);
-            return false
+        const dbRecord= await _getDBRecord(KEY);
+        if(dbRecord === false) {
+            statusLogger('DATA','no DB data found');        
+            // record could not be founded. no need to add index and cannot delete cache.
+            // delete DB job table by returning true.
+            statusLogger('DONE');        
+
+            return true;
         }
+        const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord;
+        dataLogger([ARTIST, SONG_NAME, STATUS])
 
         const addIndexResults = await _addIndex([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]);
         if(addIndexResults !== true){
-            global.logger.error('add index failed : ', KEY);
+            statusLogger('FAIL','(add index failure)');
+            // do not delete job table to try later. so return false
             return false
         }
-        global.logger.info(`scheduler : update success [${EVENT_TIME}][${KEY}]`);
+
+        const deleteCacheResults = await _deleteCacheByValue([ARTIST, SONG_NAME]);
+        if(deleteCacheResults.some(result => result !== true)){
+            statusLogger('CACH','nothing to delete in cache');        
+        }
+        statusLogger('DONE');
+
         return true;
     }
 
     const handleInsert = async record => {
-        const {EVENT_TIME, KEY} = record
-        global.logger.info(`scheduler : insert start [${EVENT_TIME}][${KEY}]`);
-
+        const {EVENT_TIME, KEY, IUD_TYPE} = record
+        const statusLogger = getStatusLogger([EVENT_TIME, KEY, IUD_TYPE]);
+        const dataLogger = getDataLogger([KEY, IUD_TYPE]);
+        statusLogger('FIRE');        
+        
         const dbRecord= await _getDBRecord(KEY);
-        if(dbRecord === false) return false;
+        if(dbRecord === false) {
+            statusLogger('DATA','no DB data found');        
+            // record could not be founded. no need to add index and cannot delete cache.
+            // delete DB job table by returning true.
+            statusLogger('DONE');        
+            return true;
+        }
         const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord;
-        global.logger.info(`scheduler : insert record [${ARTIST}][${SONG_NAME}][${KEY}][${STATUS}]`);
+        dataLogger([ARTIST, SONG_NAME, STATUS]);
 
         const addIndexResults = await _addIndex([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]);
         if(addIndexResults !== true){
-            global.logger.error('add index failed : ', KEY);
+            statusLogger('FAIL','(add index failure)');
+            // do not delete job table to try later. so return false
             return false
         }
-
-        const deleteCacheResults = await _deleteCacheSearchable([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]);
+        const deleteCacheResults = await _deleteCacheSearchable([ARTIST, SONG_NAME]);
         if(deleteCacheResults.some(result => result !== true)){
-            global.logger.error(`delete cache failed : `, KEY);
-            return false
+            statusLogger('CACH','nothing to delete in cache');        
         }
-        global.logger.info(`scheduler : insert success [${EVENT_TIME}][${KEY}]`);
+        statusLogger('DONE');
         return true;
     }
 
     const handleDelete = async record => {
-        const {EVENT_TIME, KEY} = record
-        global.logger.info(`scheduler : delete start [${EVENT_TIME}][${KEY}]`);
-        const songsToDelete = await _searchIndexByKey(KEY);
-        const songsToDeleteFlattened = songsToDelete.flat();
-        songsToDeleteFlattened.forEach(song => {
+        const {EVENT_TIME, KEY, IUD_TYPE} = record
+        const statusLogger = getStatusLogger([EVENT_TIME, KEY, IUD_TYPE]);
+        const dataLogger = getDataLogger([KEY, IUD_TYPE]);
+        statusLogger('FIRE');        
 
-        })
-        global.logger.info(songsToDeleteFlattened);
-        // const deleteResults = await deleteIndex(KEY);
-        // if(deleteResults.some(result => result !== true)){
-        //     global.logger.error(`delete index failed : `, KEY);
-        //     return false
-        // }
-        // const deleteCacheResults = await _deleteCacheByValue(KEY);
-        // if(deleteCacheResults.some(result => result !== true)){
-        //     global.logger.error(`delete cache failed : `, KEY);
-        //     return false
-        // }
-        global.logger.info(`scheduler : delete success [${EVENT_TIME}][${KEY}]`);
+        const resultsFromIndex = await _searchIndexByKey(KEY);
+        const songsToDeleteFlattened = resultsFromIndex.flat();
+        if(songsToDeleteFlattened.length === 0){
+            statusLogger('CACH','nothing to delete in cache');   
+            statusLogger('DONE');        
+            return true
+        }
+
+        const deleteResults = await _deleteIndexByKey(KEY);
+        if(deleteResults.some(result => result !== true)){
+            statusLogger('DEL_INDEX','failed');        
+            // do not delete job table to try later. so return false
+            return false
+        }
+
+        const songToDelete = songsToDeleteFlattened.shift();
+        const {artistName, songName} = songToDelete;
+        dataLogger([artistName, songName, ''])
+        const deleteCacheResults = await _deleteCacheSearchable([artistName, songName]);
+        if(deleteCacheResults.every(result => result !== true)){
+            statusLogger('CACH','nothing deleted in cache');   
+        }        
+        statusLogger('DONE');
         return true;
     }
 
