@@ -72,8 +72,17 @@ const worker = {
         this.searchCount -= 1;
         return result;
     },
+    searchByKey : (key) => {
+        const searchResults = [...this.songArray].filter(songObject => songObject.key === key);
+        // console.log(`result of searchByKey : [${key}]`, resultByKey);
+        const result = searchResults.map(songObj => {
+            const {artistName, songName} = songObj;
+            return {artistName, songName}
+        })
+        return result
+    },
     deleteByKey : (key) => {
-        const filtered = [...this.songArray].filter( songObject => {
+        const filtered = [...this.songArray].filter(songObject => {
             // to fast return, use results.some instead of results.every
             return songObject.key !== key;            
         })
@@ -104,6 +113,10 @@ process.on('message', ({requestId, request}) => {
             break;
         case 'search' :
             result = worker.search(data);
+            success = true;
+            break;
+        case 'searchByKey' :
+            result = worker.searchByKey(key);
             success = true;
             break;
         case 'deleteByKey' :   

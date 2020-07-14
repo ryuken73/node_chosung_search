@@ -1,51 +1,18 @@
 // const masterEngine = require("./masterEngine");
 
 module. exports = (masterEngine, db) => {
-    const deleteIndex = async KEY => {
-        return await masterEngine.searchManager.request({cmd: 'deleteByKey', payload: {key: KEY}});
-    }
-    const deleteCache = async KEY => {
-        const sqlGetDetail = `${global.INDEX_DATA_SQL} where key = ?`;
-        const recordDetail = await db.query(sqlGetDetail, [KEY]);
-        const {ARTIST, SONG_NAME} = recordDetail.shift();
-        const deleteJob = {
-            cmd: 'deleteByValue', 
-            payload: {
-                artistName: ARTIST,
-                songName: SONG_NAME
-            }
-        }
-        return await masterEngine.cacheManager.request(deleteJob);
-    }
-    const deleteCacheSearchable = async KEY => {
-        const dbRecord= await getDBRecord(KEY);
-        if(dbRecord === undefined || dbRecord === {}){
-            global.logger.error(`addIndex failure : KEY[${KEY}]`);
-            return false;
-        }
-        // global.logger.info(`deleteCacheSearchable : record to delete cache `, dbRecord);
-        const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord
-        const deleteJob = {
-            cmd: 'deleteSearchable', 
-            payload: {
-                singleSongRecord: [ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]
-            }
-        }
-        return await masterEngine.cacheManager.request(deleteJob);
-    }
-    const getDBRecord = async KEY  => {
+    const _getDBRecord = async KEY  => {
         const sqlGetDetail = `${global.INDEX_DATA_SQL} where key = ?`;
         const recordDetail = await db.query(sqlGetDetail, [KEY]);
         const dbRecord = recordDetail.shift();
-        return dbRecord
-    }
-    const addIndex = async KEY => {
-        const dbRecord= await getDBRecord(KEY);
         if(dbRecord === undefined || dbRecord === {}){
-            global.logger.error(`addIndex failure : KEY[${KEY}]`);
+            global.logger.error(`_getDBRecord failure : KEY[${KEY}]`);
             return false;
         }
-        const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord
+        return dbRecord
+    }
+
+    const _addIndex = async ([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]) => {
         const addIndexJob = {
             cmd : 'index',
             payload : {
@@ -53,8 +20,34 @@ module. exports = (masterEngine, db) => {
             }
         }
         const result = await masterEngine.searchManager.nextWorker.promise.request(addIndexJob);
-        global.logger.trace(`addIndex : result[${result}] artist[${ARTIST}] song[${SONG_NAME}] status[${STATUS}] key[${KEY}]`);
+        global.logger.trace(`_addIndex : result[${result}] artist[${ARTIST}] song[${SONG_NAME}] status[${STATUS}] key[${KEY}]`);
         return result;
+    }
+    const _deleteIndexByKey = async KEY => {
+        return await masterEngine.searchManager.request({cmd: 'deleteByKey', payload: {key:KEY}});
+    }   
+    const _searchIndexByKey = async KEY => {
+        return await masterEngine.searchManager.request({cmd: 'searchByKey', payload: {key:KEY}});
+    }
+
+    const _deleteCacheByValue = async ([artistName, songName]) => {
+        const deleteJob = {
+            cmd: 'deleteByValue', 
+            payload: {
+                artistName,
+                songName
+            }
+        }
+        return await masterEngine.cacheManager.request(deleteJob);
+    }
+    const _deleteCacheSearchable = async ([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]) => {
+        const deleteJob = {
+            cmd: 'deleteSearchable', 
+            payload: {
+                singleSongRecord: [ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]
+            }
+        }
+        return await masterEngine.cacheManager.request(deleteJob);
     }
 
     const deleteDBRecord = async record => {
@@ -68,17 +61,26 @@ module. exports = (masterEngine, db) => {
 
     const handleUpdate = async record => {
         const {EVENT_TIME, KEY} = record
-        const deleteResults = await deleteIndex(KEY);
+        global.logger.info(`scheduler : update start [${EVENT_TIME}][${KEY}]`);
+
+        const deleteResults = await _deleteIndexByKey(KEY);
         if(deleteResults.some(result => result !== true)){
             global.logger.error(`delete index failed : `, KEY);
             return false
         }
-        const deleteCacheResults = await deleteCache(KEY);
+        
+        const dbRecord= await _getDBRecord(KEY);
+        if(dbRecord === false) return false;
+        console.log(dbRecord);
+        const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord;
+
+        const deleteCacheResults = await _deleteCacheByValue([ARTIST, SONG_NAME]);
         if(deleteCacheResults.some(result => result !== true)){
             global.logger.error(`delete cache failed : `, KEY);
             return false
         }
-        const addIndexResults = await addIndex(KEY);
+
+        const addIndexResults = await _addIndex([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]);
         if(addIndexResults !== true){
             global.logger.error('add index failed : ', KEY);
             return false
@@ -89,12 +91,20 @@ module. exports = (masterEngine, db) => {
 
     const handleInsert = async record => {
         const {EVENT_TIME, KEY} = record
-        const addIndexResults = await addIndex(KEY);
+        global.logger.info(`scheduler : insert start [${EVENT_TIME}][${KEY}]`);
+
+        const dbRecord= await _getDBRecord(KEY);
+        if(dbRecord === false) return false;
+        console.log(dbRecord);
+        const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord;
+
+        const addIndexResults = await _addIndex([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]);
         if(addIndexResults !== true){
             global.logger.error('add index failed : ', KEY);
             return false
         }
-        const deleteCacheResults = await deleteCacheSearchable(KEY);
+
+        const deleteCacheResults = await _deleteCacheSearchable([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]);
         if(deleteCacheResults.some(result => result !== true)){
             global.logger.error(`delete cache failed : `, KEY);
             return false
@@ -104,7 +114,25 @@ module. exports = (masterEngine, db) => {
     }
 
     const handleDelete = async record => {
-        console.log('handleDelete');
+        const {EVENT_TIME, KEY} = record
+        global.logger.info(`scheduler : delete start [${EVENT_TIME}][${KEY}]`);
+        const songsToDelete = await _searchIndexByKey(KEY);
+        const songsToDeleteFlattened = songsToDelete.flat();
+        songsToDeleteFlattened.forEach(song => {
+
+        })
+        global.logger.info(songsToDeleteFlattened);
+        // const deleteResults = await deleteIndex(KEY);
+        // if(deleteResults.some(result => result !== true)){
+        //     global.logger.error(`delete index failed : `, KEY);
+        //     return false
+        // }
+        // const deleteCacheResults = await _deleteCacheByValue(KEY);
+        // if(deleteCacheResults.some(result => result !== true)){
+        //     global.logger.error(`delete cache failed : `, KEY);
+        //     return false
+        // }
+        global.logger.info(`scheduler : delete success [${EVENT_TIME}][${KEY}]`);
         return true;
     }
 
