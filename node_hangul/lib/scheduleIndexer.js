@@ -23,10 +23,22 @@ module. exports = (masterEngine, db) => {
         return result;
     }
     const _deleteIndexByKey = async KEY => {
-        return await masterEngine.searchManager.request({cmd: 'deleteByKey', payload: {key:KEY}});
+        const deleteJob = {
+            cmd: 'deleteByKey',
+            payload: {
+                key: KEY
+            }
+        }
+        return await masterEngine.searchManager.request(deleteJob);
     }   
     const _searchIndexByKey = async KEY => {
-        return await masterEngine.searchManager.request({cmd: 'searchByKey', payload: {key:KEY}});
+        const deleteJob = {
+            cmd: 'searchByKey',
+            payload: {
+                key: KEY
+            }
+        }
+        return await masterEngine.searchManager.request(deleteJob);
     }
 
     const _deleteCacheByValue = async ([artistName, songName]) => {
