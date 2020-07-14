@@ -51,7 +51,7 @@ const cache = {
             const exprString = mkRegExpr(patternJAMO)(spacing = false);
             return songObj.match(exprString)
         })
-        console.log(`cache patterns to delete : `, patternsToDelete);
+        // console.log(`cache patterns to delete : `, patternsToDelete);
         patternsToDelete.forEach(patternJAMO => this.cache.delete(patternJAMO));
         return true;
     },
@@ -64,7 +64,7 @@ const cache = {
 
  process.on('message', ({requestId, request}) => {
     const {cmd, payload={}} = request;
-    const {pattern, results, key, monitorStatus, artistName,songName} = payload;
+    const {pattern, results, key, monitorStatus, artistName, songName, singleSongRecord} = payload;
     let result;
     switch(cmd){
         case 'get' :

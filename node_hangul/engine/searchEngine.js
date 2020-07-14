@@ -10,7 +10,8 @@ const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
 }
 
 const filterStatusIsY = songObject => {
-    return songObject.status === 'Y';
+    return true;
+    // return songObject.status === 'Y';
 }
 
 const padZero = num => {
@@ -30,7 +31,8 @@ const getDayString = date => {
 }
 
 const filterOpenTimeIsLessThanNow = songObject => {
-    return songObject.open_dt < getDayString(new Date());
+    return true
+    // return songObject.open_dt < getDayString(new Date());
     // return songObject.open_dt < '20200608000000'
 }
 
