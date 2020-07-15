@@ -18,6 +18,7 @@ function Master({gap, master}) {
           mx={gap}  
           fontSize="fontSize" 
           bgcolor={brown[700]}
+          overflow="hidden"
         >
           <Box>
              <div style={{fontSize:"12px"}}>Insert</div>

@@ -19,6 +19,7 @@ function Master({gap, master}) {
           // mb={gap} 
           fontSize="fontSize" 
           bgcolor={brown[700]}
+          overflow="hidden"
         >
           <Box display="flex" justifyContent="flex-start" flexDirection="column" m={2} textAlign="left">
             <div>PID: {master.pid}</div> 
