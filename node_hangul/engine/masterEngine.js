@@ -107,7 +107,7 @@ const master = {
                 if(arrayOfLine.length > 0){
                     const result = await sendLine(this.searchManager.nextWorker, arrayOfLine);
                     if(result === true) {
-                        this.lastIndexedCount++;
+                        // this.lastIndexedCount++;
                         totalLoaded++;
                     }
                 }
@@ -139,10 +139,10 @@ const master = {
                     notifyProgress(percentProcessed, this);
                     const wordArray = [dbResult.ARTIST, dbResult.SONG_NAME, dbResult.KEY, dbResult.OPEN_DT, dbResult.STATUS];
                     // global.logger.info(wordArray);
-                    const result = await sendLine(this.searchManager.nextWorker, wordArray);                
-                    if(result === true){
-                        this.lastIndexedCount = reader.selected;
-                    }
+                    await sendLine(this.searchManager.nextWorker, wordArray);                
+                    // if(result === true){
+                    //     this.lastIndexedCount = reader.selected;
+                    // }
                     if(parseInt(percentProcessed) === 100) {
                         global.logger.info(`indexing done = ${percentProcessed}`)
                         resolve(reader.selected);
@@ -151,7 +151,7 @@ const master = {
             } catch (err) {
                 reject(err);
                 global.logger.error(err);
-                this.master.setStatus.promise.master({'indexingStatus': 'INDEX_DONE'});
+                master.setStatus.promise.master({'indexingStatus': 'INDEX_DONE'});
     
             }
         })
@@ -215,10 +215,10 @@ const master = {
             await this.searchManager.request(job);
             clearTimeout(timer);
             global.logger.info(`clearing all worker's data done!`);
-            this.master.setStatus.promise.master({'lastIndexedDate': ''});
-            this.master.setStatus.promise.master({'lastIndexedCount': 0});
-            this.master.setStatus.promise.master({'lastIndexedPercent': '0%'});
-            this.master.setStatus.promise.master({'indexingStatus': 'NOT_INDEXED'})
+            master.setStatus.promise.master({'lastIndexedDate': ''});
+            master.setStatus.promise.master({'lastIndexedCount': 0});
+            master.setStatus.promise.master({'lastIndexedPercent': '0%'});
+            master.setStatus.promise.master({'indexingStatus': 'NOT_INDEXED'})
             return
         } catch (err) { 
             global.logger.error(err); 
@@ -313,7 +313,7 @@ const master = {
             }
         }
     },       
-    request({cmd, payload={}}){
+    async request({cmd, payload={}}){
         const {monitorStatus={}} = payload;
         let result;
         switch(cmd){
@@ -322,7 +322,8 @@ const master = {
                     pid : this.pid,
                     mem: getMemInfo(),
                     lastIndexedDate: this.lastIndexedDate,
-                    lastIndexedCount: this.lastIndexedCount,
+                    // lastIndexedCount: this.lastIndexedCount,
+                    lastIndexedCount: await this.requestIndexCount(),
                     lastIndexedPercent: this.lastIndexedPercent,
                     indexingStatus: this.indexingStatus,
                     searching: this.searching
@@ -345,6 +346,17 @@ const master = {
                 this.log = newLog;
             }
         return result;
+    },
+    async requestIndexCount(){
+        try {
+            const workersMonitors = await this.searchManager.request({cmd: 'requestMonitor'});
+            return workersMonitors.reduce((totalCount, monitorResult) => {
+                return totalCount + monitorResult.words}
+            ,0)
+        } catch (err) {
+
+        }
+
     }
 
 }
