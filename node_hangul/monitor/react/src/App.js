@@ -186,18 +186,8 @@ export default class App extends Component {
         <Header gap={gap} text={"Status"}></Header>
         <Box display="flex" flexDirection="row" justifyContent="center" alignItems="stretch" height="80vh">
           <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow="1" width="45vw"> 
-            <Box display="flex" justifyContent="center" alignItems="stretch">
-              <Box display="flex" flexDirection="column" width="1">
-                <Title gap={gap} title={'master'}></Title>
-                <Master gap={gap} master={master}></Master>
-              </Box>
-              <Box display="flex" flexDirection="column" width="1">
-                <Title gap={gap} title={'scheduler'}></Title>
-                <Scheduler gap={gap} master={scheduler}></Scheduler>
-              </Box>
-
-            </Box>
-
+            <Title gap={gap} title={'master'}></Title>
+            <Master gap={gap} master={master}></Master>
             <Log gap={gap} currentLog={currentLog}></Log>
           </Box>
           <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow="1"  width='45vw'> 

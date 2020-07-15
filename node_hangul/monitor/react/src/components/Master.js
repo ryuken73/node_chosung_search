@@ -13,8 +13,8 @@ function Master({gap, master}) {
           flexDirection="row" 
           justifyContent="space-around" 
           alignItems="center" 
-          height="1"
-          // height='20vh' 
+          // height="1"
+          height='20vh' 
           mx={gap} 
           // mb={gap} 
           fontSize="fontSize" 
@@ -27,7 +27,7 @@ function Master({gap, master}) {
             <p></p>
             <div>TOTAL INDEXED : {lastIndexedCount.toLocaleString()}</div>
             <div>TOTAL PERCENT : {lastIndexedPercent.toLocaleString()}</div>
-            {/* <div>LAST INDEXED DATE : {master.lastIndexedDate}</div> */}
+            <div>LAST INDEXED DATE : {master.lastIndexedDate}</div>
 
           </Box>
           <Box>
@@ -35,7 +35,7 @@ function Master({gap, master}) {
              <div style={{fontSize:"60px"}}>{searching}</div> 
           </Box> 
         </Box>
-          <Box 
+          {/* <Box 
           bgcolor={brown[800]}
           mx={gap}  
           fontSize="fontSize" 
@@ -43,7 +43,7 @@ function Master({gap, master}) {
           mb={gap} 
         >
             last indexed : {master.lastIndexedDate}
-        </Box>
+        </Box> */}
       </Box>
   )
 }
