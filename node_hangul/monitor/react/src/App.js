@@ -43,7 +43,10 @@ export default class App extends Component {
       // disalbeClearIndexBtn: true,
       // disalbeClearCacheBtn: true,
       onIndexing: false,
-      indexDone: true
+      indexDone: true,
+      insertCount: 0,
+      updateCount: 0,
+      deleteCount: 0,
 
     }
   }  
@@ -54,11 +57,12 @@ export default class App extends Component {
     const socket = socketIOClient(endpoint);
     socket.on('connect', () => {
       console.log('socket connected');
-    })
+    })   
     socket.on('masterMonitor', this.updateMasterMonitor.bind(this));
     socket.on('workerMonitor', this.updateWorkerMonitor.bind(this));
     socket.on('cacheWorkerMonitor', this.updateCacheWorkerMonitor.bind(this));
     socket.on('logMonitor', this.updateLogMonitor.bind(this));
+    socket.on('scheuledIndexMonitor', this.updateScheduledIndexMonitor.bind(this));
     socket.on('progress', this.updateProgress.bind(this))
     socket.on('error', this.resetState.bind(this));
     socket.on('disconnect', this.resetState.bind(this));
@@ -100,6 +104,16 @@ export default class App extends Component {
     this.setState({
       ...this.state,
       currentLog: logMonitor
+    })
+  }
+
+  updateScheduledIndexMonitor(scheduledIndexMonitor){
+    const {insertCount, updateCount, deleteCount} = scheduledIndexMonitor;
+    this.setState({
+      ...this.state,
+      insertCount,
+      updateCount,
+      deleteCount      
     })
   }
 
@@ -175,6 +189,7 @@ export default class App extends Component {
   render() {
     const {workers, master, scheduler, currentLog, cacheWorkers, progress} = this.state;
     const {startingIndex, onIndexing, indexDone} = this.state;
+    const {insertCount, updateCount, deleteCount} = this.state;
     // const {disalbeClearCacheBtn, disalbeClearIndexBtn} = this.state;
     const disableLoadDBBtn = startingIndex || onIndexing || indexDone;
     const disableLoadFileBtn = startingIndex|| onIndexing || indexDone;
@@ -183,7 +198,7 @@ export default class App extends Component {
     const gap = 0.3;
     return (
       <Box display="flex" flexDirection="column" height="100vh" className="App">
-        <Header gap={gap} text={"Status"}></Header>
+        <Header gap={gap} text={"Status"} insert={insertCount} update={updateCount} delete={deleteCount}></Header>
         <Box display="flex" flexDirection="row" justifyContent="center" alignItems="stretch" height="80vh">
           <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow="1" width="45vw"> 
             <Title gap={gap} title={'master'}></Title>

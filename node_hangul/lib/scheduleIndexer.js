@@ -115,6 +115,7 @@ module. exports = (masterEngine, db) => {
         await _deleteCacheByValue(dbRecord, statusLogger);
 
         statusLogger('DONE');
+        masterEngine.setUpdateCount(masterEngine.updateCount+1);
         return true;
     }
 
@@ -133,6 +134,7 @@ module. exports = (masterEngine, db) => {
         await _deleteCacheSearchable(dbRecord, statusLogger);
 
         statusLogger('DONE');
+        masterEngine.setInsertCount(masterEngine.insertCount+1);
         return true;
     }
 
@@ -159,6 +161,7 @@ module. exports = (masterEngine, db) => {
         await _deleteCacheSearchable([artistName, songName], statusLogger);
         
         statusLogger('DONE');
+        masterEngine.setDeleteCount(masterEngine.deleteCount+1);
         return true;
     }
 

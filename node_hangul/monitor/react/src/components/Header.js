@@ -1,7 +1,6 @@
 import React from 'react';
 import Box from '@material-ui/core/Box';
 import {brown} from '@material-ui/core/colors';
-import { Typography } from '@material-ui/core';
 
 export default function Header({gap, text, insert=0, update=0, deleteCount=0}) {
     return (

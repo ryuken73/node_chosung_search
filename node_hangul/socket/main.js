@@ -45,10 +45,12 @@ class SocketServer {
         return setInterval(async () => {
             const masterStatus = await masterEngine.getStatus.promise.master();
             const searchWorkersStatus = await masterEngine.getStatus.promise.search();
-            const cacheWorkersStatus = await masterEngine.getStatus.promise.cache();     
+            const cacheWorkersStatus = await masterEngine.getStatus.promise.cache();    
+            const scheduledIndexStatus = await masterEngine.getStatus.promise.scheduledIndex(); 
             this.rootNameSpace.emit('masterMonitor', masterStatus);
             this.rootNameSpace.emit('workerMonitor', searchWorkersStatus);
             this.rootNameSpace.emit('cacheWorkerMonitor', cacheWorkersStatus);
+            this.rootNameSpace.emit('scheuledIndexMonitor', scheduledIndexStatus);
         }, interval)
     }
     getInfo(socket){

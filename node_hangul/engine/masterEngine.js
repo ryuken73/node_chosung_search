@@ -50,6 +50,12 @@ const master = {
     searchManager : null,
     cacheManager : null,
     bcastIO : null,
+    insertCount : 0,
+    updateCount : 0,
+    deleteCount : 0,
+    setInsertCount(count){this.insertCount = count},
+    setUpdateCount(count){this.updateCount = count},
+    setDeleteCount(count){this.deleteCount = count},
     createSearchWorkers({maxWorkers, searchModule}) {
         const options = {
             jsFile: searchModule,
@@ -280,6 +286,9 @@ const master = {
             async master(){
                 return await master.request({cmd: 'requestMonitor'});
             },
+            async scheduledIndex(){
+                return await master.request({cmd: 'requestScheduledIndexMonitor'});
+            },
             async log(){
                 return await master.request({cmd: 'requestLog'});
             }
@@ -344,6 +353,14 @@ const master = {
                 const newLog = storedLog.length > this.maxLogs ?  storedLog.slice(0, storedLog.length - 1) : [...storedLog];
                 newLog.unshift(log);
                 this.log = newLog;
+                break;
+            case 'requestScheduledIndexMonitor' :
+                const {insertCount, deleteCount, updateCount} = this
+                result = {
+                    insertCount,
+                    deleteCount,
+                    updateCount
+                }
             }
         return result;
     },
