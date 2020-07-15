@@ -19,9 +19,9 @@ module. exports = (masterEngine, db) => {
         const {EVENT_TIME, KEY} = record;
         const sqlDeleteRecord = `delete from music.ac_search_log where EVENT_TIME = ? and KEY = ?`;
         const sqlDeleteArgs = [EVENT_TIME, KEY];
-        //const result = await db.execute(sqlDeleteRecord, sqlDeleteArgs);
-        const result = await Promise.resolve(true)
-        global.logger.trace(`deleteDBRecord : result[${result}] EVENT_TIME[${EVENT_TIME}] KEY[${KEY}]`);
+        const result = await db.execute(sqlDeleteRecord, sqlDeleteArgs);
+        // global.logger.trace(`deleteDBRecord : result[${result}] EVENT_TIME[${EVENT_TIME}] KEY[${KEY}]`);
+        global.logger.info(`scheduler : delete [RMDB]  [${EVENT_TIME}] [${KEY}]`);
     }
 
     const _addIndex = async ([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS], statusLogger) => {

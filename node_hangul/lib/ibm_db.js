@@ -64,7 +64,7 @@ class IBMDB {
         return new Promise( async (resolve,reject) => {
             try {
                 const conn = await this._getConnection();
-                this.logger.info(`query excution start! ${sql} : ${params}`)
+                // this.logger.debug(`query excution start! ${sql} : ${params}`)
                 conn.prepare(sql, (err,stmt) => {
                     if(err){
                         reject(err);

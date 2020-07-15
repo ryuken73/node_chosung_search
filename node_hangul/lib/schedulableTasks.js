@@ -1,10 +1,10 @@
 
 const schedulableTasks = {
     [global.SCHEDULE_NAME.INCREMENTAL] : (masterEngine,db) => {
-        const scheduleIndexder = require('./scheduleIndexder')(masterEngine, db);
+        const scheduleIndexder = require('./scheduleIndexer')(masterEngine, db);
         return async () => {
             const {handleUpdate, handleInsert, handleDelete, deleteDBRecord} = scheduleIndexder;
-            global.logger.info('scheduler tiggerred');
+            global.logger.info(`scheduler : [${global.SCHEDULE_NAME.INCREMENTAL}] tiggerred`);
             const sqlGetChanged = 'select * from music.ac_search_log order by event_time asc';
             const changedRecords = await db.query(sqlGetChanged, []);
             for(let i=0;i<changedRecords.length;i++){
