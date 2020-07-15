@@ -13,7 +13,8 @@
     ],
     "assets": [
       "public/**/*",
-      "views/**/*"
+      "views/**/*",
+      "engine/*"
     ]
   },
   "dependencies": {

@@ -36,6 +36,7 @@ global.TOTAL_COUNT_SQL = config.TOTAL_COUNT_SQL || 'select count(*) as total fro
 global.INDEX_DATA_SQL = config.INDEX_DATA_SQL || 'select artist, song_name, key, open_dt, status from music.v_autocomplete ';
 global.APPLY_SEARCH_FILTER_STATUS = config.APPLY_SEARCH_FILTER_STATUS || true;
 global.APPLY_SEARCH_FILTER_OPEN_TIME = config.APPLY_SEARCH_FILTER_OPEN_TIME || true;
+global.CRON_FOR_SCHEDULED_INDEXING = config.CRON_FOR_SCHEDULED_INDEXING || "0 * * * * * ";
 global.SCHEDULE_NAME = {
   INCREMENTAL : 'incremental_v_song'
 }

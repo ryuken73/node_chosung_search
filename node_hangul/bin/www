@@ -12,8 +12,8 @@ const sockApp = require('../socket/main');
 const master = require('../engine/masterEngine');
 const workerModule = path.join(__dirname, '../', 'engine/searchEngine.js');
 const cacheModule = path.join(__dirname, '../', 'engine/cacheEngine.js');
-
 const MAX_LOG_ROWS_BROADCASTING = global.MAX_LOG_ROWS_BROADCASTING;
+const CRON_FOR_SCHEDULED_INDEXING = global.CRON_FOR_SCHEDULED_INDEXING;
 
 
 /**
@@ -58,7 +58,7 @@ async function main(){
   app.set('masterEngine', masterEngine);
 
   const scheduleEngine = require('../engine/schedulerEngine')(masterEngine, app.get('musicdb'));
-  scheduleEngine.register('0,20,40 * * * * * ', global.SCHEDULE_NAME.INCREMENTAL);
+  scheduleEngine.register(CRON_FOR_SCHEDULED_INDEXING, global.SCHEDULE_NAME.INCREMENTAL);
   scheduleEngine.start(global.SCHEDULE_NAME.INCREMENTAL); 
   app.set('scheduleEngine', scheduleEngine);
 
