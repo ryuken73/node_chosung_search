@@ -6,12 +6,12 @@ module. exports = (masterEngine, db) => {
         const recordDetail = await db.query(sqlGetDetail, [KEY]);
         const dbRecord = recordDetail.shift();
         if(dbRecord === undefined || dbRecord === {}){
-            statusLogger('DATA','no DB data found');        
+            statusLogger('data','no DB data found');        
             statusLogger('DONE');        
             return false;
         }
         const {ARTIST, SONG_NAME, OPEN_DT, STATUS} = dbRecord;
-        dataLogger([ARTIST, SONG_NAME, STATUS])
+        dataLogger([ARTIST, SONG_NAME, OPEN_DT, STATUS])
         return [ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS]
     }
 
@@ -21,7 +21,7 @@ module. exports = (masterEngine, db) => {
         const sqlDeleteArgs = [EVENT_TIME, KEY];
         const result = await db.execute(sqlDeleteRecord, sqlDeleteArgs);
         // global.logger.trace(`deleteDBRecord : result[${result}] EVENT_TIME[${EVENT_TIME}] KEY[${KEY}]`);
-        global.logger.info(`scheduler : delete [RMDB]  [${EVENT_TIME}] [${KEY}]`);
+        global.logger.info(`scheduler : rmdata [rmdb]  [${EVENT_TIME}] [${KEY}]`);
     }
 
     const _addIndex = async ([ARTIST, SONG_NAME, KEY, OPEN_DT, STATUS], statusLogger) => {
@@ -68,7 +68,7 @@ module. exports = (masterEngine, db) => {
         }
         const results = await masterEngine.cacheManager.request(deleteJob);
         if(results.some(result => result !== true)){
-            statusLogger('CACH','nothing to delete in cache');        
+            statusLogger('cache','nothing to delete in cache');        
         }
         return results;
     }
@@ -81,7 +81,7 @@ module. exports = (masterEngine, db) => {
         }
         const results = await masterEngine.cacheManager.request(deleteJob);
         if(results.some(result => result !== true)){
-            statusLogger('CACH','nothing to delete in cache');        
+            statusLogger('cache','nothing to delete in cache');        
         }
         return results;
     }
@@ -92,10 +92,11 @@ module. exports = (masterEngine, db) => {
         global.logger.info(`scheduler : ${Operations[IUD_TYPE]} [${stage}] ${message} [${EVENT_TIME}] [${KEY}]`);
     }
 
-    const _makeDataLogger = ([KEY, IUD_TYPE]) => ([ARTIST_NAME, SONG_NAME, STATUS], message='') => {
+    const _makeDataLogger = ([KEY, IUD_TYPE]) => (dataRecord, message='') => {
+        const [ARTIST_NAME, SONG_NAME, STATUS, OPEN_DT] = dataRecord;
         const Operations = {'U': 'update', 'I': 'insert', 'D': 'delete'};
         message = message !== '' ? ` ${message}` : '';
-        global.logger.info(`scheduler : ${Operations[IUD_TYPE]} [DATA] ${message} [${ARTIST_NAME}] [${SONG_NAME}] [${STATUS}]`);
+        global.logger.info(`scheduler : ${Operations[IUD_TYPE]} [data] ${message} [${ARTIST_NAME}] [${SONG_NAME}] [${STATUS}] [${OPEN_DT}]`);
     }
 
     const handleUpdate = async record => {
@@ -147,7 +148,7 @@ module. exports = (masterEngine, db) => {
         const resultsFromIndex = await _searchIndexByKey(KEY);
         const songsToDeleteFlattened = resultsFromIndex.flat();
         if(songsToDeleteFlattened.length === 0){
-            statusLogger('CACH','nothing to delete in cache');   
+            statusLogger('cache','nothing to delete in cache');   
             statusLogger('DONE');        
             return true
         }
@@ -157,7 +158,7 @@ module. exports = (masterEngine, db) => {
 
         const songToDelete = songsToDeleteFlattened.shift();
         const {artistName, songName} = songToDelete;
-        dataLogger([artistName, songName, ''])
+        dataLogger([artistName, songName, '', ''])
         await _deleteCacheSearchable([artistName, songName], statusLogger);
         
         statusLogger('DONE');
