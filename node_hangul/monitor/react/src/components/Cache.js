@@ -3,9 +3,9 @@ import Box from '@material-ui/core/Box';
 import {brown} from '@material-ui/core/colors';
 
 function Cache({gap, caches}) {
-  const smallFontSize = `${10 - (caches.length/3)}px`;
+  const smallFontSize = `${10 - (caches.length/3)}px`; 
   const mediumFontSize = `${13 - (caches.length/3)}px`;
-  const bigFontSize = `${22 - (caches.length/3)}px`;
+  const bigFontSize = `${22 - (caches.length/3)}px`; 
 
   return (
     <Box 
