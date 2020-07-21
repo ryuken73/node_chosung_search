@@ -1,3 +1,5 @@
+const jsonfile = require('jsonfile');
+const path = require('path');
 const getMemInfo = require('../lib/getMemInfo');
 const orderSong = require('../lib/orderSong');
 const song = require('../lib/songClass');  
@@ -98,13 +100,26 @@ const worker = {
             return songObject.open_dt < getDayString(new Date());
         }
         return true;
+    },
+    saveToFile : async (outFile) => {
+        return new Promise((resolve, reject) => {
+            jsonfile.writeFile(outFile, this.songArray, (err) => {
+                if(err) {
+                    console.error(err);
+                    resolve(false);
+                    return
+                }
+                resolve(true);
+                return;
+            })
+        })
     }
 }
 
-process.on('message', ({requestId, request}) => {
+process.on('message', async ({requestId, request}) => {
     // const {cmd, data, pattern, results=[]} = request;
     const {cmd, payload={}} = request;
-    const {data, key, monitorStatus} = payload;
+    const {data, key, monitorStatus, outDir, filePrefix} = payload;
     let result;
     let success;
     switch(cmd){
@@ -128,6 +143,12 @@ process.on('message', ({requestId, request}) => {
             result = worker.deleteByKey(key);
             success = true;
             break;
+        case 'saveToFile' :   
+            const outFname = `${filePrefix}_${process.pid}_${Date.now()}.json`;
+            const outFile = path.join(outDir, outFname);
+            result = await worker.saveToFile(outFile);
+            success = result;
+            break;            
         case 'setMonitorValue' :
             Object.keys(monitorStatus).forEach(key => {
                 this[key] = monitorStatus[key];

@@ -1,6 +1,8 @@
 const manager = require('../lib/childProcManager');
 const readerClass = require('../lib/readerClass');
 const getMemInfo = require('../lib/getMemInfo');
+const path = require('path');
+const fs = require('fs');
 
 const SEARCH_TIMEOUT = global.SEARCH_TIMEOUT;
 const CLEAR_TIMEOUT = global.CLEAR_TIMEOUT;
@@ -274,6 +276,36 @@ const master = {
     },
     async delCacheSearchable([artistName, songName]){
 
+    },
+    async saveIndexToFile(outDir, filePrefix){
+        const job = {
+            cmd: 'saveToFile',
+            payload: {
+                outDir,
+                filePrefix
+            }
+        }
+        const resultPromise = await this.searchManager.request(job);   
+        global.logger.debug(resultPromise);
+        return resultPromise;           
+    },
+    async deleteIndexFile(outDir, filePrefix){
+        try {
+            const files = await fs.promises.readdir(outDir);
+            const deleteJob = files.map(async file => {
+                const fullName = path.join(outDir, file);
+                const stat = await fs.promises.stat(fullName);
+                if(stat.isFile() && file.startsWith(filePrefix)){
+                    return await fs.promises.unlink(fullName);
+                }
+                return Promise.resolve(true);
+            })
+            return Promise.all(deleteJob);
+            
+        } catch(err){
+            console.error(err)
+            return Promise.reject();
+        }
     },
     getStatus : {
         promise : {

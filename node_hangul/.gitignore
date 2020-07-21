@@ -3,3 +3,4 @@ config.json
 dbconfig.json
 build
 mbk.log
+dump

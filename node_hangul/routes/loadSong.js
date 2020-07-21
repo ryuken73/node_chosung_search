@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
  
 router.get('/useWorkers', async (req, res, next) => {
 	const {from} = req.query;
@@ -20,6 +21,15 @@ router.get('/useWorkers', async (req, res, next) => {
 		const totalLoaded = masterEngine ? await masterEngine.loadFromDB(options) : {};	
 		const result = totalLoaded ? {result:'success', count: totalLoaded} 
 								   : {result:'failure', count: 0};
+		const outDir = global.DUMP_DIRECTORY;
+		const filePrefix = global.DUMP_FILE_PREFIX;
+		global.logger.info(outDir);
+		if(totalLoaded && global.DUMP_FILE_ENABLED) {
+			global.logger.info(`Saving index to files started...`);
+			await masterEngine.deleteIndexFile(outDir, filePrefix);
+			await masterEngine.saveIndexToFile(outDir, filePrefix); 
+			global.logger.info(`Saving index to files done`);
+		}
 		scheduleEngine.start(global.SCHEDULE_NAME.INCREMENTAL);
 		global.logger.info(result); 
 		return; 
