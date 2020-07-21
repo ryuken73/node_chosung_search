@@ -35,15 +35,6 @@ function Master({gap, master}) {
              <div style={{fontSize:"60px"}}>{searching}</div> 
           </Box> 
         </Box>
-          {/* <Box 
-          bgcolor={brown[800]}
-          mx={gap}  
-          fontSize="fontSize" 
-          textAlign="center"
-          mb={gap} 
-        >
-            last indexed : {master.lastIndexedDate}
-        </Box> */}
       </Box>
   )
 }

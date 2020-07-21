@@ -200,7 +200,7 @@ export default class App extends Component {
     return (
       <Box display="flex" flexDirection="column" height="100vh" className="App">
         <Header gap={gap} text={"Status"} insert={insertCount} update={updateCount} delete={deleteCount}></Header>
-        <SearchBar gap={gap} text={"Status"} insert={insertCount} update={updateCount} delete={deleteCount}></SearchBar>
+        {/* <SearchBar gap={gap} text={"Status"} insert={insertCount} update={updateCount} delete={deleteCount}></SearchBar> */}
         <Box display="flex" flexDirection="row" justifyContent="center" alignItems="stretch" height="80vh">
           <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow="1" width="45vw"> 
             <Title gap={gap} title={'master'}></Title>
