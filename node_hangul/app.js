@@ -37,9 +37,11 @@ global.INDEX_DATA_SQL = config.INDEX_DATA_SQL || 'select artist, song_name, key,
 global.APPLY_SEARCH_FILTER_STATUS = config.APPLY_SEARCH_FILTER_STATUS || true;
 global.APPLY_SEARCH_FILTER_OPEN_TIME = config.APPLY_SEARCH_FILTER_OPEN_TIME || true;
 global.CRON_FOR_SCHEDULED_INDEXING = config.CRON_FOR_SCHEDULED_INDEXING || "0 * * * * * ";
+// don't use dump file. search can be slow down during dumping index to file (for about 60 seconds)
 global.DUMP_FILE_ENABLED = config.DUMP_FILE_ENABLED || true;
 global.DUMP_DIRECTORY = config.DUMP_DIRECTORY || `${__dirname}/dump`;
 global.DUMP_FILE_PREFIX = config.DUMP_FILE_PREFIX || "dump_";
+//
 global.SCHEDULE_NAME = {
   INCREMENTAL : 'incremental_v_song'
 }

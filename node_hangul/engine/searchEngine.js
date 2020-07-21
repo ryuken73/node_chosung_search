@@ -1,9 +1,10 @@
-const jsonfile = require('jsonfile');
 const path = require('path');
 const getMemInfo = require('../lib/getMemInfo');
 const orderSong = require('../lib/orderSong');
 const song = require('../lib/songClass');  
 const {createPattern} = require('../lib/patternClass');
+const {Readable} = require('stream');
+const fs = require('fs');
 
 const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
     return songArray.filter(song => {
@@ -25,6 +26,19 @@ const getDayString = date => {
     const minute = padZero(date.getMinutes());
 	const second = padZero(date.getSeconds());
 	return year+month+day+minute+second;
+}
+
+const arrayToStream = (array, fields) => {
+    return new Readable({
+        objectMode: true,
+        highWaterMark: 1024,
+        read(size){
+            const songObj = array.shift();
+            const mappingFields = fields.map(field => songObj[field]);
+            this.push(JSON.stringify(mappingFields));
+            if(array.length === 0) this.push(null);
+        }
+    })
 }
 
 const worker = {
@@ -103,14 +117,15 @@ const worker = {
     },
     saveToFile : async (outFile) => {
         return new Promise((resolve, reject) => {
-            jsonfile.writeFile(outFile, this.songArray, (err) => {
-                if(err) {
-                    console.error(err);
-                    resolve(false);
-                    return
-                }
+            const fields = ['_artistName','_songName','_key','_open_dt','_status'];
+            const rStream = arrayToStream(this.songArray, fields);       
+            const wStream = fs.createWriteStream(outFile, {highWaterMark: 64*1024});        
+            // below code takes 66 seconds, but keeping process responseive (but slow. hold add feature!)
+            rStream
+            .pipe(wStream)        
+            wStream.on('finish', () => {
+                // it takes 64 seconds
                 resolve(true);
-                return;
             })
         })
     }
