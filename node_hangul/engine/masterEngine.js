@@ -55,6 +55,7 @@ const master = {
     insertCount : 0,
     updateCount : 0,
     deleteCount : 0,
+    totalSearched : 0,
     setInsertCount(count){this.insertCount = count},
     setUpdateCount(count){this.updateCount = count},
     setDeleteCount(count){this.deleteCount = count},
@@ -78,7 +79,7 @@ const master = {
     },
     initMasterStatus(initialStatus){
         const {pid, lastIndexedDate, lastIndexedCount, lastIndexedPercent} = initialStatus;
-        const {indexingStatus, mem, searching} = initialStatus;
+        const {indexingStatus, mem, searching, totalSearched} = initialStatus;
         this.pid = pid;
         this.lastIndexedDate = lastIndexedDate;
         this.lastIndexedCount = lastIndexedCount;
@@ -86,6 +87,7 @@ const master = {
         this.indexingStatus = indexingStatus
         this.mem = mem;
         this.searching = searching;
+        this.totalSearched = totalSearched;
     },
     initNotification(notification){
         const {enabled, bcastIO} = notification;
@@ -205,6 +207,7 @@ const master = {
             // send search jot to each workers 
             const result = await this.searchManager.request(job);
             clearTimeout(timer);
+            // this.totalSearched++;
             return result;
         } catch(err) {
             global.logger.error(err);
@@ -367,7 +370,8 @@ const master = {
                     lastIndexedCount: await this.requestIndexCount(),
                     lastIndexedPercent: this.lastIndexedPercent,
                     indexingStatus: this.indexingStatus,
-                    searching: this.searching
+                    searching: this.searching,
+                    totalSearched: this.totalSearched
                 }
                 break;
             case 'requestLog' : 
@@ -421,7 +425,8 @@ const initMaster = (options) => {
         lastIndexedPercent : '0%',          
         indexingStatus : INDEXING_STATUS.NOT_INDEXED,
         mem : getMemInfo(),
-        searching : 0
+        searching : 0,
+        totalSearched: 0
     }        
     master.initMasterStatus(initialStatus);
     master.initNotification(notification);

@@ -48,6 +48,8 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 			const elapsed = stopWatch.end();
 			const resultCount = cacheResponse.length;
 			broadcastStatus({status: 'cacheHit', results: {userId, ip, elapsed, pattern:inPattern.upperCase, resultCount, cacheHit}})
+			const masterStatus = await masterEngine.getStatus.promise.master();
+			await masterEngine.setStatus.promise.master({totalSearched: masterStatus.totalSearched+1});
 			res.send({result: cacheResponse.slice(0,maxReturnCount), count: resultCount});
 			return;
 		}
@@ -72,6 +74,8 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 			patternJAMO : inPattern.patternJAMO,
 			results : resultsSizeReduced
 		})
+		const masterStatus = await masterEngine.getStatus.promise.master();
+		await masterEngine.setStatus.promise.master({totalSearched: masterStatus.totalSearched+1});
 		res.send({result: resultsSizeReduced.slice(0,maxReturnCount), count:resultsUnique.length});
 		
 	} catch (err) {

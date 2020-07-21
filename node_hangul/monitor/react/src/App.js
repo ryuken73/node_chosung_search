@@ -48,7 +48,6 @@ export default class App extends Component {
       insertCount: 0,
       updateCount: 0,
       deleteCount: 0,
-
     }
   }  
   
@@ -191,6 +190,7 @@ export default class App extends Component {
     const {workers, master, scheduler, currentLog, cacheWorkers, progress} = this.state;
     const {startingIndex, onIndexing, indexDone} = this.state;
     const {insertCount, updateCount, deleteCount} = this.state;
+    const {totalSearched} =this.state.master;
     // const {disalbeClearCacheBtn, disalbeClearIndexBtn} = this.state;
     const disableLoadDBBtn = startingIndex || onIndexing || indexDone;
     const disableLoadFileBtn = startingIndex|| onIndexing || indexDone;
@@ -199,8 +199,7 @@ export default class App extends Component {
     const gap = 0.3;
     return (
       <Box display="flex" flexDirection="column" height="100vh" className="App">
-        <Header gap={gap} text={"Status"} insert={insertCount} update={updateCount} delete={deleteCount}></Header>
-        {/* <SearchBar gap={gap} text={"Status"} insert={insertCount} update={updateCount} delete={deleteCount}></SearchBar> */}
+        <Header gap={gap} text={"Status"} insert={insertCount} update={updateCount} delete={deleteCount} totalSearched={totalSearched}></Header>
         <Box display="flex" flexDirection="row" justifyContent="center" alignItems="stretch" height="80vh">
           <Box display="flex" flexDirection="column" justifyContent="flex-start" alignItems="stretch" flexGrow="1" width="45vw"> 
             <Title gap={gap} title={'master'}></Title>
