@@ -24,12 +24,14 @@ router.get('/useWorkers', async (req, res, next) => {
 		const outDir = global.DUMP_DIRECTORY;
 		const filePrefix = global.DUMP_FILE_PREFIX;
 		global.logger.info(outDir);
+		// do not enable global.DUMP_FILE_ENABLED. search can be slow down
 		if(totalLoaded && global.DUMP_FILE_ENABLED) {
 			global.logger.info(`Saving index to files started...`);
 			await masterEngine.deleteIndexFile(outDir, filePrefix);
 			await masterEngine.saveIndexToFile(outDir, filePrefix); 
 			global.logger.info(`Saving index to files done`);
 		}
+		//
 		scheduleEngine.start(global.SCHEDULE_NAME.INCREMENTAL);
 		global.logger.info(result); 
 		return; 
