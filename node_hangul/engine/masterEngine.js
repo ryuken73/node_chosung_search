@@ -400,6 +400,21 @@ const master = {
             }
         return result;
     },
+    async broadcastLog(elapsed, params){
+        const {userId, ip, pattern, resultCount, cacheHit, type} = params;
+        const logMonitor = {
+            eventTime: (new Date()).toLocaleString(),
+            userId: userId ? userId : 'None',
+            ip: ip ? ip : 'None',
+            keyword: `[${pattern}]`,
+            elapsed: elapsed,
+            resultCount,
+            cacheHit,
+            type
+        }	
+        this.setStatus.promise.log({log: logMonitor});
+        this.broadcast('logMonitor', await this.getStatus.promise.log());
+    },
     async requestIndexCount(){
         try {
             const workersMonitors = await this.searchManager.request({cmd: 'requestMonitor'});

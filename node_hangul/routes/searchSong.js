@@ -36,8 +36,8 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 
 		const {userId='unknown', maxReturnCount = global.MAX_SEARCH_RETURN_COUNT} = req.query;
 		const ip = req.connection.remoteAddress || 'none';
-		global.logger.info(`[${ip}][${userId}] new request : pattern [${inPattern.upperCase}]`);
-		const broadcastStatus = broadcaster(req.app.get('masterEngine'), req.app.get('logMonitor'))
+		global.logger.info(`[${ip}][${userId}] Request : [${inPattern.upperCase}]`);
+		const broadcastStatus = broadcaster(req.app.get('masterEngine'))
 		broadcastStatus({status: 'start'});
 
 		const masterEngine = req.app.get('masterEngine');
@@ -64,7 +64,7 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 		const resultCount = resultsSizeReduced.length;
 		
 		global.logger.trace(resultsSizeReduced)
-		global.logger.info(`[${ip}][${userId}] unique result : [%s] : %d`, inPattern.upperCase, resultCount);
+		global.logger.info(`[${ip}][${userId}] Results : [%s] : %d`, inPattern.upperCase, resultCount);
 		const elapsed = stopWatch.end();
 		broadcastStatus({status: 'end', results: {userId, ip, elapsed, pattern: inPattern.upperCase, resultCount}});
 
@@ -84,7 +84,7 @@ router.get('/withWorkers/:pattern', mkInPattern, mkStopWatch, async (req, res, n
 	}
 }); 
 
-const broadcaster = (masterEngine, logMonitorStore) => {
+const broadcaster = masterEngine => {
 	return ({status, results}) => {
 		if(status === 'start'){
 			broadcastMaster(masterEngine, 'start');
@@ -92,13 +92,15 @@ const broadcaster = (masterEngine, logMonitorStore) => {
 		}
 		if(status === 'cacheHit'){
 			const {userId, ip, elapsed, pattern, resultCount, cacheHit} = results;
-			broadcastLog(elapsed, masterEngine, {userId, ip, pattern, resultCount, cacheHit});
+			const type = 'cacheHit';
+			masterEngine.broadcastLog(elapsed, {userId, ip, pattern, resultCount, cacheHit, type});
 			broadcastMaster(masterEngine, 'end');
 			return;
 		}
 		if(status === 'end'){
 			const {userId, ip, elapsed, pattern, resultCount} = results;
-			broadcastLog(elapsed, masterEngine, {userId, ip, pattern, resultCount});
+			const type = 'indexHit';
+			masterEngine.broadcastLog(elapsed, {userId, ip, pattern, resultCount, type});
 			broadcastMaster(masterEngine, 'end');
 			return;
 		}
@@ -124,21 +126,6 @@ async function deleteCache(cacheWorkers, patternJAMO){
 	global.logger.debug(resultsFromCache);
     global.logger.info(`delete cache [${patternJAMO}] Done!`);
 	return true;
-}
-
-async function broadcastLog(elapsed, masterEngine, params){
-	const {userId, ip, pattern, resultCount, cacheHit} = params;
-	const logMonitor = {
-		eventTime: (new Date()).toLocaleString(),
-		userId: userId ? userId : 'None',
-		ip: ip ? ip : 'None',
-		keyword: `[${pattern}]`,
-		elapsed: elapsed,
-		resultCount,
-		cacheHit
-	}	
-	masterEngine.setStatus.promise.log({log: logMonitor});
-	masterEngine.broadcast('logMonitor', await masterEngine.getStatus.promise.log());
 }
 
 async function broadcastMaster(masterEngine, type){
