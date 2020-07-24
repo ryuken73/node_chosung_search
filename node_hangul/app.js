@@ -88,6 +88,7 @@ app.use('/search', require('./routes/search'));
 app.use('/searchSong', require('./routes/searchSong'));
 app.use('/clearSong', require('./routes/clearSong'));
 app.use('/clearCache', require('./routes/clearCache'));
+app.use('/searchResult', require('./routes/searchResult'));
  
 // app.use('/heapdump',function(req,res,next){
 //   var filename = 'd:/temp/' + Date.now() + '.heapsnapshot';
