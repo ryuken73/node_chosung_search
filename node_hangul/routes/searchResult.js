@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
  
-router.put('/selected', async (req, res, next) => {
+router.put('/accepted', async (req, res, next) => {
 	// selectedSong = {artistName, songName}
 	const {userId='none'} = req.query;
 	const ip = req.connection.remoteAddress || 'none';
