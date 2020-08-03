@@ -57,10 +57,13 @@ async function main(){
   })
   app.set('masterEngine', masterEngine);
 
-  const scheduleEngine = require('../engine/schedulerEngine')(masterEngine, app.get('musicdb'));
-  scheduleEngine.register(CRON_FOR_SCHEDULED_INDEXING, global.SCHEDULE_NAME.INCREMENTAL);
-  scheduleEngine.start(global.SCHEDULE_NAME.INCREMENTAL); 
-  app.set('scheduleEngine', scheduleEngine);
+  if(global.SCHEDULE_ENABLED){
+    const scheduleEngine = require('../engine/schedulerEngine')(masterEngine, app.get('musicdb'));
+    scheduleEngine.register(CRON_FOR_SCHEDULED_INDEXING, global.SCHEDULE_NAME.INCREMENTAL);
+    scheduleEngine.start(global.SCHEDULE_NAME.INCREMENTAL); 
+    app.set('scheduleEngine', scheduleEngine);
+  }
+
 
   // make monitor instance for worker to get/set monitor status and broadcast status
   socketServer.registerMaster(masterEngine);

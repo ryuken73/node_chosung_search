@@ -2,12 +2,13 @@ const path = require('path');
 const getMemInfo = require('../lib/getMemInfo');
 const orderSong = require('../lib/orderSong');
 const song = require('../lib/songClass');  
+const juso = require('../lib/jusoClass');
 const {createPattern} = require('../lib/patternClass');
 const {Readable} = require('stream');
 const fs = require('fs');
 
-const searchFromLocal = (songArray, keywordExprCanBeNospacing) => {
-    return songArray.filter(song => {
+const searchFromLocal = (jusoArray, keywordExprCanBeNospacing) => {
+    return jusoArray.filter(song => {
         return song.match(keywordExprCanBeNospacing)
     })
 }
@@ -45,16 +46,33 @@ const worker = {
     init : () => {
         const [nodeBinary, moduleFile, ApplyStatusFilter, ApplyOpenTimeFilter] = process.argv;
         this.pid = process.pid;
-        this.songArray = [];
+        this.jusoArray = [];
         this.searchCount = 0;
         this.ApplyStatusFilter = ApplyStatusFilter;
         this.ApplyOpenTimeFilter = ApplyOpenTimeFilter;
         return this;
     },
-    index : (pattern) => {
+    index : dataArray => {
         try {
-            const songObject = song.create(pattern);
-            this.songArray.push(songObject);
+            const sido = dataArray[1];
+            const gu = dataArray[3];
+            const ubMyun = dataArray[5] || '';
+            const ro = dataArray[8];
+            const bonbun = dataArray[11];
+            const bubun = dataArray[12];
+            const buildingNum = `${bonbun}${bubun === '0' ? '':'-'+bubun}`
+            const buildingName = dataArray[15];
+            const dong = dataArray[17] || '';
+            const lastDoroJuso = `${buildingName ? ', '+buildingName+' '+dong:''}`;
+            const jibunBonbun = dataArray[21];
+            const jibunBubun = dataArray[23];
+            const jibun = `${jibunBonbun}${jibunBubun === '0' ? '':'-'+jibunBubun}`
+            const ri = dataArray[18] || '';
+            const dongHangjung = dataArray[19] || dong; 
+            const doroJudo = `doro ${sido} ${gu} ${ubMyun} ${ro} ${buildingNum} ${lastDoroJuso}`;
+            const jibunJuso = `jibun ${sido} ${gu} ${ubMyun} ${ri}${dong?' '+dong+' ':' '}${jibun} ${buildingName}(${dongHangjung})`;
+            const jusoObject = juso.create([doroJudo, jibunJuso, sido])
+            this.jusoArray.push(jusoObject);
             return true;
         } catch (err) {
             console.error(err);
@@ -67,7 +85,7 @@ const worker = {
         const {pattern, limit=100000000} = data;
         const inPattern = createPattern(pattern);
         const exprString = inPattern.getRegExpString(spacing=false);
-        const searchResults = searchFromLocal(this.songArray, exprString)
+        const searchResults = searchFromLocal(this.jusoArray, exprString)
                               .filter(worker.filterStatusIsY)
                               .filter(worker.filterOpenTimeIsLessThanNow);
         const {orderDefault} = orderSong;
@@ -81,7 +99,7 @@ const worker = {
         return result;
     },
     searchByKey : (key) => {
-        const searchResults = [...this.songArray].filter(songObject => songObject.key === key);
+        const searchResults = [...this.jusoArray].filter(songObject => songObject.key === key);
         // console.log(`result of searchByKey : [${key}]`, resultByKey);
         const result = searchResults.map(songObj => {
             const {artistName, songName} = songObj;
@@ -90,15 +108,15 @@ const worker = {
         return result
     },
     deleteByKey : (key) => {
-        const filtered = [...this.songArray].filter(songObject => {
+        const filtered = [...this.jusoArray].filter(songObject => {
             // to fast return, use results.some instead of results.every
             return songObject.key !== key;            
         })
-        this.songArray = filtered;
+        this.jusoArray = filtered;
         return true;
     },
     clear : () => {
-        this.songArray = [];
+        this.jusoArray = [];
         this.searchCount = 0;
         return true;
     },
@@ -118,7 +136,7 @@ const worker = {
     saveToFile : async (outFile) => {
         return new Promise((resolve, reject) => {
             const fields = ['_artistName','_songName','_key','_open_dt','_status'];
-            const rStream = arrayToStream(this.songArray, fields);       
+            const rStream = arrayToStream(this.jusoArray, fields);       
             const wStream = fs.createWriteStream(outFile, {highWaterMark: 64*1024});        
             // below code takes 66 seconds, but keeping process responseive (but slow. hold add feature!)
             rStream
@@ -171,10 +189,10 @@ process.on('message', async ({requestId, request}) => {
             success = true;
             break;
         case 'requestMonitor' :
-            const {pid, songArray, searchCount} = this;
+            const {pid, jusoArray, searchCount} = this;
             result = {
                 pid,
-                words: songArray.length,
+                words: jusoArray.length,
                 searching: searchCount,
                 mem: getMemInfo()
             }

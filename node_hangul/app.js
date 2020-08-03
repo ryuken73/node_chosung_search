@@ -31,11 +31,12 @@ global.INDEXING_BYTES = isValueMeaningful(config.INDEXING_BYTES) ? config.INDEXI
 global.LIMIT_SQL_DATA_COUNT = isValueMeaningful(config.LIMIT_SQL_DATA_COUNT) ? config.LIMIT_SQL_DATA_COUNT : 0;
 global.MONITOR_BROADCAST_INTERVAL = config.MONITOR_BROADCAST_INTERVAL || 500;
 global.EXPRESS_REQ_TIMEOUT = config.EXPRESS_REQ_TIMEOUT || 300000;
-global.NUMBER_OF_COLUMNS_FROM_FILE = config.NUMBER_OF_COLUMNS_FROM_FILE || 2;
+global.NUMBER_OF_COLUMNS_FROM_FILE = config.NUMBER_OF_COLUMNS_FROM_FILE || 26;
 global.TOTAL_COUNT_SQL = config.TOTAL_COUNT_SQL || 'select count(*) as total from music.v_autocomplete ';
 global.INDEX_DATA_SQL = config.INDEX_DATA_SQL || 'select artist, song_name, key, open_dt, status from music.v_autocomplete ';
 global.APPLY_SEARCH_FILTER_STATUS = config.APPLY_SEARCH_FILTER_STATUS || true;
 global.APPLY_SEARCH_FILTER_OPEN_TIME = config.APPLY_SEARCH_FILTER_OPEN_TIME || true;
+global.SCHEDULE_ENABLED = config.SCHEDULE_ENABLED || false;
 global.CRON_FOR_SCHEDULED_INDEXING = config.CRON_FOR_SCHEDULED_INDEXING || "0 * * * * * ";
 // don't use dump file. search can be slow down during dumping index to file (for about 60 seconds)
 global.DUMP_FILE_ENABLED = config.DUMP_FILE_ENABLED || false;
@@ -84,6 +85,7 @@ app.use('/', routes);
 app.use('/users', users);
 app.use('/load', require('./routes/load'));
 app.use('/loadSong', require('./routes/loadSong')); 
+app.use('/loadJuso', require('./routes/loadJuso')); 
 app.use('/search', require('./routes/search'));
 app.use('/searchSong', require('./routes/searchSong'));
 app.use('/clearSong', require('./routes/clearSong'));

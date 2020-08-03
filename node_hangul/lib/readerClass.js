@@ -76,8 +76,8 @@ class FileReader extends Reader {
             end : global.INDEXING_BYTES,
         }
         const combinedOpts = {
-            ...options, 
-            ...defaultOptions
+            ...defaultOptions,
+            ...options
         };
         this.srcFile = combinedOpts.srcFile;
         this.encoding = combinedOpts.encoding;
