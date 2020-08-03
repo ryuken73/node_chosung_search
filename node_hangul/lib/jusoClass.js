@@ -3,12 +3,12 @@ const hangul = require('hangul-js');
 class Juso {
     constructor([doro='', jibun='', sido='']){
         this._doro = doro;
-        this._jibun = jibun;   
+        // this._jibun = jibun;   
         this._sido = sido;
         // this._combinedDoro = this.mkCombined(this._doro);
         this._jamoCombinedDoro = this.getJAMO(this.mkCombined(doro));
         // this._combinedJibun = this.mkCombined(this._jibun);
-        this._jamoCombinedJibun = this.getJAMO(this.mkCombined(jibun));
+        // this._jamoCombinedJibun = this.getJAMO(this.mkCombined(jibun));
         return this;     
     } 
     getJAMO(hangulStr) {
