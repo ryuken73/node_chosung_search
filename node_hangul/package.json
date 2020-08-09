@@ -36,6 +36,7 @@
     "nodemon": "^1.18.7",
     "q": "^2.0.3",
     "serve-favicon": "~2.5.0",
+    "snappy": "^6.3.4",
     "socket.io": "^2.3.0",
     "stream-json": "^1.7.0",
     "tracer": "^0.9.6"

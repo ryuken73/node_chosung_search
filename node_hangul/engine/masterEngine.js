@@ -108,7 +108,7 @@ const master = {
             const reader = await readerClass.createFileReader(options);
             reader.start();
             global.logger.info('start indexing...from File');
-            const digit = 0;
+            const digit = 1;
             reader.on('line', async line => {
                 const percentProcessed = reader.percentProcessed(digit);
                 percentProcessed && global.logger.info(`processed... ${percentProcessed}%`);

@@ -1,11 +1,12 @@
 const constants = {   
     SOCKET_NAMESPACE : '/',
     urls : {
-        'load': '/loadSong/useWorkers',
-        'loadFromDB': '/loadSong/useWorkers?from=db',        
+        'load': '/loadJuso/useWorkers',
+        'loadFromDB': '/loadSong/useWorkers?from=db',      
+        'search': '/searchJuso/withWorkers',  
         'clear': '/clearSong',
         'clearCache': '/clearCache'
     }
 }
 
-export default constants;
+export default constants; 

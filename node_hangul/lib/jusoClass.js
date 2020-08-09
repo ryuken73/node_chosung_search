@@ -1,14 +1,12 @@
 const hangul = require('hangul-js');
+const {deflateSync} = require('zlib');
+const snappy = require('snappy');
 
 class Juso {
-    constructor([doro='', jibun='', sido='']){
-        this._doro = doro;
-        // this._jibun = jibun;   
-        this._sido = sido;
-        // this._combinedDoro = this.mkCombined(this._doro);
-        this._jamoCombinedDoro = this.getJAMO(this.mkCombined(doro));
-        // this._combinedJibun = this.mkCombined(this._jibun);
-        // this._jamoCombinedJibun = this.getJAMO(this.mkCombined(jibun));
+    constructor(jusoMerged){
+        // this._jusoMerged = this.clearWord(jusoMerged);
+        // this._jamoCombined = snappy.compressSync(this.getJAMO(this.mkCombined(this._jusoMerged)));
+        this._jamoCombined = this.getJAMO(this.mkCombined(jusoMerged));
         return this;     
     } 
     getJAMO(hangulStr) {
@@ -20,11 +18,18 @@ class Juso {
     mkCombined(sentence) {
         const sentenceNsentence = `${sentence} ${sentence}`;
         const sentenceNsentenceNoBlank = `${sentence.replace(/\s+/g, '')}${sentence.replace(/\s+/g, '')}`;
-        return `${sentenceNsentence} ${sentenceNsentenceNoBlank}`
+        const combined = `${sentenceNsentence} ${sentenceNsentenceNoBlank}`;
+        // return combined;
+        return sentenceNsentence;
     }
     match(regExpr){
-        return this._jamoCombinedDoro.toUpperCase().search(regExpr) !== -1 || 
-               this._jamoCombinedJibun.toUpperCase().search(regExpr) !== -1 
+        // return snappy.uncompressSync(this._jamoCombined, {asBuffer:false}).toUpperCase().search(regExpr) !== -1;
+        return this._jamoCombined.toUpperCase().search(regExpr) !== -1;
+    }
+    get juso(){
+        // return this._jusoMerged;
+        const assembled = hangul.assemble(this._jamoCombined);
+        return assembled.slice(0, assembled.length/2)
     }
     get doro(){
         return this._doro;
@@ -32,9 +37,6 @@ class Juso {
     get jibun(){
         return this._jibun;
     }
-    // get combinedDoro(){
-    //     return this._combinedDoro;
-    // }
     get combinedJibun(){
         return this._combinedJibun;
     }
@@ -53,7 +55,23 @@ class Juso {
 }
 
 module.exports = {
-    create([doro='', jibun='', sido='']){
-        return new Juso([doro, jibun, sido]);
+    create(dataArray){
+        const sido = dataArray[1];
+        const gu = dataArray[3];
+        const ubMyun = dataArray[5] || '';
+        const ro = dataArray[8];
+        const bonbun = dataArray[11];
+        const bubun = dataArray[12];
+        const buildingNum = `${bonbun}${bubun === '0' ? '':'-'+bubun}`
+        const buildingName = dataArray[15];
+        const dong = dataArray[17] || '';
+        const lastDoroJuso = `${buildingName ? ', '+buildingName+' '+dong:''}`;
+        const jibunBonbun = dataArray[21];
+        const jibunBubun = dataArray[23];
+        const jibun = `${jibunBonbun}${jibunBubun === '0' ? '':'-'+jibunBubun}`
+        const ri = dataArray[18] || '';
+        const dongHangjung = dataArray[19] || dong; 
+        const jusoMerged = `${sido} ${gu} ${ubMyun} ${ro} ${buildingNum} ${lastDoroJuso} ${ri}${dong?' '+dong+' ':' '}${jibun} ${buildingName}(${dongHangjung})`
+        return new Juso(jusoMerged);
     }
 }

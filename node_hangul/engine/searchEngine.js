@@ -8,8 +8,8 @@ const {Readable} = require('stream');
 const fs = require('fs');
 
 const searchFromLocal = (jusoArray, keywordExprCanBeNospacing) => {
-    return jusoArray.filter(song => {
-        return song.match(keywordExprCanBeNospacing)
+    return jusoArray.filter(juso => {
+        return juso.match(keywordExprCanBeNospacing)
     })
 }
 
@@ -54,26 +54,9 @@ const worker = {
     },
     index : dataArray => {
         try {
-            const sido = dataArray[1];
-            const gu = dataArray[3];
-            const ubMyun = dataArray[5] || '';
-            const ro = dataArray[8];
-            const bonbun = dataArray[11];
-            const bubun = dataArray[12];
-            const buildingNum = `${bonbun}${bubun === '0' ? '':'-'+bubun}`
-            const buildingName = dataArray[15];
-            const dong = dataArray[17] || '';
-            const lastDoroJuso = `${buildingName ? ', '+buildingName+' '+dong:''}`;
-            const jibunBonbun = dataArray[21];
-            const jibunBubun = dataArray[23];
-            const jibun = `${jibunBonbun}${jibunBubun === '0' ? '':'-'+jibunBubun}`
-            const ri = dataArray[18] || '';
-            const dongHangjung = dataArray[19] || dong; 
-            const doroJudo = `doro ${sido} ${gu} ${ubMyun} ${ro} ${buildingNum} ${lastDoroJuso}`;
-            const jibunJuso = `jibun ${sido} ${gu} ${ubMyun} ${ri}${dong?' '+dong+' ':' '}${jibun} ${buildingName}(${dongHangjung})`;
-            const jusoObject = juso.create([doroJudo, jibunJuso, sido])
+            const jusoObject = juso.create(dataArray);
             this.jusoArray.push(jusoObject);
-            return true;
+            return true; 
         } catch (err) {
             console.error(err);
             process.exit();
@@ -86,15 +69,18 @@ const worker = {
         const inPattern = createPattern(pattern);
         const exprString = inPattern.getRegExpString(spacing=false);
         const searchResults = searchFromLocal(this.jusoArray, exprString)
-                              .filter(worker.filterStatusIsY)
-                              .filter(worker.filterOpenTimeIsLessThanNow);
-        const {orderDefault} = orderSong;
-        const orderedResults = orderDefault(searchResults, inPattern.pattern);     
-        limit && orderedResults.splice(limit);
-        const result = orderedResults.map(songObj => {
-            const {artistName, songName} = songObj;
-            return {artistName, songName}
-        })            
+        // const {orderDefault} = orderSong;
+        // const orderedResults = orderDefault(searchResults, inPattern.pattern);     
+        // limit && orderedResults.splice(limit);
+        limit && searchResults.splice(limit);
+        // const result = orderedResults.map(songObj => {
+        //     const {artistName, songName} = songObj;
+        //     return {artistName, songName}
+        // })        
+        const result = searchResults.map(jusoObj => {
+            const {juso} = jusoObj;
+            return juso;
+        })    
         this.searchCount -= 1;
         return result;
     },

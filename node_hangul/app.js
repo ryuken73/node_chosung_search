@@ -88,6 +88,7 @@ app.use('/loadSong', require('./routes/loadSong'));
 app.use('/loadJuso', require('./routes/loadJuso')); 
 app.use('/search', require('./routes/search'));
 app.use('/searchSong', require('./routes/searchSong'));
+app.use('/searchJuso', require('./routes/searchJuso'));
 app.use('/clearSong', require('./routes/clearSong'));
 app.use('/clearCache', require('./routes/clearCache'));
 app.use('/searchResult', require('./routes/searchResult'));
