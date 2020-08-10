@@ -1,6 +1,6 @@
 import React from 'react';
 import Box from '@material-ui/core/Box';
-import {brown} from '@material-ui/core/colors';
+import Constants from '../config/Constants';
 import Tooltip from '@material-ui/core/Tooltip';
 
 function Log({gap, currentLog}) {
@@ -22,7 +22,7 @@ function Log({gap, currentLog}) {
   }
   const defaultStyle = {flexGrow:1, flexShrink:5, margin:'3px', minWidth:'120px', flexBasis:'120px'};
   return (
-    <Box display="flex" flexDirection="row" justifyContent="flex-start" alignItems="stretch" flexGrow={3} mt={gap} mx={gap} overflow="auto" textOverflow="ellipsis" fontSize="12px" bgcolor={brown[700]} style={{"overflowX":"hidden"}}>
+    <Box display="flex" flexDirection="row" justifyContent="flex-start" alignItems="stretch" flexGrow={3} mt={gap} mx={gap} overflow="auto" textOverflow="ellipsis" fontSize="12px" bgcolor={Constants.color[700]} style={{"overflowX":"hidden"}}>
       <Box style={{...defaultStyle, minWidth:'120px'}}>
         {currentLog.map(log => <ColorBox cacheHit={log.cacheHit} type={log.type}>{log.eventTime}</ColorBox>)}
       </Box>

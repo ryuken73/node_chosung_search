@@ -1,6 +1,6 @@
 import React from 'react';
 import Box from '@material-ui/core/Box';
-import {brown} from '@material-ui/core/colors';
+import Constants from '../config/Constants';
 
 function Cache({gap, caches}) {
   const smallFontSize = `${10 - (caches.length/3)}px`; 
@@ -16,7 +16,7 @@ function Cache({gap, caches}) {
      flexWrap="wrap" 
      height="20vh"
      mx={gap} 
-     bgcolor={brown[700]}
+     bgcolor={Constants.color[700]}
      overflow="hidden"
     >
       {caches.map(cache => 
@@ -27,7 +27,7 @@ function Cache({gap, caches}) {
           alignItems="center"
           m={1} 
           fontSize={mediumFontSize} 
-          bgcolor={brown[600]}
+          bgcolor={Constants.color[600]}
         >
           <Box display="flex" overflow="auto" justifyContent="flex-start" flexDirection="column" p={2} textAlign="left">
             <div>PID: {cache.pid}</div>

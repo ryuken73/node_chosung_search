@@ -12,20 +12,27 @@ import Worker from './components/Worker';
 import Cache from './components/Cache';
 import Constants from './config/Constants';
 import PrettoSlide from './components/PrettoSlide';
-import {brown} from '@material-ui/core/colors';
 import {withStyles} from '@material-ui/core/styles';
 import axiosRequest from './lib/axiosRequest';
 import Tooltip from '@material-ui/core/Tooltip';
 import './App.css';
 
+// sete default Color
+// colors can be
+// red, pink, purple
+// deepPurple, indigo, blue, lightBlue, cyan, teal
+// green, lightGreen, lime, deepOrange, brown, grey
+// blueGrey
+Constants.color = 'indigo'
+
 const BrownButton = withStyles({
   root: {
-    backgroundColor: brown[800],
+    backgroundColor: Constants.color[800],
     '&:hover': {
-      backgroundColor: brown[500],
+      backgroundColor: Constants.color[500],
     },
     '&:active': {
-      backgroundColor: brown[300]
+      backgroundColor: Constants.color[300]
     },
   }
 })(Button)
@@ -52,6 +59,7 @@ export default class App extends Component {
   }  
   
   componentDidMount(){
+
     // connect socket server
     const {endpoint} = Constants.SOCKET_NAMESPACE;
     const socket = socketIOClient(endpoint);
@@ -214,7 +222,7 @@ export default class App extends Component {
           </Box>
         </Box>
         <PrettoSlide value={progress} onChange={this.handleSliderChange} aria-labelledby="continuous-slider" />
-        <Box display="flex" flexDirection="row" justifyContent="space-around" alignItems="center" flexGrow="1" mx={gap} mb={gap} bgcolor={brown[900]}>
+        <Box display="flex" flexDirection="row" justifyContent="space-around" alignItems="center" flexGrow="1" mx={gap} mb={gap} bgcolor={Constants.color[900]}>
           <Tooltip open={disableLoadDBBtn} title={onIndexing ? "Wait indexing..." : "Clear Index first!"} placement="right-end">
             <BrownButton disabled={disableLoadDBBtn} onClick={this.onClickLoadFromDB} variant="contained" color="primary"  size="medium">load from DB</BrownButton>         
           </Tooltip>  

@@ -1,3 +1,6 @@
+
+import {colors} from '@material-ui/core';
+
 const constants = {   
     SOCKET_NAMESPACE : '/',
     urls : {
@@ -6,7 +9,14 @@ const constants = {
         'search': '/searchJuso/withWorkers',  
         'clear': '/clearSong',
         'clearCache': '/clearCache'
+    },
+    set color(color){
+        this._color = colors[color];
+    },
+    get color(){
+        return this._color
     }
+
 }
 
 export default constants; 

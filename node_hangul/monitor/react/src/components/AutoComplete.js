@@ -12,8 +12,6 @@ import debounce from 'lodash/debounce';
 import Constants from '../config/Constants';
 import axios from 'axios';
 import styled from 'styled-components';
-import {brown} from '@material-ui/core/colors';
-
 
 const defaultBgColor = "black";
 const defaultFontColor = "white";
@@ -52,7 +50,7 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: '0px'
   },
   paper: {
-    background: brown[800],
+    background: Constants.color[800],
     color: 'white',
     fontSize: '12px'
   }
@@ -121,7 +119,7 @@ export default function GoogleMaps() {
       filterSelectedOptions
       value={value}
       classes={classes}
-      bgcolor={brown[700]}
+      bgcolor={Constants.color[700]}
       onChange={(event, newValue) => {
         setOptions(newValue ? [newValue, ...options] : options);
         setValue(newValue);

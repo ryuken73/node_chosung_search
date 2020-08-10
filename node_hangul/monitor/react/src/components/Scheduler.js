@@ -1,6 +1,6 @@
 import React from 'react';
 import Box from '@material-ui/core/Box';
-import {brown} from '@material-ui/core/colors';
+import Constants from '../config/Constants';
 
 function Master({gap, master}) {
   // const lastIndexedCount = master.lastIndexedCount ? master.lastIndexedCount : 0;
@@ -17,7 +17,7 @@ function Master({gap, master}) {
           height="1"
           mx={gap}  
           fontSize="fontSize" 
-          bgcolor={brown[700]}
+          bgcolor={Constants.color[700]}
           overflow="hidden"
         >
           <Box>
@@ -34,7 +34,7 @@ function Master({gap, master}) {
           </Box> 
         </Box>
         <Box 
-          bgcolor={brown[800]}
+          bgcolor={Constants.color[800]}
           mx={gap}  
           fontSize="fontSize" 
           textAlign="center"
