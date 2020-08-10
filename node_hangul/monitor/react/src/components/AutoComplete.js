@@ -11,18 +11,31 @@ import throttle from 'lodash/throttle';
 import debounce from 'lodash/debounce';
 import Constants from '../config/Constants';
 import axios from 'axios';
+import styled from 'styled-components';
+import {brown} from '@material-ui/core/colors';
 
-// function loadScript(src, position, id) {
-//   if (!position) {
-//     return;
-//   }
 
-//   const script = document.createElement('script');
-//   script.setAttribute('async', '');
-//   script.setAttribute('id', id);
-//   script.src = src;
-//   position.appendChild(script);
-// }
+const defaultBgColor = "black";
+const defaultFontColor = "white";
+const StyledAutocomplete = styled(Autocomplete)`
+  margin-top: ${props => props.mt || "0px"};
+  margin-bottom: ${props => props.mb || "0px"};
+  background: ${props => props.bgcolor || defaultBgColor};
+  .MuiFormLabel-root {
+    color: white;
+    font-size: 12px;
+  }
+  .MuiOutlinedInput-root {
+    & fieldset {
+      border-color: white;
+    },
+    &:hover fieldset {
+      border-color: white;
+    },
+    &.Mui-focused fieldset {
+      border-color: white;
+    },
+`
 
 const autocompleteService = {};
 
@@ -31,6 +44,18 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.text.secondary,
     marginRight: theme.spacing(2),
   },
+  inputRoot: {
+    fontSize: '12px',
+    paddingTop: '5px',
+    paddingBottom: '5px',
+    color: 'white',
+    borderRadius: '0px'
+  },
+  paper: {
+    background: brown[800],
+    color: 'white',
+    fontSize: '12px'
+  }
 }));
 
 export default function GoogleMaps() {
@@ -84,10 +109,10 @@ export default function GoogleMaps() {
   }, [value, inputValue, fetch]);
 
   return (
-    <Autocomplete
+    <StyledAutocomplete
       id="material ui autocomplete"
       size="small"
-      style={{ width:300, height:'4vh' }}
+      style={{ width:300, height:"100%" }}
       getOptionLabel={(option) => (typeof option === 'string' ? option : option.description)}
       filterOptions={(x) => x}
       options={options}
@@ -95,6 +120,8 @@ export default function GoogleMaps() {
       includeInputInList
       filterSelectedOptions
       value={value}
+      classes={classes}
+      bgcolor={brown[700]}
       onChange={(event, newValue) => {
         setOptions(newValue ? [newValue, ...options] : options);
         setValue(newValue);
@@ -105,36 +132,32 @@ export default function GoogleMaps() {
       renderInput={(params) => (
         <TextField {...params} label="주소" variant="outlined" fullWidth />
       )}
-    //   renderOption={(option) => {
-    //     // const matches = option.structured_formatting.main_text_matched_substrings;
-    //     // const parts = parse(
-    //     //   option.structured_formatting.main_text,
-    //     //   matches.map((match) => [match.offset, match.offset + match.length]),
-    //     // );
-    //     const parts = parse(
-    //         option,
-    //         match(option,value)
-    //     )
+      renderOption={(option) => {
+        // const matches = option.structured_formatting.main_text_matched_substrings;
+        // const parts = parse(
+        //   option.structured_formatting.main_text,
+        //   matches.map((match) => [match.offset, match.offset + match.length]),
+        // );
+        const parts = parse(
+            option,
+            match(option,value)
+        )
 
-    //     return (
-    //       <Grid container alignItems="center">
-    //         <Grid item>
-    //           <LocationOnIcon className={classes.icon} />
-    //         </Grid>
-    //         <Grid item xs>
-    //           {parts.map((part, index) => (
-    //             <span key={index} style={{ fontSize:"12px", fontWeight: part.highlight ? 700 : 400 }}>
-    //               {part.text}
-    //             </span>
-    //           ))}
-
-    //           {/* <Typography variant="body2" color="textSecondary">
-    //             {option.structured_formatting.secondary_text}
-    //           </Typography> */}
-    //         </Grid>
-    //       </Grid>
-    //     );
-    //   }}
+        return (
+          <Grid container alignItems="center">
+            <Grid item>
+              <LocationOnIcon className={classes.icon} />
+            </Grid>
+            <Grid item xs>
+              {parts.map((part, index) => (
+                <span key={index} style={{ fontSize:"12px", fontWeight: part.highlight ? 700 : 400 }}>
+                  {part.text}
+                </span>
+              ))}
+            </Grid>
+          </Grid>
+        );
+      }}
     />
   );
 }
